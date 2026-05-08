@@ -10,6 +10,9 @@ resume_bucket_name = "s3-resumes-888687695411"
 # Must match API object keys (default: resumes/<user_id>/...).
 # resume_object_prefix = "resumes"
 
+# Scraped job posting HTML (default: job-html/<hash>.html); IAM allows Get/Put under this prefix.
+# job_html_object_prefix = "job-html"
+
 # Recommended for AWS: require TLS (set false only if a broken client cannot use HTTPS).
 # iam_enforce_tls = true
 

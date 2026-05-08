@@ -18,8 +18,13 @@ output "resume_object_prefix" {
   value       = trim(var.resume_object_prefix, "/")
 }
 
+output "job_html_object_prefix" {
+  description = "Path prefix for scraped HTML (must match API DOUBOW_S3_JOB_HTML_PREFIX)."
+  value       = trim(var.job_html_object_prefix, "/")
+}
+
 output "iam_policy_json" {
-  description = "IAM policy JSON: s3:GetObject + s3:PutObject on bucket/prefix/* only (attach to API/worker user or role)."
+  description = "IAM policy JSON: s3:GetObject + s3:PutObject on résumé + job-html prefixes only (attach to API/worker user or role)."
   value       = data.aws_iam_policy_document.resume_app.json
 }
 

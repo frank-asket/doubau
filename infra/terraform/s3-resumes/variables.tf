@@ -15,6 +15,12 @@ variable "resume_object_prefix" {
   default     = "resumes"
 }
 
+variable "job_html_object_prefix" {
+  type        = string
+  description = "First path segment for scraped job HTML (must match API DOUBOW_S3_JOB_HTML_PREFIX / job-html/*)."
+  default     = "job-html"
+}
+
 variable "iam_enforce_tls" {
   type        = bool
   description = "If true, deny S3 calls unless aws:SecureTransport is true (recommended for AWS credentials)."

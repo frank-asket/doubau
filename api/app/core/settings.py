@@ -42,8 +42,16 @@ class Settings(BaseSettings):
     # OpenAI résumé embeddings (Phase 1). Optional locally; set in prod for EMBEDDED status.
     openai_api_key: str | None = None
     openai_embedding_model: str = "text-embedding-3-small"
+    # Chat model for fit scorer and later agents (Phase 2+).
+    openai_chat_model: str = "gpt-4o-mini"
     embedding_dimensions: int = 1536
     embedding_max_input_chars: int = 30_000
+
+    # Scraper: max HTTP GETs per host per minute (token bucket via Redis).
+    scrape_max_requests_per_host_per_minute: int = 30
+    # RSS ingest: max item links enqueued per feed (each becomes a scrape_job child task).
+    scrape_rss_max_entries: int = 25
+    s3_job_html_prefix: str = "job-html"
 
     @field_validator("openai_api_key", mode="before")
     @classmethod

@@ -1,4 +1,4 @@
-from app.api.jobs import _score_job
+from app.api.jobs import _score_job_heuristic as _score_job
 from app.models.job import Job
 
 

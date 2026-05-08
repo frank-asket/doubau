@@ -3,12 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+_JOB_EMBEDDING_DIM = 1536
 
 
 class Job(Base):
@@ -20,7 +23,6 @@ class Job(Base):
     title: Mapped[str] = mapped_column(String(220), nullable=False, index=True)
     location: Mapped[str | None] = mapped_column(String(220), nullable=True, index=True)
 
-    # freeform fields for MVP; we can normalize later
     seniority: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     employment_type: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
 
@@ -28,8 +30,22 @@ class Job(Base):
     tags: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
 
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True, index=True)
+    source_url_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
+    embedding_vector: Mapped[list[float] | None] = mapped_column(
+        Vector(_JOB_EMBEDDING_DIM),
+        nullable=True,
+    )
+    embedding_model: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    raw_html_s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, index=True
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        index=True,
     )
-
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        index=True,
+    )
