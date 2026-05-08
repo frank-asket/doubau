@@ -3,12 +3,19 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 import redis
 from celery.signals import task_failure
+from sqlalchemy import select
 
 from app.celery_app import celery_app
 from app.core.settings import settings
+from app.db import SessionLocal
+from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
+from app.resume.structure import structure_resume_text
+from app.storage.s3 import s3_client
 
 
 def _dlq_client() -> redis.Redis:
@@ -31,7 +38,16 @@ def push_to_dlq(payload: dict[str, Any]) -> None:
 
 
 @task_failure.connect
-def _on_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, traceback=None, einfo=None, **_):
+def _on_task_failure(
+    sender=None,
+    task_id=None,
+    exception=None,
+    args=None,
+    kwargs=None,
+    traceback=None,
+    einfo=None,
+    **_,
+):
     push_to_dlq(
         {
             "task": getattr(sender, "name", None),
@@ -73,4 +89,60 @@ def generate_outreach_draft(application_id: str) -> dict[str, Any]:
 @celery_app.task(name="app.tasks.send_notification")
 def send_notification(user_id: str, message: str) -> dict[str, Any]:
     return {"user_id": user_id, "sent": False, "message": message, "status": "stub"}
+
+
+@celery_app.task(name="app.tasks.process_resume_document")
+def process_resume_document(resume_document_id: str) -> dict[str, Any]:
+    """
+    Phase 1 pipeline:
+    - download raw file from S3
+    - parse PDF/DOCX -> extracted_text + parsed_json
+    - persist back to `resume_documents`
+    """
+    with SessionLocal() as db:
+        try:
+            doc_id = UUID(resume_document_id)
+        except Exception:
+            return {"id": resume_document_id, "status": "invalid_id"}
+
+        doc = db.execute(
+            select(ResumeDocument).where(ResumeDocument.id == doc_id)
+        ).scalar_one_or_none()
+        if doc is None:
+            return {"id": resume_document_id, "status": "missing"}
+
+        try:
+            client = s3_client()
+            obj = client.get_object(Bucket=doc.s3_bucket, Key=doc.s3_key)
+            data: bytes = obj["Body"].read()
+
+            ct = (doc.content_type or "").lower()
+            if ct == "application/pdf" or doc.file_name.lower().endswith(".pdf"):
+                extracted = parse_pdf_bytes(data)
+            elif (
+                ct == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                or doc.file_name.lower().endswith(".docx")
+            ):
+                extracted = parse_docx_bytes(data)
+            else:
+                raise ResumeParseError("Unsupported resume file type")
+
+            doc.extracted_text = extracted
+            structured = structure_resume_text(extracted)
+            doc.parsed_json = {
+                "text": extracted,
+                "length": len(extracted),
+                "structured": structured,
+            }
+            doc.status = ResumeStatus.PARSED
+            doc.error = None
+            db.add(doc)
+            db.commit()
+            return {"id": str(doc.id), "status": doc.status, "chars": len(extracted)}
+        except (ResumeParseError, Exception) as e:
+            doc.status = ResumeStatus.FAILED
+            doc.error = repr(e)
+            db.add(doc)
+            db.commit()
+            raise
 

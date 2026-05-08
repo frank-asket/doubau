@@ -27,7 +27,7 @@ export default function OnboardingContactPage() {
         setError("Could not save. Please try again.");
         return;
       }
-      router.push("/onboarding/goals");
+      router.push("/onboarding/resume");
     } finally {
       setLoading(false);
     }

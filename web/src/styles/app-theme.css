@@ -1,0 +1,113 @@
+/**
+ * DouBow product UI — tokens from `public/doubow_design_system.html`.
+ * Scope with `.theme-app` so marketing (`hirslams.css`) stays on lime tokens.
+ */
+
+.theme-app {
+  color-scheme: light;
+
+  /* ── Core palette ── */
+  --app-sidebar: #0f1117;
+  --app-accent: #1a5cff;
+  --app-accent-hover: #0f44d4;
+  --app-accent-700: #0a2fa0;
+
+  /* Blue scale */
+  --app-blue-50: #e8eeff;
+  --app-blue-100: #c7d8ff;
+  --app-blue-200: #94b4ff;
+  --app-blue-300: #5c8fff;
+  --app-blue-500: #1a5cff;
+  --app-blue-600: #0f44d4;
+
+  /* Surfaces */
+  --app-bg-page: #f8f9fc;
+  --app-bg-muted: #eef1f7;
+  --app-bg-elevated: #ffffff;
+
+  /* Text */
+  --app-text-primary: #1a1d2e;
+  --app-text-secondary: #6b7280;
+  --app-text-tertiary: #9ca3af;
+  --app-text-info: #2563eb;
+
+  /* Borders (DS: 0.5px feel → use 1px at sm sizes; token matches HTML) */
+  --app-border: #e5e8ef;
+  --app-border-strong: #d1d5db;
+
+  /* Semantic */
+  --app-success: #22c55e;
+  --app-danger: #ef4444;
+  --app-warning: #f59e0b;
+  --app-info: #1a5cff;
+  --app-purple: #8b5cf6;
+  --app-teal: #14b8a6;
+
+  /* Sidebar (dark rail) */
+  --app-sidebar-fg: #ffffff;
+  --app-sidebar-muted: rgba(255, 255, 255, 0.5);
+  --app-sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+  --app-sidebar-active-bg: #1e2b4a;
+
+  /* Badge backgrounds + foregrounds */
+  --app-badge-blue-bg: #e8eeff;
+  --app-badge-blue-fg: #1a5cff;
+  --app-badge-green-bg: #dcfce7;
+  --app-badge-green-fg: #15803d;
+  --app-badge-amber-bg: #fef3c7;
+  --app-badge-amber-fg: #92400e;
+  --app-badge-red-bg: #fee2e2;
+  --app-badge-red-fg: #dc2626;
+  --app-badge-purple-bg: #f5f3ff;
+  --app-badge-purple-fg: #6d28d9;
+  --app-badge-gray-bg: var(--app-bg-muted);
+  --app-badge-gray-fg: var(--app-text-secondary);
+
+  /* Buttons */
+  --app-btn-danger-bg: #fee2e2;
+  --app-btn-danger-fg: #dc2626;
+  --app-btn-approve-bg: #dcfce7;
+  --app-btn-approve-fg: #15803d;
+
+  /* Spacing scale */
+  --app-space-xs: 4px;
+  --app-space-sm: 8px;
+  --app-space-md: 12px;
+  --app-space-lg: 16px;
+  --app-space-xl: 20px;
+  --app-space-2xl: 24px;
+  --app-space-4xl: 48px;
+
+  /* Radius */
+  --app-radius-sm: 4px;
+  --app-radius-badge: 6px;
+  --app-radius-md: 8px;
+  --app-radius-lg: 12px;
+  --app-radius-xl: 16px;
+  --app-radius-pill: 999px;
+
+  /* Elevation */
+  --app-shadow-0: none;
+  --app-shadow-1: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --app-shadow-2: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+  /* Typography scale */
+  --app-text-display: 32px;
+  --app-text-h1: 24px;
+  --app-text-h2: 18px;
+  --app-text-h3: 15px;
+  --app-text-body: 14px;
+  --app-text-small: 13px;
+  --app-text-caption: 11px;
+
+  /* Focus */
+  --app-ring-color: rgba(26, 92, 255, 0.1);
+
+  /* Shell */
+  --app-topbar-h: 56px;
+  --app-sidebar-w: 220px;
+  --app-content-max: 1100px;
+
+  background-color: var(--app-bg-page);
+  color: var(--app-text-primary);
+}

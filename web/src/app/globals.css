@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "./hirslams.css";
+@import "../styles/app-theme.css";
 
 :root {
   --background: #ffffff;
@@ -43,6 +44,36 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
+
+  /* App shell (DouBow design system) — fallbacks when outside `.theme-app` */
+  --color-app-bg-page: var(--app-bg-page, #f8f9fc);
+  --color-app-bg-muted: var(--app-bg-muted, #eef1f7);
+  --color-app-bg-elevated: var(--app-bg-elevated, #ffffff);
+  --color-app-text-primary: var(--app-text-primary, #1a1d2e);
+  --color-app-text-secondary: var(--app-text-secondary, #6b7280);
+  --color-app-text-tertiary: var(--app-text-tertiary, #9ca3af);
+  --color-app-border: var(--app-border, #e5e8ef);
+  --color-app-border-strong: var(--app-border-strong, #d1d5db);
+  --color-app-accent: var(--app-accent, #1a5cff);
+  --color-app-accent-hover: var(--app-accent-hover, #0f44d4);
+  --color-app-sidebar: var(--app-sidebar, #0f1117);
+  --color-app-sidebar-muted: var(--app-sidebar-muted, rgba(255, 255, 255, 0.5));
+  --color-app-success: var(--app-success, #22c55e);
+  --color-app-danger: var(--app-danger, #ef4444);
+  --color-app-warning: var(--app-warning, #f59e0b);
+
+  --spacing-app-xs: 4px;
+  --spacing-app-sm: 8px;
+  --spacing-app-md: 12px;
+  --spacing-app-lg: 16px;
+  --spacing-app-xl: 20px;
+  --spacing-app-2xl: 24px;
+  --spacing-app-4xl: 48px;
+
+  --radius-app-sm: 4px;
+  --radius-app-md: 8px;
+  --radius-app-lg: 12px;
+  --radius-app-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {

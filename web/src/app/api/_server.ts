@@ -14,3 +14,12 @@ export async function getBackendAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+/** For multipart uploads: do not set Content-Type (boundary set by fetch + FormData). */
+export async function getBackendAuthBearerOnly(): Promise<HeadersInit> {
+  const { getToken } = await auth();
+  const token = await getToken({ template: "doubow-api" });
+  const headers: Record<string, string> = {};
+  if (token) headers.authorization = `Bearer ${token}`;
+  return headers;
+}
+

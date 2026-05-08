@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +27,31 @@ class Settings(BaseSettings):
     # Celery / Redis
     redis_url: str = "redis://localhost:6379/0"
     dlq_redis_key: str = "doubow:dlq"
+
+    # S3 (or compatible, e.g. MinIO). For real AWS S3: leave endpoint unset/empty and use
+    # eu-west-3 (or your bucket region). Optional keys: omit both to use the default AWS
+    # credential chain (env vars, ~/.aws/credentials, IAM role, etc.).
+    s3_endpoint_url: str | None = None
+    s3_region: str = "eu-west-3"
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_bucket_resumes: str = "s3-resumes-888687695411"
+    # Must stay aligned with Terraform variable resume_object_prefix (IAM resource ARN).
+    s3_resume_object_prefix: str = "resumes"
+
+    @field_validator("s3_endpoint_url", "s3_access_key_id", "s3_secret_access_key", mode="before")
+    @classmethod
+    def empty_s3_optional_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("s3_resume_object_prefix", mode="before")
+    @classmethod
+    def normalize_resume_prefix(cls, v: object) -> object:
+        if isinstance(v, str):
+            return v.strip().strip("/") or "resumes"
+        return v
 
 
 settings = Settings()

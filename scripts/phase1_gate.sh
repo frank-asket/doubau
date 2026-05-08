@@ -6,15 +6,22 @@ cd "$ROOT_DIR"
 
 echo "== Phase 1 Gate =="
 echo "Bringing up services with fresh volumes..."
-docker compose down -v >/dev/null 2>&1 || true
+docker compose down -v --remove-orphans >/dev/null 2>&1 || true
 
 for attempt in 1 2 3; do
-  if docker compose up -d --build postgres redis api worker; then
+  if docker compose up -d --build postgres redis minio api worker; then
     break
   fi
   echo "docker compose up failed (attempt $attempt). Retrying..."
   sleep 2
 done
+
+if ! docker compose ps --status running api | grep -q "Up"; then
+  echo "Services failed to start."
+  docker compose ps
+  docker compose logs --no-color --tail=200 minio api worker || true
+  exit 1
+fi
 
 echo "Waiting for API health..."
 for i in {1..60}; do
@@ -108,6 +115,57 @@ for _ in range(20):
 
 assert r.llen(settings.dlq_redis_key) > 0, "Expected at least one DLQ entry"
 print("Celery smoke flow: OK")
+PY
+
+echo "Running Resume upload smoke flow (S3 + parse worker)..."
+docker compose exec -T api python - <<'PY'
+import time
+import uuid
+from io import BytesIO
+
+import httpx
+from docx import Document
+
+BASE = "http://localhost:8000"
+
+email = f"phase1-resume-{uuid.uuid4()}@example.com"
+password = "correct-horse-battery"
+
+buf = BytesIO()
+doc = Document()
+doc.add_heading("Franck Asket", level=1)
+doc.add_paragraph("Experience: Built a FastAPI backend.")
+doc.save(buf)
+buf.seek(0)
+
+with httpx.Client(timeout=20.0) as client:
+    r = client.post(f"{BASE}/auth/signup", json={"email": email, "password": password})
+    assert r.status_code == 200, r.text
+    token = r.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    files = {"file": ("resume.docx", buf.read(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    up = client.post(f"{BASE}/me/resume", headers=headers, files=files)
+    assert up.status_code == 200, up.text
+    rid = up.json()["id"]
+
+    for _ in range(40):
+        rr = client.get(f"{BASE}/me/resume/{rid}", headers=headers)
+        assert rr.status_code == 200, rr.text
+        status = rr.json()["status"]
+        if status == "PARSED":
+            assert "FastAPI backend" in (rr.json().get("parsed_json") or {}).get("text", "")
+            latest = client.get(f"{BASE}/me/resume/latest", headers=headers)
+            assert latest.status_code == 200, latest.text
+            assert latest.json().get("id") == rid
+            break
+        if status == "FAILED":
+            raise AssertionError(rr.json())
+        time.sleep(0.5)
+    else:
+        raise AssertionError("resume did not reach PARSED status in time")
+
+print("Resume upload smoke flow: OK")
 PY
 
 echo "Phase 1 Gate PASSED."

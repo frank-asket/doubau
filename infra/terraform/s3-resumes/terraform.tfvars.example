@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars (not committed) and adjust.
+# Authenticate with AWS using credentials that can create S3 buckets and (optionally) IAM policies:
+#   export AWS_PROFILE=your-profile
+
+aws_region = "eu-west-3"
+
+# Must be globally unique. Example pattern with account ID:
+resume_bucket_name = "s3-resumes-888687695411"
+
+# Must match API object keys (default: resumes/<user_id>/...).
+# resume_object_prefix = "resumes"
+
+# Recommended for AWS: require TLS (set false only if a broken client cannot use HTTPS).
+# iam_enforce_tls = true
+
+# Optional: Terraform-managed least-privilege policy attached to an IAM user (user name only).
+# If your user already has S3 access via groups — e.g. BroadAIEngineerAccess with
+# AmazonS3FullAccess — leave this empty so Terraform only creates the bucket (no extra policy).
+# Example user ARN when you do attach: arn:aws:iam::888687695411:user/aiengineer
+grant_s3_access_user_name = ""
+
+extra_tags = {
+  Environment = "prod"
+}

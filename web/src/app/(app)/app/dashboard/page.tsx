@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 
+import { DashboardResumePanel } from "@/components/resume/DashboardResumePanel";
+import { AppApprovalCard } from "@/components/ui/approval-card";
+import { AppBadge } from "@/components/ui/badge";
+import { AppProgress } from "@/components/ui/progress";
+
 export const metadata: Metadata = {
   title: "Dashboard",
 };
+
+export const dynamic = "force-dynamic";
 
 type Profile = {
   email?: string;
@@ -51,18 +58,21 @@ export default async function DashboardPage() {
   const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div>
-        <h1 className="text-balance text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-[var(--muted)]">
+        <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
+          Dashboard
+        </h1>
+        <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
           {profile.email ? (
             <>
-              Signed in as <span className="font-semibold text-[var(--foreground)]">{profile.email}</span> ·{" "}
-              <span className="font-semibold text-[var(--foreground)]">{personaLabel(profile.persona)}</span>
+              Signed in as <span className="font-semibold text-[var(--app-text-primary)]">{profile.email}</span> ·{" "}
+              <span className="font-semibold text-[var(--app-text-primary)]">{personaLabel(profile.persona)}</span>
               {profile.plan_tier ? (
                 <>
                   {" "}
-                  · Plan: <span className="font-semibold text-[var(--foreground)]">{profile.plan_tier}</span>
+                  · Plan:{" "}
+                  <span className="font-semibold text-[var(--app-text-primary)]">{profile.plan_tier}</span>
                 </>
               ) : null}
             </>
@@ -72,40 +82,63 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border)] p-6">
-          <div className="text-sm font-semibold tracking-tight">Your focus</div>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+      <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-3">
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+            Signals
+          </div>
+          <div className="mt-3 flex flex-col gap-3">
+            <AppProgress label="Skills mastery" tone="success" value={75} />
+            <AppProgress label="Interview success" tone="warning" value={42} />
+            <AppProgress label="CV score" tone="info" value={88} />
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          <AppApprovalCard
+            badgeLabel="Pending"
+            badgeVariant="amber"
+            snippet="Hi Sarah, I came across the Senior PM role at Google and was immediately drawn to the focus on cross-functional delivery…"
+            subtitle="LinkedIn · 2 mins ago"
+            title="Senior PM — Google"
+          />
+        </div>
+      </div>
+
+      <DashboardResumePanel />
+
+      <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-2">
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+          <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">Your focus</div>
+          <p className="mt-1 text-[14px] leading-6 text-[var(--app-text-secondary)]">
             These defaults come from your career stage — you can edit them in onboarding anytime.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {focus.length ? (
               focus.map((g) => (
-                <span
-                  key={g}
-                  className="inline-flex items-center rounded-full border border-[var(--border)] bg-black/5 px-3 py-1 text-xs font-semibold text-[var(--foreground)] dark:bg-white/5"
-                >
+                <AppBadge key={g} variant="gray">
                   {goalLabel(g)}
-                </span>
+                </AppBadge>
               ))
             ) : (
-              <span className="text-sm text-[var(--muted)]">No goals selected yet.</span>
+              <span className="text-[13px] text-[var(--app-text-secondary)]">No goals selected yet.</span>
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] p-6">
-          <div className="text-sm font-semibold tracking-tight">Recommended next steps</div>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+          <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
+            Recommended next steps
+          </div>
+          <ul className="mt-4 space-y-2 text-[13px] text-[var(--app-text-secondary)]">
             <li>
-              - Go to <span className="font-semibold text-[var(--foreground)]">Job Discovery</span> and save 10 roles.
+              Go to <span className="font-semibold text-[var(--app-text-primary)]">Job Discovery</span> and save 10 roles.
             </li>
             <li>
-              - Generate an outreach draft and approve it in <span className="font-semibold text-[var(--foreground)]">Approvals</span>.
+              Generate an outreach draft and approve it in{" "}
+              <span className="font-semibold text-[var(--app-text-primary)]">Approvals</span>.
             </li>
-            <li>
-              - Ask Copilot for a 7-day sprint plan tailored to your persona.
-            </li>
+            <li>Ask Copilot for a 7-day sprint plan tailored to your persona.</li>
           </ul>
         </div>
       </div>
