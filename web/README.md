@@ -24,6 +24,10 @@ Usually the browser cached HTML from an older dev build while chunk filenames ch
 
 Warnings about `ui.browser.js` on `*.clerk.accounts.dev` come from Clerk’s hosted UI; they are harmless and do not affect your app’s own `/_next` bundles.
 
+### Google / LinkedIn sign-in (OAuth)
+
+Enable the providers under Clerk → User & Authentication → Social connections. Your app uses Clerk’s hosted sign-in; no separate NextAuth wiring is required.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
