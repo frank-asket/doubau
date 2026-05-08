@@ -1,0 +1,134 @@
+.section {
+  padding: 100px 24px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.orbitArea {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.orbitArea::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(74, 157, 90, 0.10), transparent 56%),
+    radial-gradient(circle at 48% 56%, rgba(255, 215, 130, 0.16), transparent 60%),
+    radial-gradient(circle at 52% 46%, rgba(15, 17, 23, 0.06), transparent 62%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.orbitArea::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 13, 13, 0.08);
+  pointer-events: none;
+}
+
+.orbitIcon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--black);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.orbitCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68px;
+  height: 68px;
+  background: var(--green-primary);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  box-shadow: 0 0 40px rgba(61, 124, 71, 0.3);
+}
+
+.content {
+  max-width: 480px;
+}
+
+.heading {
+  font-size: clamp(30px, 3.5vw, 48px);
+  font-weight: 800;
+  color: var(--black);
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
+}
+
+.accent {
+  color: var(--green-primary);
+}
+
+.sub {
+  font-size: 15px;
+  color: var(--gray-mid);
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+
+.btn {
+  display: inline-flex;
+  padding: 13px 32px;
+  background: var(--green-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  .orbitArea {
+    max-width: 300px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbitIcon {
+    transition: none;
+  }
+}
+

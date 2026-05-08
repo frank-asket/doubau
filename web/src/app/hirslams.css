@@ -1,0 +1,88 @@
+/* Scoped clone of web/hirslams/app/globals.css */
+.hirslamsScope,
+.hirslamsScope *,
+.hirslamsScope *::before,
+.hirslamsScope *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.hirslamsScope {
+  --green: #4a9d5a;
+  --green-dark: #2d6b3c;
+  --green-btn: #3d8c4a;
+  --green-light: #eef7f0;
+  --black: #0d0d0d;
+  --text: #1a1a1a;
+  --gray: #6b7280;
+  --gray-light: #9ca3af;
+  --border: #e5e7eb;
+  --bg: #f9fafb;
+  --white: #fff;
+
+  /* aliases so our ported CSS modules resolve identically */
+  --green-primary: var(--green);
+  --green-mid: var(--green-btn);
+  --gray-mid: var(--gray);
+  --gray-dark: #374151;
+  --gray-bg: var(--bg);
+  --green-accent: var(--green);
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 12px 28px rgba(15, 17, 23, 0.06);
+  --shadow-md: 0 16px 44px rgba(15, 17, 23, 0.1);
+  --shadow-lg: 0 22px 68px rgba(15, 17, 23, 0.14);
+}
+
+.hirslamsScope {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: var(--text);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+.hirslamsScope h1,
+.hirslamsScope h2,
+.hirslamsScope h3,
+.hirslamsScope h4 {
+  line-height: 1.15;
+}
+
+.hirslamsScope a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.hirslamsScope button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hirslamsScope [id] {
+  scroll-margin-top: 84px;
+}
+
+.hirslamsSkip {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  z-index: 9999;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--black);
+  font-weight: 700;
+  transform: translateY(-160%);
+  transition: transform 0.2s;
+}
+
+.hirslamsSkip:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid color-mix(in srgb, var(--green-primary) 60%, transparent);
+  outline-offset: 3px;
+}
+

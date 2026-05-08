@@ -1,0 +1,348 @@
+.section {
+  padding: 100px 24px;
+  background: var(--gray-bg);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-primary);
+  margin-bottom: 16px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.heading {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 56px;
+  color: var(--black);
+  letter-spacing: -0.5px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1.5px solid transparent;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card.dark {
+  border-color: transparent;
+}
+
+.card:not(.dark) {
+  border-color: var(--border);
+}
+
+.cardIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 40px rgba(15, 17, 23, 0.16);
+}
+
+.card:not(.dark) .cardIcon {
+  color: rgba(15, 17, 23, 0.84);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 17, 23, 0.10);
+  box-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--black);
+}
+
+.dark .cardTitle {
+  color: white;
+}
+
+.cardDesc {
+  font-size: 14px;
+  color: var(--gray-mid);
+  line-height: 1.65;
+}
+
+.dark .cardDesc {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mockShell {
+  margin-top: auto;
+  border-radius: calc(var(--radius-lg) - 8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 18px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+
+.card:not(.dark) .mockShell {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 18px 60px rgba(15, 17, 23, 0.08);
+}
+
+/* --- Card 1: Job listing mock --- */
+.jobCard {
+  border-radius: calc(var(--radius-lg) - 10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(13, 13, 13, 0.22);
+  padding: 16px 16px 14px;
+}
+
+.card:not(.dark) .jobCard {
+  border: 1px solid rgba(15, 17, 23, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.jobBrand {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card:not(.dark) .jobBrand {
+  color: rgba(15, 17, 23, 0.65);
+}
+
+.jobRole {
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.card:not(.dark) .jobRole {
+  color: var(--black);
+}
+
+.jobLines {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.jobLines div {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.card:not(.dark) .jobLines div {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+.jobLines div:nth-child(1) {
+  width: 88%;
+}
+.jobLines div:nth-child(2) {
+  width: 76%;
+}
+.jobLines div:nth-child(3) {
+  width: 64%;
+}
+
+.jobPills {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.jobPills span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.card:not(.dark) .jobPills span {
+  background: rgba(15, 17, 23, 0.06);
+  color: rgba(15, 17, 23, 0.76);
+}
+
+.jobFooter {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.card:not(.dark) .jobFooter {
+  color: rgba(15, 17, 23, 0.72);
+}
+
+.jobSalary {
+  font-weight: 800;
+}
+
+.jobCity {
+  opacity: 0.85;
+}
+
+/* --- Card 2: Candidates mock --- */
+.candidateStack {
+  display: grid;
+  gap: 14px;
+}
+
+.candidateCard {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.card:not(.dark) .candidateCard {
+  border: 1px solid rgba(15, 17, 23, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.candidateCardMuted {
+  opacity: 0.85;
+  transform: translateX(14px);
+}
+
+.faceThumb {
+  border-radius: 18px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 18px 40px rgba(15, 17, 23, 0.08) !important;
+}
+
+.candidateMeta {
+  min-width: 0;
+}
+
+.candidateName {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.card:not(.dark) .candidateName {
+  color: var(--black);
+}
+
+.candidateRole {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.card:not(.dark) .candidateRole {
+  color: rgba(15, 17, 23, 0.55);
+}
+
+.candidateScore {
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.card:not(.dark) .candidateScore {
+  background: rgba(15, 17, 23, 0.06);
+  color: rgba(15, 17, 23, 0.72);
+}
+
+/* --- Card 3: Chat mock --- */
+.chatArea {
+  position: relative;
+  min-height: 220px;
+}
+
+.chatBubble {
+  max-width: 86%;
+  border-radius: 18px;
+  padding: 14px 14px;
+  background: rgba(45, 94, 53, 0.92);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 18px 40px rgba(15, 17, 23, 0.18);
+}
+
+.card:not(.dark) .chatBubble {
+  background: rgba(45, 94, 53, 0.92);
+}
+
+.chatTime {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.85;
+  text-align: right;
+}
+
+.faceGrid {
+  position: absolute;
+  right: -6px;
+  bottom: -10px;
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .faceGrid {
+    position: static;
+    margin-top: 16px;
+    grid-template-columns: repeat(5, 42px);
+    justify-content: center;
+  }
+  .faceThumb {
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    min-height: auto;
+  }
+}
+

@@ -1,0 +1,148 @@
+"use client";
+
+import styles from "./Features.module.css";
+import { motion, useReducedMotion } from "framer-motion";
+import { ChatIcon, CompassIcon, UsersIcon } from "@/components/icons/FeatureIcons";
+import { PortraitThumb } from "@/components/avatars/PortraitThumb";
+
+const features = [
+  {
+    title: "Job Discovery",
+    desc: "Create and publish curated listings with fit scoring grounded in your résumé.",
+    color: "#2d5e35",
+    light: false,
+    Icon: CompassIcon,
+  },
+  {
+    title: "Manage Candidates",
+    desc: "Track, review, and organize candidates—full visibility across the pipeline.",
+    color: "#f0f8f1",
+    light: true,
+    Icon: UsersIcon,
+  },
+  {
+    title: "Chat With Applicants",
+    desc: "Communicate quickly, keep context, and move candidates forward with confidence.",
+    color: "#f6f6f4",
+    light: true,
+    Icon: ChatIcon,
+  },
+] as const;
+
+export default function Features() {
+  const reduceMotion = useReducedMotion();
+  const people = [
+    { palette: { skin: "#F1C7A3", hair: "#1F232A", shirt: "#3D7C47" }, variant: 0 as const },
+    { palette: { skin: "#D9A88E", hair: "#2B1C16", shirt: "#0F1117" }, variant: 3 as const },
+    { palette: { skin: "#E6B08A", hair: "#111111", shirt: "#2D5E35" }, variant: 2 as const },
+    { palette: { skin: "#C98D6A", hair: "#111111", shirt: "#F2D79A" }, variant: 1 as const },
+    { palette: { skin: "#F0BE97", hair: "#4B2D21", shirt: "#FFFFFF" }, variant: 4 as const },
+  ];
+
+  return (
+    <section id="features" className={styles.section}>
+      <div className={styles.container}>
+        <motion.div
+          className={styles.tag}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ type: "spring", duration: 0.55, bounce: 0 }}
+        >
+          {"// Our Features //"}
+        </motion.div>
+        <motion.h2
+          className={styles.heading}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ type: "spring", duration: 0.55, bounce: 0, delay: 0.05 }}
+        >
+          Streamline Your Workflow
+          <br />
+          From Start To Finish
+        </motion.h2>
+
+        <div className={styles.grid}>
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              className={`${styles.card} ${!f.light ? styles.dark : ""}`}
+              style={{ background: f.color }}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.35 }}
+              transition={{ type: "spring", duration: 0.55, bounce: 0, delay: i * 0.06 }}
+            >
+              <div className={styles.cardIcon} aria-hidden="true">
+                <f.Icon width={22} height={22} />
+              </div>
+              <h3 className={styles.cardTitle}>{f.title}</h3>
+              <p className={styles.cardDesc}>{f.desc}</p>
+
+              {i === 0 ? (
+                <div className={styles.mockShell} aria-hidden="true">
+                  <div className={styles.jobCard}>
+                    <div className={styles.jobBrand}>DouBow</div>
+                    <div className={styles.jobRole}>Senior Product Manager</div>
+                    <div className={styles.jobLines}>
+                      <div />
+                      <div />
+                      <div />
+                    </div>
+                    <div className={styles.jobPills}>
+                      <span>● Full-time</span>
+                      <span>Senior</span>
+                    </div>
+                    <div className={styles.jobFooter}>
+                      <span className={styles.jobSalary}>£25/month</span>
+                      <span className={styles.jobCity}>Remote · UK</span>
+                    </div>
+                  </div>
+                </div>
+              ) : i === 1 ? (
+                <div className={styles.mockShell} aria-hidden="true">
+                  <div className={styles.candidateStack}>
+                    <div className={styles.candidateCard}>
+                      <PortraitThumb {...people[0]} size={34} className="ring-1 ring-black/10" />
+                      <div className={styles.candidateMeta}>
+                        <div className={styles.candidateName}>Maria Angelica M</div>
+                        <div className={styles.candidateRole}>Product Designer</div>
+                      </div>
+                      <div className={styles.candidateScore}>78%</div>
+                    </div>
+                    <div className={`${styles.candidateCard} ${styles.candidateCardMuted}`}>
+                      <PortraitThumb {...people[1]} size={34} className="ring-1 ring-black/10" />
+                      <div className={styles.candidateMeta}>
+                        <div className={styles.candidateName}>Marcus Alexandru</div>
+                        <div className={styles.candidateRole}>Product Manager</div>
+                      </div>
+                      <div className={styles.candidateScore}>92%</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.mockShell} aria-hidden="true">
+                  <div className={styles.chatArea}>
+                    <div className={styles.chatBubble}>
+                      Congrats! you have been accepted to the next stage
+                      <span className={styles.chatTime}>13:00</span>
+                    </div>
+                    <div className={styles.faceGrid}>
+                      <PortraitThumb {...people[2]} size={54} className={styles.faceThumb} />
+                      <PortraitThumb {...people[1]} size={54} className={styles.faceThumb} />
+                      <PortraitThumb {...people[4]} size={54} className={styles.faceThumb} />
+                      <PortraitThumb {...people[0]} size={54} className={styles.faceThumb} />
+                      <PortraitThumb {...people[3]} size={54} className={styles.faceThumb} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+

@@ -1,0 +1,125 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .nav {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--black);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.links {
+  display: flex;
+  list-style: none;
+  gap: 32px;
+  margin-left: auto;
+}
+
+.links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-dark);
+  transition: color 0.2s;
+}
+
+.links a:hover {
+  color: var(--green-primary);
+}
+
+.links a:focus-visible,
+.logo:focus-visible,
+.loginBtn:focus-visible,
+.burger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--green-primary) 60%, transparent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.loginBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 20px;
+  background: var(--black);
+  color: var(--white);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.loginBtn:hover {
+  background: var(--green-primary);
+}
+
+.burger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-left: auto;
+}
+
+.burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--black);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .burger {
+    display: flex;
+  }
+  .links {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: white;
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+  .links.open {
+    display: flex;
+  }
+  .loginBtn {
+    display: none;
+  }
+}
+

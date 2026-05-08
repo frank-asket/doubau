@@ -1,0 +1,332 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 100px 24px 80px;
+  min-height: 680px;
+  display: flex;
+  align-items: center;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(13, 13, 13, 0.06) 0,
+      rgba(13, 13, 13, 0.06) 1px,
+      transparent 1px,
+      transparent 92px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(13, 13, 13, 0.06) 0,
+      rgba(13, 13, 13, 0.06) 1px,
+      transparent 1px,
+      transparent 92px
+    );
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(540px 380px at 50% 36%, rgba(74, 157, 90, 0.12), transparent 65%),
+    radial-gradient(520px 420px at 56% 30%, rgba(255, 215, 130, 0.16), transparent 60%);
+  pointer-events: none;
+}
+
+.bgBlob1 {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(61, 124, 71, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.bgBlob2 {
+  position: absolute;
+  bottom: -80px;
+  right: 10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(90, 158, 99, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+}
+
+.floating {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.floatCard {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-md);
+  width: 210px;
+  animation: float 4s ease-in-out infinite;
+  backdrop-filter: blur(10px);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .floatCard {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+.floatCard:nth-child(2) {
+  animation-delay: 1s;
+}
+.floatCard:nth-child(3) {
+  animation-delay: 2s;
+}
+.floatCard:nth-child(4) {
+  animation-delay: 0.5s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--green-light);
+  color: var(--green-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.cardRole {
+  font-size: 11px;
+  color: var(--gray-mid);
+}
+
+.flag {
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.content {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.headline {
+  font-size: clamp(38px, 6vw, 68px);
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1.1;
+  margin-bottom: 24px;
+  letter-spacing: -1.5px;
+}
+
+.highlight {
+  color: var(--green-primary);
+}
+
+.jobCardFloat {
+  display: inline-block;
+  background: var(--green-dark);
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  text-align: left;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+.jobCardLabel {
+  font-size: 11px;
+  opacity: 0.7;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.jobCardTitle {
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.jobTags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.jobTags span {
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.jobMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.jobStatus {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.jobSalary {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sub {
+  font-size: 16px;
+  color: var(--gray-mid);
+  margin-bottom: 36px;
+  line-height: 1.7;
+}
+
+.ctas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  background: var(--green-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+
+.ctaPrimary:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+}
+
+.ctaPrimary:focus-visible,
+.ctaSecondary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--green-primary) 60%, transparent);
+  outline-offset: 3px;
+}
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--black);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 15px;
+  border: 1.5px solid var(--border);
+  transition: border-color 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+
+.ctaSecondary:hover {
+  border-color: var(--green-primary);
+  color: var(--green-primary);
+  transform: translateY(-2px);
+}
+
+.playIcon {
+  width: 30px;
+  height: 30px;
+  background: var(--black);
+  color: white;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: background 0.2s;
+}
+
+.ctaSecondary:hover .playIcon {
+  background: var(--green-primary);
+}
+
+@media (max-width: 900px) {
+  .floatCard {
+    display: none;
+  }
+  .hero {
+    padding: 60px 24px 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floatCard {
+    animation: none;
+  }
+  .ctaPrimary,
+  .ctaSecondary {
+    transition: none;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ctas {
+    flex-direction: column;
+  }
+  .ctaPrimary,
+  .ctaSecondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

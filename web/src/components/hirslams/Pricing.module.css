@@ -1,0 +1,275 @@
+.section {
+  padding: 100px 24px;
+  background: var(--gray-bg);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-primary);
+  margin-bottom: 16px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.heading {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 56px;
+  color: var(--black);
+  letter-spacing: -0.5px;
+}
+
+.accent {
+  color: var(--green-primary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card.dark {
+  background: var(--green-dark);
+  border-color: transparent;
+}
+
+.planBadge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  color: var(--gray-mid);
+  margin-bottom: 20px;
+}
+
+.dark .planBadge {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.price {
+  font-family: "Syne", sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--black);
+  margin-bottom: 12px;
+}
+
+.price span {
+  font-size: 18px;
+  color: var(--gray-mid);
+}
+
+.dark .price {
+  color: white;
+}
+
+.dark .price span {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.desc {
+  font-size: 14px;
+  color: var(--gray-mid);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.dark .desc {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.btn {
+  display: block;
+  text-align: center;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 15px;
+  transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+  text-decoration: none;
+  margin-bottom: 28px;
+}
+
+.btnDark {
+  background: var(--black);
+  color: white;
+}
+
+.btnDark:hover {
+  background: var(--green-primary);
+}
+
+.btnLight {
+  background: white;
+  color: var(--green-dark);
+}
+
+.btnLight:hover {
+  background: var(--green-light);
+}
+
+.features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--gray-dark);
+}
+
+.dark .features li {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+  background: var(--green-light);
+  color: var(--green-dark);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dark .check {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* CTA Bottom */
+.cta {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px 48px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 48px;
+  align-items: center;
+}
+
+.ctaLeft h3 {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--black);
+  letter-spacing: -0.5px;
+}
+
+.ctaLeft h3 span {
+  color: var(--green-primary);
+}
+
+.ctaLeft p {
+  font-size: 14px;
+  color: var(--gray-mid);
+  line-height: 1.65;
+  margin-bottom: 24px;
+  max-width: 360px;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  padding: 12px 28px;
+  background: var(--green-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+
+.ctaBtn:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+}
+
+.ctaCards {
+  position: relative;
+  height: 140px;
+  width: 240px;
+}
+
+.miniCard {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  width: 220px;
+  box-shadow: var(--shadow-sm);
+}
+
+.miniAvatar {
+  flex-shrink: 0;
+  box-shadow: 0 12px 26px rgba(15, 17, 23, 0.10);
+}
+
+.miniName {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.miniRole {
+  font-size: 11px;
+  color: var(--gray-mid);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .cta {
+    grid-template-columns: 1fr;
+  }
+  .ctaCards {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .cta {
+    padding: 32px 24px;
+  }
+}
+
