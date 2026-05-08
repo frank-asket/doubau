@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+dist
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+api/.venv/
+

@@ -1,0 +1,32 @@
+{
+  "family": "doubow-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<account-id>:role/doubowApiTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "<account-id>.dkr.ecr.<region>.amazonaws.com/doubow-api:<tag>",
+      "essential": true,
+      "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DOUBOW_ENVIRONMENT", "value": "prod" },
+        { "name": "DOUBOW_DATABASE_URL", "value": "<postgres-connection-string>" },
+        { "name": "DOUBOW_JWT_SECRET", "value": "<secret-from-secrets-manager>" },
+        { "name": "DOUBOW_CORS_ALLOW_ORIGINS", "value": "[\"https://doubow.com\"]" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/doubow-api",
+          "awslogs-region": "<region>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+

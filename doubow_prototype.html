@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doubow — Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --sidebar:#0f1117;
+    --sidebar-hover:#1a1f2e;
+    --sidebar-active:#1e2b4a;
+    --accent:#4f8ef7;
+    --accent-light:#3b7de8;
+    --bg:#f8f9fc;
+    --card:#ffffff;
+    --border:#e5e8ef;
+    --text:#1a1d2e;
+    --text-2:#6b7280;
+    --text-3:#9ca3af;
+    --green:#22c55e;
+    --red:#ef4444;
+    --amber:#f59e0b;
+    --purple:#8b5cf6;
+    --teal:#14b8a6;
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:14px}
+
+  /* SIDEBAR */
+  .sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;overflow-y:auto;overflow-x:hidden;z-index:10}
+  .sidebar-logo{display:flex;align-items:center;gap:8px;padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+  .logo-icon svg{width:16px;height:16px;fill:white}
+  .sidebar-logo span{color:#fff;font-weight:600;font-size:15px}
+  .nav-section{padding:8px 0}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;color:rgba(255,255,255,.55);cursor:pointer;border-radius:0;transition:all .15s;font-size:13px;position:relative}
+  .nav-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,.85)}
+  .nav-item.active{background:var(--sidebar-active);color:#fff}
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+  .nav-item.active svg{opacity:1}
+  .nav-group-label{padding:12px 16px 4px;color:rgba(255,255,255,.3);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+  .nav-sub{padding-left:32px;font-size:12.5px}
+  .nav-sub.active{color:#fff;background:var(--sidebar-active)}
+  .nav-arrow{margin-left:auto;font-size:10px;opacity:.5}
+  .sidebar-footer{margin-top:auto;border-top:1px solid rgba(255,255,255,.06);padding:8px 0}
+  .badge-count{background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:auto}
+
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:12px;flex-shrink:0}
+  .topbar h1{font-size:17px;font-weight:600;flex:1}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text-2);font-size:13px;width:200px}
+  .search-box kbd{background:var(--border);border-radius:4px;padding:1px 5px;font-size:11px}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+  .content{flex:1;overflow-y:auto;padding:24px}
+
+  /* CARDS */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+  /* METRIC CARD */
+  .metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .metric-label{font-size:13px;color:var(--text-2);font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .metric-label svg{width:16px;height:16px}
+  .metric-value{font-size:26px;font-weight:700;display:flex;align-items:baseline;gap:6px}
+  .metric-unit{font-size:13px;color:var(--text-2);font-weight:400}
+  .metric-change{font-size:12px;padding:2px 6px;border-radius:20px;font-weight:500}
+  .up{background:#dcfce7;color:#15803d}
+  .down{background:#fee2e2;color:#dc2626}
+  .metric-chart{display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:10px}
+  .bar{border-radius:3px 3px 0 0;width:8px;flex-shrink:0}
+  .bar.green{background:var(--green)}
+  .bar.red{background:var(--red)}
+
+  /* STATUS BADGE */
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+  .badge-blue{background:#eff6ff;color:#1d4ed8}
+  .badge-green{background:#dcfce7;color:#15803d}
+  .badge-red{background:#fee2e2;color:#dc2626}
+  .badge-amber{background:#fef3c7;color:#92400e}
+  .badge-gray{background:#f3f4f6;color:#4b5563}
+  .badge-purple{background:#f5f3ff;color:#6d28d9}
+
+  /* TABS */
+  .tabs{display:flex;gap:2px;background:var(--bg);border-radius:8px;padding:4px;margin-bottom:20px}
+  .tab{padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s;display:flex;align-items:center;gap:6px}
+  .tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .tab svg{width:14px;height:14px}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;padding:10px 12px;font-size:12px;font-weight:500;color:var(--text-2);border-bottom:1px solid var(--border)}
+  td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fafbfd}
+
+  /* BTN */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-light)}
+  .btn-outline{background:#fff;color:var(--text);border:1px solid var(--border)}
+  .btn-outline:hover{background:var(--bg)}
+  .btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+  .btn-green{background:#dcfce7;color:#15803d;border:none}
+  .btn-red{background:#fee2e2;color:#dc2626;border:none}
+  .btn-ghost{background:transparent;color:var(--text-2);border:none;padding:6px}
+  .btn-ghost:hover{background:var(--bg)}
+
+  /* PROGRESS BAR */
+  .progress-wrap{background:#f0f2f5;border-radius:99px;height:6px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:99px;background:var(--accent)}
+  .progress-fill.green{background:var(--green)}
+  .progress-fill.amber{background:var(--amber)}
+  .progress-fill.red{background:var(--red)}
+
+  /* COMPANY LOGO */
+  .company-logo{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+
+  /* CHAT */
+  .chat-msg{padding:14px 16px;border-radius:10px;margin-bottom:10px;max-width:80%;font-size:13px;line-height:1.6}
+  .chat-user{background:var(--accent);color:#fff;margin-left:auto}
+  .chat-ai{background:var(--bg);border:1px solid var(--border)}
+  .chat-input-wrap{border-top:1px solid var(--border);padding:16px;display:flex;gap:10px;background:#fff}
+  .chat-input{flex:1;border:1.5px solid var(--border);border-radius:25px;padding:10px 18px;font-size:13px;outline:none;font-family:inherit}
+  .chat-input:focus{border-color:var(--accent)}
+
+  /* DONUT */
+  .donut-wrap{position:relative;width:100px;height:100px}
+  .donut-wrap svg{transform:rotate(-90deg)}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+  /* STATUS SELECT */
+  select{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text)}
+
+  /* STAR */
+  .star{color:#d1d5db;cursor:pointer;font-size:16px}
+  .star.filled{color:#facc15}
+
+  /* APPROVAL CARD */
+  .approval-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;transition:border-color .15s}
+  .approval-card:hover{border-color:var(--accent)}
+  .approval-actions{display:flex;gap:8px;margin-top:12px}
+
+  /* SCREENS */
+  .screen{display:none}
+  .screen.active{display:block}
+
+  /* SCORE RING */
+  .score-ring{display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:3px solid var(--green);font-size:18px;font-weight:700;color:var(--text)}
+
+  /* SKILL TAG */
+  .skill-tag{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--text-2);margin:2px}
+
+  /* TIMELINE DOT */
+  .timeline-dot{width:12px;height:12px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:3px}
+  .timeline-line{width:2px;background:var(--border);margin:0 5px;flex:1}
+
+  /* KANBAN */
+  .kanban-col{background:var(--bg);border-radius:10px;padding:12px;min-height:200px}
+  .kanban-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;cursor:grab}
+  .kanban-card:hover{border-color:var(--accent)}
+
+  /* HIGHLIGHT */
+  .keyword-match{background:#dcfce7;color:#15803d;border-radius:3px;padding:0 2px}
+  .keyword-miss{background:#fee2e2;color:#dc2626;border-radius:3px;padding:0 2px}
+
+  /* MOOD */
+  .mood-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;color:var(--text-2);background:#fff;transition:all .15s}
+  .mood-btn:hover,.mood-btn.selected{border-color:var(--accent);background:#eff6ff;color:var(--accent)}
+  .mood-btn .emoji{font-size:22px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <span>Doubow</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-item" onclick="showScreen('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+
+    <div class="nav-item" onclick="toggleNav('career-nav')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      Career Growth
+      <span class="nav-arrow">▾</span>
+    </div>
+    <div id="career-nav">
+      <div class="nav-item nav-sub" onclick="showScreen('pathfinder')">Career Pathfinder</div>
+      <div class="nav-item nav-sub" onclick="showScreen('planner')">Career Planner</div>
+      <div class="nav-item nav-sub" onclick="showScreen('success')">Career Success</div>
+    </div>
+
+    <div class="nav-item" onclick="toggleNav('job-nav')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Job Search
+      <span class="nav-arrow">▾</span>
+    </div>
+    <div id="job-nav">
+      <div class="nav-item nav-sub" onclick="showScreen('discovery')">Job Discovery</div>
+      <div class="nav-item nav-sub" onclick="showScreen('tracker')">Job Tracker</div>
+      <div class="nav-item nav-sub active" onclick="showScreen('approvals')">Approvals <span class="badge-count">3</span></div>
+      <div class="nav-item nav-sub" onclick="showScreen('salary')">Salary Benchmark</div>
+    </div>
+
+    <div class="nav-item" onclick="toggleNav('tools-nav')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      Tools
+      <span class="nav-arrow">▾</span>
+    </div>
+    <div id="tools-nav">
+      <div class="nav-item nav-sub" onclick="showScreen('copilot')">Career Copilot</div>
+      <div class="nav-item nav-sub" onclick="showScreen('ats')">ATS Optimizer</div>
+      <div class="nav-item nav-sub" onclick="showScreen('linkedin')">LinkedIn Analysis</div>
+      <div class="nav-item nav-sub" onclick="showScreen('health')">Career Health</div>
+    </div>
+
+    <div class="nav-item" onclick="showScreen('board')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Discussion Board
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Settings
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log Out
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Search…
+      <kbd>⌘K</kbd>
+    </div>
+    <div style="position:relative">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-2);cursor:pointer"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span style="position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:#ef4444;border-radius:50%"></span>
+    </div>
+    <div class="avatar">RK</div>
+  </div>
+
+  <div class="content" id="content-area">
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="screen active" id="screen-dashboard">
+    <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:600;color:#1e40af">⭐ Upgrade to PRO!</div>
+        <div style="font-size:13px;color:#3b82f6;margin-top:2px">Get unlimited access to all premium features for <strong>£18/month</strong></div>
+      </div>
+      <button class="btn btn-primary btn-sm">Upgrade now →</button>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="metric-card">
+          <div class="metric-label">Career Score</div>
+          <div class="metric-value">85 <span class="metric-change up">+13%↑</span></div>
+          <div class="metric-chart">
+            <div class="bar green" style="height:60%"></div><div class="bar green" style="height:80%"></div><div class="bar green" style="height:70%"></div><div class="bar green" style="height:90%"></div><div class="bar green" style="height:75%"></div><div class="bar green" style="height:95%"></div><div class="bar green" style="height:100%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Career progress +13% over 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Skills Growth</div>
+          <div class="metric-value">12 <span class="metric-change down">-15%↓</span></div>
+          <div class="metric-chart">
+            <div class="bar red" style="height:100%"></div><div class="bar red" style="height:80%"></div><div class="bar red" style="height:90%"></div><div class="bar red" style="height:60%"></div><div class="bar red" style="height:70%"></div><div class="bar red" style="height:50%"></div><div class="bar red" style="height:40%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">10% less progress on skills in 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">LinkedIn Health</div>
+          <div class="metric-value">82 <span class="metric-change down">-8%↓</span></div>
+          <div class="metric-chart">
+            <div class="bar red" style="height:100%"></div><div class="bar red" style="height:85%"></div><div class="bar red" style="height:90%"></div><div class="bar red" style="height:75%"></div><div class="bar red" style="height:80%"></div><div class="bar red" style="height:60%"></div><div class="bar red" style="height:50%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Visibility dropped 8% in 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">CV Score</div>
+          <div class="metric-value">75 <span class="metric-change up">+10%↑</span></div>
+          <div class="metric-chart">
+            <div class="bar green" style="height:60%"></div><div class="bar green" style="height:70%"></div><div class="bar green" style="height:75%"></div><div class="bar green" style="height:80%"></div><div class="bar green" style="height:85%"></div><div class="bar green" style="height:90%"></div><div class="bar green" style="height:100%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Resume quality +10% in 30 days</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="height:100%">
+          <div style="font-weight:600;font-size:14px;margin-bottom:16px">Career Goals</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+              <div style="font-size:13px">You are here!</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:0 0 0 5px">
+              <div style="width:2px;height:24px;background:var(--border)"></div>
+            </div>
+            <div style="margin-left:18px">
+              <div style="font-size:12px;color:var(--text-2)">Project Manager</div>
+              <div style="font-size:14px;font-weight:600;color:var(--accent)">£35,000/year</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 0 0 5px">
+              <div style="width:2px;height:24px;background:var(--border)"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);flex-shrink:0"></div>
+              <div style="font-size:12px;color:var(--text-2)">Next target!</div>
+            </div>
+            <div style="margin-left:18px">
+              <div style="font-size:12px;color:var(--text-2)">Senior Project Manager</div>
+              <div style="font-size:14px;font-weight:600;color:var(--accent)">£50,000/year</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 0 0 5px">
+              <div style="width:2px;height:24px;background:var(--border)"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:10px;height:10px;border-radius:50%;border:2px solid var(--text-3);flex-shrink:0"></div>
+              <div style="font-size:12px;color:var(--text-2)">Future potential!</div>
+            </div>
+            <div style="margin-left:18px">
+              <div style="font-size:12px;color:var(--text-2)">Program Manager</div>
+              <div style="font-size:14px;font-weight:600;color:var(--accent)">£65,000/year</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Application Trends</div>
+        <div style="display:flex;gap:16px;font-size:12px;color:var(--text-2);margin-bottom:12px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block"></span>Awaiting response</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>Response received</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#ec4899;display:inline-block"></span>Rejected</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;height:80px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:20px;background:#ec4899;border-radius:3px 3px 0 0;height:20px"></div><div style="width:20px;background:var(--green);height:18px"></div><div style="width:20px;background:var(--accent);border-radius:0;height:22px"></div></div><div style="font-size:10px;color:var(--text-3)">1-4</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:20px;background:#ec4899;border-radius:3px 3px 0 0;height:28px"></div><div style="width:20px;background:var(--green);height:22px"></div><div style="width:20px;background:var(--accent);height:20px"></div></div><div style="font-size:10px;color:var(--text-3)">5-8</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:20px;background:#ec4899;border-radius:3px 3px 0 0;height:32px"></div><div style="width:20px;background:var(--green);height:28px"></div><div style="width:20px;background:var(--accent);height:25px"></div></div><div style="font-size:10px;color:var(--text-3)">9-12</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:20px;background:#ec4899;border-radius:3px 3px 0 0;height:36px"></div><div style="width:20px;background:var(--green);height:30px"></div><div style="width:20px;background:var(--accent);height:28px"></div></div><div style="font-size:10px;color:var(--text-3)">13-16</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:20px;background:#ec4899;border-radius:3px 3px 0 0;height:40px"></div><div style="width:20px;background:var(--green);height:34px"></div><div style="width:20px;background:var(--accent);height:30px"></div></div><div style="font-size:10px;color:var(--text-3)">17-20</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600;font-size:14px;margin-bottom:16px">Top picks for your next role</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div class="company-logo" style="background:#eff6ff;color:var(--accent)">H</div>
+            <div style="flex:1">
+              <div style="font-weight:500;font-size:13px">Project Manager</div>
+              <div style="font-size:12px;color:var(--accent)">HAYS</div>
+              <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                <span class="badge badge-gray">3yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Office</span>
+              </div>
+              <div style="font-weight:600;color:var(--green);font-size:13px;margin-top:4px">£50,000/year</div>
+            </div>
+            <div class="star">☆</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--border);padding-top:12px">
+            <div class="company-logo" style="background:#eff6ff;color:var(--accent)">H</div>
+            <div style="flex:1">
+              <div style="font-weight:500;font-size:13px">Project Manager</div>
+              <div style="font-size:12px;color:var(--accent)">HAYS</div>
+              <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                <span class="badge badge-gray">3yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Office</span>
+              </div>
+              <div style="font-weight:600;color:var(--green);font-size:13px;margin-top:4px">£50,000/year</div>
+            </div>
+            <div class="star filled">★</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ JOB DISCOVERY ============ -->
+  <div class="screen" id="screen-discovery">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div class="tabs" style="margin-bottom:0;flex:1">
+        <div class="tab active">💼 All Jobs <span class="badge badge-gray" style="margin-left:4px">108</span></div>
+        <div class="tab">⭐ Favorites <span class="badge badge-gray" style="margin-left:4px">12</span></div>
+      </div>
+      <button class="btn btn-outline btn-sm">Open to Work</button>
+      <button class="btn btn-primary btn-sm">+ Add Job</button>
+    </div>
+    <div class="grid-3">
+      <div class="card" style="cursor:pointer" onclick="showScreen('job-detail')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#e0f2fe;color:#0369a1">M</div>
+          <div class="star">☆</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Meta Platform, Inc</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">3yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Office</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Meta is placing renewed emphasis on building meaningful digital interactions across…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£50,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+      <div class="card" style="cursor:pointer;border-color:var(--accent)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#dcfce7;color:#15803d">G</div>
+          <div class="star filled">★</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Google LLC</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">8yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Remote</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Google continues to transform the way billions of people search, work, and connect…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£50,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+      <div class="card" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#fef3c7;color:#92400e">A</div>
+          <div class="star">☆</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Amazon.com, Inc</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">4yr exp</span><span class="badge badge-gray">Part time</span><span class="badge badge-gray">Office</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Amazon is doubling down on elevating its end-to-end customer journey…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£75,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+      <div class="card" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#fce7f3;color:#be185d">Z</div>
+          <div class="star">☆</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Zalando, SE</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">10yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Remote</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Zalando, one of Europe's top online fashion retailers, is investing in smarter recommendations…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£50,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+      <div class="card" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#ffe4e6;color:#be123c">G</div>
+          <div class="star filled">★</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Glovo</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">3yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Office</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Glovo is focusing on optimizing courier routing, accelerating restaurant onboarding…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£50,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+      <div class="card" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div class="company-logo" style="background:#f0fdf4;color:#15803d">R</div>
+          <div class="star">☆</div>
+        </div>
+        <div style="font-weight:600;font-size:14px">Project Manager</div>
+        <div style="color:var(--accent);font-size:13px;margin-bottom:8px">Revolut</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-gray">2yr exp</span><span class="badge badge-gray">Full time</span><span class="badge badge-gray">Office</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">Revolut, a fast-scaling fintech company, is prioritizing seamless onboarding…</div>
+        <div style="font-weight:700;color:var(--green);font-size:15px">£50,000<span style="font-size:12px;font-weight:400;color:var(--text-2)">/year</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ JOB DETAIL ============ -->
+  <div class="screen" id="screen-job-detail">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;color:var(--text-2);cursor:pointer" onclick="showScreen('discovery')">← Job Details</div>
+    <div style="display:flex;gap:20px">
+      <div style="flex:1">
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <div class="company-logo" style="background:#eff6ff;color:var(--accent);width:48px;height:48px;font-size:18px;border-radius:10px">G</div>
+            <div style="flex:1">
+              <div style="font-size:18px;font-weight:700">Senior Project Manager</div>
+              <div style="color:var(--accent);font-size:14px">Google</div>
+            </div>
+            <button class="btn btn-primary">Apply Now</button>
+            <button class="btn btn-ghost">☆</button>
+          </div>
+          <div style="font-weight:600;margin-bottom:8px">Job Description</div>
+          <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:16px">We are looking for an experienced and results-driven Senior Project Manager to lead and oversee strategic projects from initiation to delivery. You'll work closely with cross-functional teams, stakeholders, and clients to ensure projects are delivered on time, within scope, and aligned with business goals.</div>
+          <div style="font-weight:600;margin-bottom:8px">Responsibilities</div>
+          <ul style="font-size:13px;color:var(--text-2);line-height:1.8;padding-left:20px;margin-bottom:16px">
+            <li>Own the full project lifecycle: planning, execution, monitoring, and closing</li>
+            <li>Coordinate internal resources and third parties/vendors</li>
+            <li>Manage risks, dependencies, and issues proactively</li>
+            <li>Lead status meetings, prepare documentation, and track KPIs</li>
+          </ul>
+          <div style="font-weight:600;margin-bottom:8px">Skills</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span class="badge badge-blue">Stakeholder management</span>
+            <span class="badge badge-blue">Budgeting and cost control</span>
+            <span class="badge badge-blue">Change management</span>
+          </div>
+        </div>
+      </div>
+      <div style="width:240px;flex-shrink:0">
+        <div class="card-sm" style="margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div><div style="color:var(--text-2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Date posted</div><div style="font-weight:600">02 May 2025</div></div>
+            <div><div style="color:var(--text-2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Employment type</div><div style="font-weight:600">Full-time</div></div>
+            <div><div style="color:var(--text-2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Offered salary</div><div style="font-weight:600">GBP 55,000 – 65,000</div></div>
+            <div><div style="color:var(--text-2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Experience</div><div style="font-weight:600">1 year exp</div></div>
+            <div><div style="color:var(--text-2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Work arrangement</div><div style="font-weight:600">Office</div></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:8px" onclick="showScreen('approvals')">✦ Generate Outreach Draft</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ JOB TRACKER ============ -->
+  <div class="screen" id="screen-tracker">
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="metric-card">
+        <div class="metric-label">Total Applications</div>
+        <div class="metric-value">86 <span class="metric-change up">+13%↑</span></div>
+        <div class="metric-chart"><div class="bar green" style="height:60%"></div><div class="bar green" style="height:80%"></div><div class="bar green" style="height:100%"></div><div class="bar green" style="height:90%"></div><div class="bar green" style="height:95%"></div></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:6px">Applications increased 13% in 30 days</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Active Applications</div>
+        <div class="metric-value">64 <span class="metric-change down">-8%↓</span></div>
+        <div class="metric-chart"><div class="bar red" style="height:100%"></div><div class="bar red" style="height:80%"></div><div class="bar red" style="height:70%"></div><div class="bar red" style="height:60%"></div><div class="bar red" style="height:50%"></div></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:6px">Active applications decreased 8% in 30 days</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Interviews</div>
+        <div class="metric-value">18 <span class="metric-change up">+10%↑</span></div>
+        <div class="metric-chart"><div class="bar green" style="height:60%"></div><div class="bar green" style="height:70%"></div><div class="bar green" style="height:80%"></div><div class="bar green" style="height:90%"></div><div class="bar green" style="height:100%"></div></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:6px">Total interviews increased 10% in 30 days</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div class="tabs" style="margin-bottom:0"><div class="tab active">💼 All Jobs 86</div><div class="tab">⭐ Favorites 12</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Position & Company</th><th>Status</th><th>Salary</th><th>Applied date</th><th>Timeline</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="company-logo" style="background:#eff6ff;color:#0369a1;width:32px;height:32px;font-size:12px;border-radius:6px">G</div><div><div style="font-weight:500">Senior Product Designer</div><div style="color:var(--accent);font-size:12px">HAYS</div></div></div></td><td><span class="badge badge-blue">Applied</span></td><td style="font-weight:600">£45,000</td><td style="color:var(--text-2)">02 May 2025</td><td><div style="width:60px;height:4px;background:#ddd;border-radius:2px"><div style="width:20%;height:100%;background:var(--green);border-radius:2px"></div></div></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></td></tr>
+          <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="company-logo" style="background:#dcfce7;color:#15803d;width:32px;height:32px;font-size:12px;border-radius:6px">N</div><div><div style="font-weight:500">Product Designer</div><div style="color:var(--accent);font-size:12px">NASA</div></div></div></td><td><span class="badge badge-amber">Phone Screen</span></td><td style="font-weight:600">£45,000</td><td style="color:var(--text-2)">02 May 2025</td><td><div style="width:60px;height:4px;background:#ddd;border-radius:2px"><div style="width:45%;height:100%;background:var(--amber);border-radius:2px"></div></div></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></td></tr>
+          <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="company-logo" style="background:#1c1c1e;color:#fff;width:32px;height:32px;font-size:12px;border-radius:6px">A</div><div><div style="font-weight:500">Middle Designer</div><div style="color:var(--accent);font-size:12px">Apple</div></div></div></td><td><span class="badge badge-purple">Interview</span></td><td style="font-weight:600">£45,000</td><td style="color:var(--text-2)">02 May 2025</td><td><div style="width:60px;height:4px;background:#ddd;border-radius:2px"><div style="width:70%;height:100%;background:var(--purple);border-radius:2px"></div></div></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></td></tr>
+          <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="company-logo" style="background:#1c1c1e;color:#fff;width:32px;height:32px;font-size:12px;border-radius:6px">B</div><div><div style="font-weight:500">UX/UI Designer</div><div style="color:var(--accent);font-size:12px">BMW</div></div></div></td><td><span class="badge badge-gray">Applied</span></td><td style="font-weight:600">£45,000</td><td style="color:var(--text-2)">02 May 2025</td><td><div style="width:60px;height:4px;background:#ddd;border-radius:2px"><div style="width:20%;height:100%;background:var(--green);border-radius:2px"></div></div></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ APPROVALS ============ -->
+  <div class="screen" id="screen-approvals">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:13px;color:var(--text-2)">3 drafts waiting for your review. Nothing will be sent until you approve.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="badge badge-amber">3 pending</span>
+        <button class="btn btn-outline btn-sm">Filter</button>
+      </div>
+    </div>
+
+    <div class="approval-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="company-logo" style="background:#dcfce7;color:#15803d;width:40px;height:40px;font-size:14px;border-radius:8px">G</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">Senior Project Manager — Google</div>
+            <div style="font-size:12px;color:var(--text-2)">LinkedIn message · Generated 2 mins ago</div>
+          </div>
+        </div>
+        <span class="badge badge-amber">Pending review</span>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px;font-size:13px;color:var(--text-2);line-height:1.7;border-left:3px solid var(--accent)">
+        Hi [Hiring Manager], I came across the Senior Project Manager role at Google and was immediately drawn to it — particularly the focus on cross-functional delivery and stakeholder alignment. With 5+ years driving complex initiatives across tech environments, I believe I can add meaningful value to your team. I'd love to connect and learn more about the opportunity. Best, Robert
+      </div>
+      <div class="approval-actions">
+        <button class="btn btn-green btn-sm" onclick="approveCard(this)">✓ Approve & Send</button>
+        <button class="btn btn-outline btn-sm">✏ Edit</button>
+        <button class="btn btn-red btn-sm" onclick="rejectCard(this)">✕ Reject</button>
+      </div>
+    </div>
+
+    <div class="approval-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="company-logo" style="background:#e0f2fe;color:#0369a1;width:40px;height:40px;font-size:14px;border-radius:8px">M</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">Project Manager — Meta</div>
+            <div style="font-size:12px;color:var(--text-2)">Email outreach · Generated 8 mins ago</div>
+          </div>
+        </div>
+        <span class="badge badge-amber">Pending review</span>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px;font-size:13px;color:var(--text-2);line-height:1.7;border-left:3px solid var(--accent)">
+        Subject: Application — Project Manager, Meta Platform<br><br>
+        Dear Hiring Team, I'm writing to express strong interest in the Project Manager position. My background spans 5 years of end-to-end project delivery, stakeholder management, and building repeatable systems for complex, fast-moving teams...
+      </div>
+      <div class="approval-actions">
+        <button class="btn btn-green btn-sm" onclick="approveCard(this)">✓ Approve & Send</button>
+        <button class="btn btn-outline btn-sm">✏ Edit</button>
+        <button class="btn btn-red btn-sm" onclick="rejectCard(this)">✕ Reject</button>
+      </div>
+    </div>
+
+    <div class="approval-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="company-logo" style="background:#fef3c7;color:#92400e;width:40px;height:40px;font-size:14px;border-radius:8px">A</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">Project Manager — Amazon</div>
+            <div style="font-size:12px;color:var(--text-2)">LinkedIn message · Generated 15 mins ago</div>
+          </div>
+        </div>
+        <span class="badge badge-amber">Pending review</span>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px;font-size:13px;color:var(--text-2);line-height:1.7;border-left:3px solid var(--accent)">
+        Hi! I saw the Project Manager opening at Amazon and wanted to reach out. I've spent the last several years building and shipping cross-functional projects with tight deadlines — exactly the environment Amazon thrives in. Would love to learn more about the role.
+      </div>
+      <div class="approval-actions">
+        <button class="btn btn-green btn-sm" onclick="approveCard(this)">✓ Approve & Send</button>
+        <button class="btn btn-outline btn-sm">✏ Edit</button>
+        <button class="btn btn-red btn-sm" onclick="rejectCard(this)">✕ Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CAREER COPILOT ============ -->
+  <div class="screen" id="screen-copilot">
+    <div style="display:flex;flex-direction:column;height:calc(100vh - 130px)">
+      <div style="flex:1;overflow-y:auto;padding-bottom:16px" id="chat-messages">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:22px;font-weight:700;margin-bottom:8px">Hi! I'm your Career Copilot! 👋</div>
+          <div style="font-size:16px;color:var(--text-2);margin-bottom:32px">I can help you with:</div>
+          <div class="grid-2" style="max-width:600px;margin:0 auto">
+            <div class="card" style="cursor:pointer;text-align:left" onclick="sendQuickAction('Career Strategy')">
+              <div style="font-size:20px;margin-bottom:6px">💡</div>
+              <div style="font-weight:600;font-size:13px">Career Strategy</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:4px">Get personalized career roadmaps and growth strategies</div>
+            </div>
+            <div class="card" style="cursor:pointer;text-align:left" onclick="sendQuickAction('Resume Review')">
+              <div style="font-size:20px;margin-bottom:6px">📄</div>
+              <div style="font-weight:600;font-size:13px">Resume Review</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:4px">AI-powered resume optimization and feedback</div>
+            </div>
+            <div class="card" style="cursor:pointer;text-align:left" onclick="sendQuickAction('Interview Preparation')">
+              <div style="font-size:20px;margin-bottom:6px">🎯</div>
+              <div style="font-weight:600;font-size:13px">Interview Preparation</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:4px">Practice and refine your interviewing skills</div>
+            </div>
+            <div class="card" style="cursor:pointer;text-align:left" onclick="sendQuickAction('Skill Analysis')">
+              <div style="font-size:20px;margin-bottom:6px">🎓</div>
+              <div style="font-weight:600;font-size:13px">Skill Analysis</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:4px">Identify and bridge professional skill gaps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-wrap">
+        <div style="display:flex;gap:8px;margin-bottom:10px;width:100%">
+          <button class="btn btn-outline btn-sm">⚡ Quick Actions ▾</button>
+          <button class="btn btn-outline btn-sm">📋 Popular Topics ▾</button>
+        </div>
+      </div>
+      <div class="chat-input-wrap" style="border-top:none;padding-top:0">
+        <input class="chat-input" id="chat-input" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn btn-primary" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ATS OPTIMIZER ============ -->
+  <div class="screen" id="screen-ats">
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-weight:600;margin-bottom:4px">Upload Your CV</div>
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Upload your CV in PDF format</div>
+          <div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size:36px;margin-bottom:8px">📄</div>
+            <div style="font-weight:500">Drop or select file</div>
+            <div style="font-size:12px;color:var(--text-2)">Drop files here or click to <span style="color:var(--accent)">browse</span></div>
+          </div>
+          <div style="margin-top:12px;background:var(--bg);border-radius:8px;padding:12px;font-size:13px;color:var(--text-2)">
+            <div style="font-weight:500;margin-bottom:4px">Extracted Content</div>
+            <div>John Taylor · Digital Marketing Specialist · Austin, TX<br>Results-driven digital marketer with 5+ years of experience managing multi-channel campaigns, SEO optimization, and data analytics…</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:4px">Job Description</div>
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">Paste the job description to analyze</div>
+          <textarea style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;height:120px;resize:none;outline:none" placeholder="Paste the job description here…"></textarea>
+          <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center" onclick="showAtsResult()">Analyse CV</button>
+        </div>
+      </div>
+      <div id="ats-result" style="display:none">
+        <div class="card">
+          <div style="display:flex;gap:20px;align-items:center;margin-bottom:20px">
+            <div class="donut-wrap" style="width:80px;height:80px">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#f0f2f5" stroke-width="8"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--green)" stroke-width="8" stroke-dasharray="150 201" stroke-linecap="round"/>
+              </svg>
+              <div class="donut-center"><div style="font-size:18px;font-weight:700">75%</div><div style="font-size:10px;color:var(--text-2)">Match</div></div>
+            </div>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">Keywords: 6/10 matched</div>
+              <div style="font-size:12px;color:var(--text-2)">Try to get above 75% to increase your chances!</div>
+            </div>
+          </div>
+          <div style="font-weight:600;margin-bottom:8px;font-size:13px">Keywords</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+            <span class="badge badge-green">✓ SEO</span><span class="badge badge-green">✓ Google Ads</span><span class="badge badge-green">✓ Email Marketing</span><span class="badge badge-green">✓ A/B Testing</span><span class="badge badge-green">✓ Analytics</span><span class="badge badge-green">✓ Social Media</span><span class="badge badge-red">✗ HubSpot</span><span class="badge badge-red">✗ Marketo</span>
+          </div>
+          <div style="font-weight:600;margin-bottom:8px;font-size:13px">Improvement Suggestions</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;background:#fff5f5;border-radius:8px;border-left:3px solid var(--red)">
+              <span>❗</span>
+              <div>
+                <div style="font-weight:500;font-size:13px">Add A/B testing example in work experience</div>
+                <div style="font-size:12px;color:var(--text-2)">Show a real example with results.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;background:#fff5f5;border-radius:8px;border-left:3px solid var(--red)">
+              <span>❗</span>
+              <div>
+                <div style="font-weight:500;font-size:13px">Mention GA4 or updated analytics platform</div>
+                <div style="font-size:12px;color:var(--text-2)">Referencing GA4 shows you're up-to-date with key marketing tools.</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn btn-primary btn-sm">Optimize Resume</button>
+            <button class="btn btn-outline btn-sm">↓ Download PDF</button>
+          </div>
+        </div>
+      </div>
+      <div id="ats-tips">
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:12px">ATS Tips</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px;padding:10px;background:var(--bg);border-radius:8px"><span>📝</span><div><div style="font-weight:500;font-size:13px">Use Simple Formatting</div><div style="font-size:12px;color:var(--text-2)">Stick to standard fonts and simple layouts</div></div></div>
+            <div style="display:flex;gap:8px;padding:10px;background:var(--bg);border-radius:8px"><span>🎯</span><div><div style="font-weight:500;font-size:13px">Match Keywords</div><div style="font-size:12px;color:var(--text-2)">Use exact phrases from the job description</div></div></div>
+            <div style="display:flex;gap:8px;padding:10px;background:var(--bg);border-radius:8px"><span>🏆</span><div><div style="font-weight:500;font-size:13px">Highlight Achievements</div><div style="font-size:12px;color:var(--text-2)">Include measurable results and metrics</div></div></div>
+            <div style="display:flex;gap:8px;padding:10px;background:var(--bg);border-radius:8px"><span>📋</span><div><div style="font-weight:500;font-size:13px">Label Sections Clearly</div><div style="font-size:12px;color:var(--text-2)">Use standard headings like "Work Experience" etc.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LINKEDIN ANALYSIS ============ -->
+  <div class="screen" id="screen-linkedin">
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-weight:600;margin-bottom:4px">LinkedIn Profile URL</div>
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Enter your LinkedIn profile URL</div>
+          <div style="display:flex;gap:8px">
+            <input style="flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" placeholder="https://www.linkedin.com/in/username">
+            <button class="btn btn-primary" onclick="showLinkedInResult()">Run</button>
+          </div>
+        </div>
+        <div id="linkedin-scores" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:center;margin-bottom:20px">
+              <div style="position:relative;width:100px;height:100px">
+                <svg width="100" height="100" viewBox="0 0 100 100" transform="rotate(-90 50 50)" style="transform:rotate(-90deg)">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#f0f2f5" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--green)" stroke-width="8" stroke-dasharray="126 251" stroke-linecap="round"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                  <div style="font-size:8px;margin-bottom:2px">👍</div>
+                  <div style="font-size:20px;font-weight:700">50</div>
+                  <div style="font-size:10px;color:var(--text-2)">Overall score</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:var(--accent);cursor:pointer" onclick="showSection('headline')">
+                <span style="font-weight:500;color:#fff;font-size:13px">Headline</span><span style="color:#fff;font-weight:600">7/10</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;cursor:pointer;border-radius:8px" onclick="showSection('summary')">
+                <span style="font-weight:500;font-size:13px">Summary</span><span style="color:var(--red);font-weight:600">2/10</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;cursor:pointer;border-radius:8px" onclick="showSection('experience')">
+                <span style="font-weight:500;font-size:13px">Experience</span><span style="color:var(--amber);font-weight:600">5/10</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;cursor:pointer;border-radius:8px" onclick="showSection('education')">
+                <span style="font-weight:500;font-size:13px">Education</span><span style="color:var(--green);font-weight:600">10/10</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;cursor:pointer;border-radius:8px" onclick="showSection('other')">
+                <span style="font-weight:500;font-size:13px">Other</span><span style="color:var(--accent);font-weight:600">6/10</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px">Analyze Profile</button>
+          </div>
+        </div>
+      </div>
+      <div id="linkedin-detail" style="display:none">
+        <div class="card">
+          <div style="font-size:16px;font-weight:600;color:var(--accent);margin-bottom:4px">Headline: <span id="section-score">7/10</span></div>
+          <div style="font-size:13px;font-style:italic;color:var(--text-2);margin-bottom:16px" id="section-current">Helping brands grow through words | Content Creator &amp; Strategist</div>
+          <div style="background:#fff5f5;border-radius:8px;padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">🚩 Critique</div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7" id="section-critique">The tone is friendly, but lacks specifics. No mention of industries, key skills, or experience level. Doesn't highlight measurable impact.</div>
+          </div>
+          <div style="background:#fffbeb;border-radius:8px;padding:12px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">💡 Suggestions &amp; Tips</div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7">Add your years of experience, top tools, and a hint of measurable impact. Make it specific and keyword-rich for recruiters.</div>
+          </div>
+          <div style="background:#f0fdf4;border-radius:8px;padding:12px">
+            <div style="font-weight:600;margin-bottom:6px">📝 Example Headlines</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.8">• Content Marketing Strategist | 5+ Years Driving Growth for SaaS &amp; B2B Brands | SEO · Copywriting<br>• B2B Content Strategist | Turning Ideas into Conversions | SEO | Thought Leadership | Email &amp; Web Copy</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CAREER HEALTH ============ -->
+  <div class="screen" id="screen-health">
+    <div class="grid-2" style="margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="metric-card">
+          <div class="metric-label">Good Days Streak</div>
+          <div class="metric-value">12 <span class="metric-change up">+25%↑</span></div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">25% more good days this month</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Energy</div>
+          <div class="metric-value">70%<span class="metric-change down" style="font-size:11px">-18%↓</span></div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Daily energy decreased 18% in 30 days</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Weekly Mood Average</div>
+          <div class="metric-value">7.5 <span class="metric-change down">-0.5↓</span></div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Average mood decreased 0.5 points</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Workload Balance</div>
+          <div class="metric-value">65%<span class="metric-change up" style="font-size:11px">+10%↑</span></div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:6px">Workload balance +10% in 30 days</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:14px">Daily Career Check-in</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">How are you feeling about work today?</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+          <button class="mood-btn" onclick="selectMood(this)"><span class="emoji">😤</span>Terrible</button>
+          <button class="mood-btn" onclick="selectMood(this)"><span class="emoji">🙁</span>Bad</button>
+          <button class="mood-btn" onclick="selectMood(this)"><span class="emoji">😐</span>Neutral</button>
+          <button class="mood-btn" onclick="selectMood(this)"><span class="emoji">😊</span>Good</button>
+          <button class="mood-btn" onclick="selectMood(this)"><span class="emoji">😄</span>Great</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:4px"><span>Energy Level</span><span style="color:var(--accent)">50%</span></div>
+          <input type="range" value="50" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3)"><span>Exhausted</span><span>Highly energized</span></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center">Save Today's Check-in</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-weight:600">Career Health Metrics</div>
+        <select><option>Last 7 days</option><option>Last 30 days</option></select>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Job Satisfaction</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-size:28px;font-weight:700">37%</div>
+            <span class="badge badge-amber">Warning</span>
+            <span style="color:var(--red);font-size:12px">-25%↓</span>
+          </div>
+          <div class="progress-wrap" style="margin-bottom:12px"><div class="progress-fill" style="width:37%;background:#ec4899"></div></div>
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px">💡 Key Insights</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.7">• Slight decrease in overall satisfaction<br>• Strong team collaboration<br>• Project challenges noted</div>
+          <div style="font-size:12px;font-weight:500;margin-top:8px;margin-bottom:4px">📝 Recommendations</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.7">• Schedule 1:1 with manager<br>• Define clear project goals</div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Work-Life Balance</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-size:28px;font-weight:700">60%</div>
+            <span class="badge badge-green">Good</span>
+            <span style="color:var(--red);font-size:12px">-5%↓</span>
+          </div>
+          <div class="progress-wrap" style="margin-bottom:12px"><div class="progress-fill green" style="width:60%"></div></div>
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px">💡 Key Insights</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.7">• Improved time management<br>• Regular breaks taken<br>• Reduced overtime hours</div>
+          <div style="font-size:12px;font-weight:500;margin-top:8px;margin-bottom:4px">📝 Recommendations</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.7">• Maintain current schedule<br>• Continue setting boundaries</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CAREER PLANNER ============ -->
+  <div class="screen" id="screen-planner">
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="metric-card"><div class="metric-label">Planned Tasks</div><div class="metric-value">10 <span class="metric-change up">+13%↑</span></div><div style="font-size:11px;color:var(--text-3);margin-top:6px">Planned tasks increased 13% in 30 days</div></div>
+      <div class="metric-card"><div class="metric-label">In Progress Tasks</div><div class="metric-value">5 <span class="metric-change down">-8%↓</span></div><div style="font-size:11px;color:var(--text-3);margin-top:6px">In-progress tasks decreased 8% in 30 days</div></div>
+      <div class="metric-card"><div class="metric-label">Completed Tasks</div><div class="metric-value">10 <span class="metric-change up">+10%↑</span></div><div style="font-size:11px;color:var(--text-3);margin-top:6px">Completed tasks increased 10% in 30 days</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="tabs" style="margin-bottom:0">
+        <div class="tab active">☰ List</div>
+        <div class="tab">⊞ Kanban</div>
+        <div class="tab">📅 Calendar</div>
+      </div>
+      <button class="btn btn-primary btn-sm">+ Add Milestone</button>
+    </div>
+    <div class="card">
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:13px">⏳ Planned <span class="badge badge-gray">10</span></div>
+        <span style="color:var(--text-3)">···</span>
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="color:var(--red)">▲</span> Software Engineer
+          <span style="margin-left:auto;font-size:11px;color:var(--text-2)">📅 Due: 30/06/2025</span>
+          <span style="color:var(--text-3)">···</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">Full-stack development role focusing on web applications</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap" style="flex:1"><div class="progress-fill" style="width:33%"></div></div><span style="font-size:12px;color:var(--text-2)">33%</span></div>
+        <div style="margin-top:8px;padding-left:12px;font-size:12px;color:var(--text-2)">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" checked disabled> Ship first feature to production</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" disabled> Complete onboarding training</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><input type="checkbox" disabled> Pass probation period</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px"><span class="skill-tag">React</span><span class="skill-tag">Node.js</span><span class="skill-tag">TypeScript</span></div>
+        </div>
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="color:var(--amber)">◆</span> AWS Solutions Architect Associate
+          <span style="margin-left:auto;font-size:11px;color:var(--text-2)">📅 Due: 30/06/2025</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">Cloud architecture certification</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap" style="flex:1"><div class="progress-fill" style="width:50%"></div></div><span style="font-size:12px;color:var(--text-2)">50%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CAREER SUCCESS ============ -->
+  <div class="screen" id="screen-success">
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="metric-card">
+        <div class="metric-label">Skills Mastery</div>
+        <div class="metric-value">35%<span class="metric-change up" style="font-size:11px">+15%↑</span></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">15% more progress on skills in 30 days</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Career Progress</div>
+        <div class="metric-value">65%<span class="metric-change down" style="font-size:11px">-8%↓</span></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">Career progress dropped 8% in 30 days</div>
+      </div>
+      <div>
+        <div class="card-sm" style="height:100%">
+          <div style="font-weight:600;margin-bottom:10px;font-size:13px">Skills Grows</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px">Strategic planning</span><span style="font-size:12px;color:var(--green)">+12%</span></div>
+          <div class="progress-wrap" style="margin-bottom:8px"><div class="progress-fill" style="width:30%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px">Communication</span><span style="font-size:12px;color:var(--green)">+18%</span></div>
+          <div class="progress-wrap" style="margin-bottom:8px"><div class="progress-fill" style="width:40%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px">Data analysis</span><span style="font-size:12px;color:var(--green)">+22%</span></div>
+          <div class="progress-wrap"><div class="progress-fill" style="width:50%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-weight:600;font-size:14px">Career Goals</div>
+          <button class="btn btn-outline btn-sm">+ Add Goals</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:500">📚 Complete System Design Course</span><span style="color:var(--accent)">75%</span></div><div class="progress-wrap"><div class="progress-fill green" style="width:75%"></div></div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Learning</span><span class="badge badge-gray" style="font-size:10px">12/06/2025</span></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:500">📄 Apply to 5 Senior Positions</span><span style="color:var(--accent)">42%</span></div><div class="progress-wrap"><div class="progress-fill green" style="width:42%"></div></div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Career</span><span class="badge badge-gray" style="font-size:10px">12/06/2025</span></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:500">🎓 Earn AWS Certification</span><span style="color:var(--accent)">15%</span></div><div class="progress-wrap"><div class="progress-fill amber" style="width:15%"></div></div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Project</span><span class="badge badge-gray" style="font-size:10px">12/06/2025</span></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-weight:600;font-size:14px">Recent Achievements</div>
+          <button class="btn btn-outline btn-sm">+ Add Achievement</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="padding-bottom:12px;border-bottom:1px solid var(--border)"><div style="display:flex;gap:6px;align-items:flex-start"><span style="font-size:18px">🚀</span><div><div style="font-weight:500;font-size:13px">Profile Strength Increased</div><div style="font-size:12px;color:var(--text-2)">Your LinkedIn profile is now in the top 10%</div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Award</span><span class="badge badge-gray" style="font-size:10px">15/05/2025</span></div></div></div></div>
+          <div style="padding-bottom:12px;border-bottom:1px solid var(--border)"><div style="display:flex;gap:6px;align-items:flex-start"><span style="font-size:18px">🏅</span><div><div style="font-weight:500;font-size:13px">New Skill Badge</div><div style="font-size:12px;color:var(--text-2)">Earned React Expert certification</div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Skill</span><span class="badge badge-gray" style="font-size:10px">15/05/2025</span></div></div></div></div>
+          <div><div style="display:flex;gap:6px;align-items:flex-start"><span style="font-size:18px">✅</span><div><div style="font-weight:500;font-size:13px">Completed Milestone</div><div style="font-size:12px;color:var(--text-2)">Successfully completed 5 learning modules</div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge badge-gray" style="font-size:10px">Project</span><span class="badge badge-gray" style="font-size:10px">15/05/2025</span></div></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SALARY BENCHMARK ============ -->
+  <div class="screen" id="screen-salary">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:4px">Salary Overview</div>
+          <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:16px">💼 £65,000 <span style="font-size:13px;font-weight:400;color:var(--text-2)">(Average annual salary)</span> <span style="color:var(--green);font-size:13px">+5.2% YoY↑</span></div>
+          <div style="height:120px;display:flex;align-items:flex-end;gap:4px;margin-bottom:8px">
+            <div style="flex:1;height:60%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.6"></div>
+            <div style="flex:1;height:80%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.7"></div>
+            <div style="flex:1;height:55%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.6"></div>
+            <div style="flex:1;height:50%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.6"></div>
+            <div style="flex:1;height:60%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.65"></div>
+            <div style="flex:1;height:70%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.7"></div>
+            <div style="flex:1;height:90%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.8"></div>
+            <div style="flex:1;height:70%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.75"></div>
+            <div style="flex:1;height:75%;background:var(--accent);border-radius:4px 4px 0 0"></div>
+            <div style="flex:1;height:65%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.7"></div>
+            <div style="flex:1;height:80%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.8"></div>
+            <div style="flex:1;height:55%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.6"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3)">
+            <span>06/24</span><span>07/24</span><span>08/24</span><span>09/24</span><span>10/24</span><span>11/24</span><span>12/24</span><span>01/25</span><span>02/25</span><span>03/25</span><span>04/25</span><span>05/25</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div style="font-weight:600;margin-bottom:12px">Top Companies</div>
+          <div style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><div style="font-size:18px">G</div><div><div style="font-weight:500;font-size:13px">Google</div><div style="font-size:12px;color:var(--text-2)">Leading the way in tech</div></div></div><div style="text-align:right"><div style="font-weight:700;color:var(--green)">£85,000</div><div style="font-size:11px;color:var(--text-2)">Median Salary</div></div></div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge badge-gray" style="font-size:10px">Remote Work</span><span class="badge badge-gray" style="font-size:10px">Health Insurance</span><span class="badge badge-gray" style="font-size:10px">Stock Options</span></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><div style="font-size:18px">A</div><div><div style="font-weight:500;font-size:13px">Amazon</div><div style="font-size:12px;color:var(--text-2)">Leading the way in commerce</div></div></div><div style="text-align:right"><div style="font-weight:700;color:var(--green)">£85,000</div><div style="font-size:11px;color:var(--text-2)">Median Salary</div></div></div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge badge-gray" style="font-size:10px">Remote Work</span><span class="badge badge-gray" style="font-size:10px">Stock Options</span><span class="badge badge-gray" style="font-size:10px">Learning Budget</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:12px">Salary Predictor</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div><label style="font-size:12px;color:var(--text-2);font-weight:500;display:block;margin-bottom:4px">Job Title</label><input style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" placeholder="e.g. Software Engineer"></div>
+            <div><label style="font-size:12px;color:var(--text-2);font-weight:500;display:block;margin-bottom:4px">Location (optional)</label><input style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" placeholder="e.g. London, UK"></div>
+            <div><label style="font-size:12px;color:var(--text-2);font-weight:500;display:block;margin-bottom:4px">Years of Experience</label><input style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" placeholder="e.g. 1 year of experience"></div>
+            <div><label style="font-size:12px;color:var(--text-2);font-weight:500;display:block;margin-bottom:4px">Skills &amp; Requirements (Optional)</label><input style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" placeholder="List key skills…"></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center">Predict Salary</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CAREER PATHFINDER ============ -->
+  <div class="screen" id="screen-pathfinder">
+    <div style="max-width:800px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:13px;color:var(--text-2)">Question 1 of 5</div>
+        <div style="font-size:13px;color:var(--text-2)">20%</div>
+      </div>
+      <div class="progress-wrap" style="margin-bottom:24px"><div class="progress-fill green" style="width:20%"></div></div>
+      <div class="card">
+        <div style="font-size:17px;font-weight:600;margin-bottom:6px">What industry do you currently work in?</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:20px">Select your industry to help us understand your background</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+          <div style="padding:8px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#eff6ff;color:var(--accent);font-size:13px;cursor:pointer">🎨 Creative & Design</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">💻 Technology & Software</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">🏦 Finance & Banking</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">🏥 Healthcare & Life Sciences</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">🛍 Retail & E-commerce</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">🎓 Education & Training</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">⚙️ Manufacturing & Engineering</div>
+          <div style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">🏗 Construction & Real Estate</div>
+        </div>
+        <div style="font-weight:600;margin-bottom:10px;font-size:13px">Select Your Role</div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="padding:10px 12px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-2)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">Graphic Designer</div>
+          <div style="padding:10px 12px;border-radius:6px;font-size:13px;cursor:pointer;background:#eff6ff;color:var(--accent);font-weight:500">UX/UI Designer</div>
+          <div style="padding:10px 12px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-2)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">Content Writer</div>
+          <div style="padding:10px 12px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-2)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">Marketing Manager</div>
+          <div style="padding:10px 12px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-2)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">Art Director</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:20px">
+          <button class="btn btn-outline btn-sm">← Previous</button>
+          <button class="btn btn-primary btn-sm" onclick="showScreen('pathfinder-results')">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PATHFINDER RESULTS ============ -->
+  <div class="screen" id="screen-pathfinder-results">
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:6px">Your Personalized Career Paths</div>
+    <div style="font-size:13px;color:var(--text-3);margin-bottom:16px">Based on your skills, interests, and goals, we've identified these promising career transitions.</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <span class="badge badge-blue">✦ AI-Powered Matching</span>
+      <span class="badge badge-blue">👥 Real Success Stories</span>
+      <span class="badge badge-blue">⚡ Live Opportunities</span>
+    </div>
+    <div class="grid-3">
+      <div class="card" style="border-color:var(--green)">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">Senior UX Designer</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <span class="badge badge-gray">⏰ 0-6 months</span>
+          <span class="badge badge-gray">💰 £45k–£65k</span>
+          <span class="badge badge-amber">↗ Moderate to High</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">A Senior UX Designer is responsible for leading the design of digital products.</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><div class="progress-wrap" style="flex:1"><div class="progress-fill green" style="width:90%"></div></div><span style="font-size:12px;color:var(--green);font-weight:600">90% match</span></div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px">Market Insights ↑</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">📈 <strong>Trends:</strong> Increasing demand for advanced UX skills; Growing importance of user-centred design</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">⚡ <strong>Opportunities:</strong> Rising need for senior leadership</div>
+        <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center">📋 Create Transition Plan</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">UX Researcher</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <span class="badge badge-gray">⏰ 3-9 months</span>
+          <span class="badge badge-gray">💰 £35k–£55k</span>
+          <span class="badge badge-blue">↗ Moderate</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">A UX Researcher is focused on understanding user behaviours, needs, and motivations.</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><div class="progress-wrap" style="flex:1"><div class="progress-fill" style="width:75%"></div></div><span style="font-size:12px;color:var(--accent);font-weight:600">75% match</span></div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px">Market Insights ↑</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">📈 <strong>Trends:</strong> Increased emphasis on data-driven design; AI &amp; ML in user research</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">⚡ <strong>Opportunities:</strong> Specialisation in emerging research methods</div>
+        <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center">📋 Create Transition Plan</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">Product Manager</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <span class="badge badge-gray">⏰ 6-12 months</span>
+          <span class="badge badge-gray">💰 £40k–£70k</span>
+          <span class="badge badge-red">↗ High</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">A Product Manager is responsible for the strategy, roadmap, and feature definition of a product line.</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><div class="progress-wrap" style="flex:1"><div class="progress-fill" style="width:70%"></div></div><span style="font-size:12px;color:var(--accent);font-weight:600">70% match</span></div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px">Market Insights ↑</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">📈 <strong>Trends:</strong> Growing role of product management; Growth of digital products</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">⚡ <strong>Opportunities:</strong> Leading cross-functional product launches</div>
+        <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center">📋 Create Transition Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DISCUSSION BOARD ============ -->
+  <div class="screen" id="screen-board">
+    <div class="grid-2" style="grid-template-columns:1fr 300px">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div class="avatar">AB</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:13px">Annette Black</span><span style="font-size:12px;color:var(--text-3)">1 day ago</span></div>
+              <div style="font-weight:600;margin-top:6px;margin-bottom:6px">Switching careers after 30 — is it worth it?</div>
+              <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:10px">Hey everyone 👋 I'm curious how many of you have completely changed careers after turning 30 — and how that worked out for you. Was it worth it in the end?</div>
+              <div style="display:flex;gap:6px;margin-bottom:12px"><span class="badge badge-gray">#career-change</span><span class="badge badge-gray">#life-decision</span></div>
+              <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text-2)">
+                <button class="btn btn-ghost btn-sm">👍 12</button>
+                <button class="btn btn-ghost btn-sm">💬 7 replies</button>
+                <button class="btn btn-ghost btn-sm">Reply</button>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+            <div style="display:flex;gap:10px;margin-bottom:10px">
+              <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0">GH</div>
+              <div>
+                <div style="display:flex;justify-content:space-between"><span style="font-weight:500;font-size:13px">Guy Hawkins</span><span style="font-size:12px;color:var(--text-3)">1 day ago</span></div>
+                <div style="font-size:13px;color:var(--text-2);margin-top:4px;line-height:1.6">I've been thinking about this too — but I've got kids, mortgage, and it just feels irresponsible to start over.</div>
+                <div style="display:flex;gap:8px;font-size:12px;color:var(--text-2);margin-top:8px">
+                  <button class="btn btn-ghost btn-sm">👍 17</button><button class="btn btn-ghost btn-sm">💬 2</button><button class="btn btn-ghost btn-sm">Reply</button>
+                </div>
+                <div style="margin-top:8px;padding:10px;background:var(--bg);border-radius:8px;border-left:2px solid var(--border)">
+                  <div style="display:flex;gap:8px;align-items:flex-start">
+                    <div class="avatar" style="width:24px;height:24px;font-size:9px;flex-shrink:0">DR</div>
+                    <div>
+                      <div style="font-weight:500;font-size:12px">Dianne Russell <span style="color:var(--text-3);font-weight:400">· 1 day ago</span></div>
+                      <div style="font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.6">Totally get you. I had two kids when I made the switch at 35. It took longer, but it's doable if you plan carefully and involve your partner early.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:12px;font-size:14px">Similar Topics</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="border-bottom:1px solid var(--border);padding-bottom:12px">
+              <div style="display:flex;gap:8px;margin-bottom:6px">
+                <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0">JJ</div>
+                <div><div style="font-weight:500;font-size:12px">Jacob Jones</div><div style="font-size:11px;color:var(--text-3)">10h</div></div>
+              </div>
+              <div style="font-size:13px;font-weight:500;margin-bottom:4px">How did you land your current role?</div>
+              <div style="display:flex;gap:4px;margin-bottom:6px"><span class="badge badge-gray" style="font-size:10px">#career-advice</span><span class="badge badge-gray" style="font-size:10px">#job-search</span></div>
+              <div style="font-size:12px;color:var(--text-2)">👍 12 &nbsp; 💬 4</div>
+            </div>
+            <div>
+              <div style="display:flex;gap:8px;margin-bottom:6px">
+                <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0">SN</div>
+                <div><div style="font-weight:500;font-size:12px">Savannah Nguyen</div><div style="font-size:11px;color:var(--text-3)">1 day ago</div></div>
+              </div>
+              <div style="font-size:13px;font-weight:500;margin-bottom:4px">Switching careers after 30</div>
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">What pushed you to switch? Was it scary?</div>
+              <div style="display:flex;gap:4px;margin-bottom:6px"><span class="badge badge-gray" style="font-size:10px">#career-change</span></div>
+              <div style="font-size:12px;color:var(--text-2)">👍 22 &nbsp; 💬 10</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end content -->
+</div><!-- end main -->
+
+<script>
+  // Navigation
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const el = document.getElementById('screen-'+id);
+    if(el) el.classList.add('active');
+    const titles = {
+      'dashboard':'Dashboard','discovery':'Job Discovery','tracker':'Job Tracker',
+      'approvals':'Approvals','copilot':'Career Copilot','ats':'ATS Optimizer',
+      'linkedin':'LinkedIn Analysis','health':'Career Health','planner':'Career Planner',
+      'success':'Career Success','salary':'Salary Benchmark','pathfinder':'Career Pathfinder',
+      'pathfinder-results':'Career Pathfinder — Results','board':'Discussion Board',
+      'job-detail':'Job Details'
+    };
+    document.getElementById('page-title').textContent = titles[id] || id;
+    // update active nav
+    document.querySelectorAll('.nav-item,.nav-sub').forEach(n=>n.classList.remove('active'));
+  }
+
+  function toggleNav(id) {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.display = (el.style.display==='none'||el.style.display==='') ? 'block' : 'none';
+  }
+
+  // Show all navs by default
+  ['career-nav','job-nav','tools-nav'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='block';
+  });
+
+  // Approvals
+  function approveCard(btn) {
+    const card = btn.closest('.approval-card');
+    card.style.opacity='0.5';
+    card.querySelector('.badge').textContent='Sent ✓';
+    card.querySelector('.badge').className='badge badge-green';
+    btn.parentElement.innerHTML='<span style="color:var(--green);font-size:13px;font-weight:500">✓ Message approved and sent</span>';
+  }
+  function rejectCard(btn) {
+    const card = btn.closest('.approval-card');
+    card.style.opacity='0.4';
+    card.querySelector('.badge').textContent='Rejected';
+    card.querySelector('.badge').className='badge badge-red';
+    btn.parentElement.innerHTML='<span style="color:var(--red);font-size:13px;font-weight:500">✕ Draft rejected</span>';
+  }
+
+  // Chat
+  const responses = {
+    'Career Strategy': '🔑 **What You Need for the Next Step & a 6–12 Month Growth Plan:**\n\nTo move forward in your UX/UI career, it\'s important to strengthen both your portfolio and skills to position yourself for more advanced roles like Senior Designer or Product Designer.\n\nKey areas to focus on:\n• Portfolio — Make sure it showcases your thinking, design process, and real-world impact.\n• Hard skills — Deeper UX research, interaction design, motion, or design systems.\n• English proficiency — Aim for B2+ level to work with international teams.',
+    'Resume Review': '📄 **Resume Analysis:**\n\nYour resume is strong in experience and education sections. Key improvements:\n• Add quantifiable achievements (e.g., "increased conversion by 23%")\n• Include more keywords matching senior-level job descriptions\n• Shorten the summary to 3 punchy lines',
+    'Interview Preparation': '🎯 **Interview Prep for Senior UX Designer:**\n\nExpect these question types:\n• Portfolio walkthrough — practice your story for each case study\n• Stakeholder alignment — "Tell me about a time you disagreed with a PM"\n• Design critique — have 2-3 current products ready to analyse live\n• Process questions — be specific about your research methods',
+    'Skill Analysis': '🎓 **Current Skill Gap Analysis:**\n\nBased on your profile vs Senior UX Designer requirements:\n• ✅ Figma — Proficient\n• ✅ User research — Good\n• ⚠️ Motion design — Needs development\n• ⚠️ Design systems at scale — Build this next\n• ❌ Stakeholder presentation skills — Priority gap'
+  };
+
+  function sendQuickAction(action) {
+    addUserMessage('I\'d like help with: ' + action);
+    setTimeout(()=>{
+      addAiMessage(responses[action] || 'Let me help you with that!');
+    }, 600);
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chat-input');
+    if(!input.value.trim()) return;
+    addUserMessage(input.value);
+    input.value='';
+    setTimeout(()=>{
+      addAiMessage('Great question! Based on your profile as a Project Manager with experience in stakeholder management, I\'d recommend focusing on building your technical skills in data analysis and developing a stronger metrics-driven narrative in your applications. Would you like me to help you build a specific 30-day action plan?');
+    },700);
+  }
+
+  function addUserMessage(text) {
+    const msgs = document.getElementById('chat-messages');
+    const initial = msgs.querySelector('div[style*="text-align:center"]');
+    if(initial) initial.remove();
+    const d = document.createElement('div');
+    d.style.cssText='display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px;align-items:flex-end';
+    d.innerHTML=`<div style="font-size:11px;color:var(--text-3)">You · Now</div><div class="chat-msg chat-user">${text}</div>`;
+    msgs.appendChild(d);
+    msgs.scrollTop=msgs.scrollHeight;
+  }
+
+  function addAiMessage(text) {
+    const msgs = document.getElementById('chat-messages');
+    const d = document.createElement('div');
+    d.style.cssText='display:flex;margin-bottom:12px;gap:8px;align-items:flex-start';
+    const formatted = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    d.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px">🤖</div><div class="chat-msg chat-ai">${formatted}<div style="display:flex;gap:4px;margin-top:8px"><button class="btn btn-ghost btn-sm">👍</button><button class="btn btn-ghost btn-sm">👎</button><button class="btn btn-ghost btn-sm">⎘</button></div></div>`;
+    msgs.appendChild(d);
+    msgs.scrollTop=msgs.scrollHeight;
+  }
+
+  // ATS
+  function showAtsResult() {
+    document.getElementById('ats-result').style.display='block';
+    document.getElementById('ats-tips').style.display='none';
+  }
+
+  // LinkedIn
+  function showLinkedInResult() {
+    document.getElementById('linkedin-scores').style.display='block';
+    document.getElementById('linkedin-detail').style.display='block';
+  }
+  function showSection(section) {
+    const scores = {headline:{s:'7/10',c:'Helping brands grow through words | Content Creator & Strategist',cr:'The tone is friendly, but lacks specifics. No mention of industries, key skills, or experience level.'},summary:{s:'2/10',c:'Passionate marketer who loves creating impact.',cr:'Too vague and short. No mention of years of experience, target industries, or accomplishments.'},experience:{s:'5/10',c:'Content and Education Specialist at Lever',cr:'Missing quantified achievements. Use numbers to show impact on each role.'},education:{s:'10/10',c:'McGill University — BA Communications',cr:'Strong section. All required fields present and clearly formatted.'},other:{s:'6/10',c:'Certifications, skills, recommendations',cr:'Add more skills endorsements and request at least 3 recommendations from colleagues.'}};
+    const s=scores[section];
+    if(s){document.getElementById('section-score').textContent=s.s;document.getElementById('section-current').textContent=s.c;document.getElementById('section-critique').textContent=s.cr;}
+  }
+
+  // Mood
+  function selectMood(btn) {
+    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // Init
+  showScreen('dashboard');
+</script>
+</body>
+</html>

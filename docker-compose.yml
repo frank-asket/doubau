@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: doubow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d doubow"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./api
+    environment:
+      DOUBOW_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/doubow
+      DOUBOW_CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
+      DOUBOW_JWT_SECRET: dev_only_change_me
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  web:
+    image: node:20.1.0
+    working_dir: /app
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+    command: ["npm", "run", "dev", "--", "--port", "3000", "--hostname", "0.0.0.0"]
+    depends_on:
+      - api
+

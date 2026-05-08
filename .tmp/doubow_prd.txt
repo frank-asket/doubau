@@ -1,0 +1,147 @@
+Doubow
+Product Requirements Document
+Version 1.0  ·  May 2026  ·  Status: Draft
+
+1. Executive Summary
+Doubow is a multi-agent job search workspace where AI does the preparation work and humans approve every outbound action. It unifies discovery, scoring, drafting, approval, tracking, and interview prep in a single product surface — with an architectural guarantee that nothing is ever sent without explicit user approval.
+
+Tagline
+AI drafts. You decide. Nothing moves without you.
+
+2. Problem Statement
+	•	Job search is fragmented across 6–10 tools (job boards, résumé editors, email clients, LinkedIn, spreadsheets)
+	•	Candidates repeat data entry, lose track of applications, and waste time on generic outreach
+	•	"AI apply" products that auto-submit erode trust and harm users' reputations
+	•	There is no single workspace covering the full lifecycle from discovery to offer — with safety rails built in
+
+3. Vision & Product Principles
+A career workspace that treats job search as a project: structured, measurable, and AI-assisted — without removing human judgment from any consequential action.
+
+Principle
+Implementation
+Human-in-the-Loop (HITL)
+No outbound action without explicit approval. Enforced at API layer, not just UI.
+Résumé as source of truth
+All scoring and drafting is grounded in the user's parsed résumé.
+One system
+Discovery, pipeline, approvals, prep, and assistant share the same Postgres state.
+Observable
+Every LLM call is logged with prompt, raw output, user edit, and feedback score.
+Safe at scale
+Idempotency keys on all sensitive operations. Rate limits on scraping and LLM calls.
+
+4. Target Users
+Primary: Active job seekers (IC to executive level) — high intent, limited time, need a repeatable workflow.
+Secondary: Career coaches and operators supporting candidates on the same product surface.
+
+User Segments
+	•	Currently employed, passively exploring
+	•	Actively job searching (unemployed or urgently transitioning)
+	•	Student / recent graduate entering the market
+	•	Career switcher crossing industries
+
+5. User Flows
+5.1 Onboarding Flow (5-step wizard)
+	•	Account — Email, password, sign-in option
+	•	Career — Current situation, role, years of experience, current salary
+	•	Contact — Location and contact preferences
+	•	Goals — Select main focus: improve CV, find jobs, interview prep, get promoted, boost LinkedIn
+	•	Plan — Select subscription tier
+
+5.2 Core Job Search Loop
+	•	Job Discovery — Browse catalogued listings with fit scores, filter/sort, favourite
+	•	Job Tracker — Pipeline table (Applied → Phone Screen → Interview → Offer → Rejected)
+	•	Approval Gate — Review AI-drafted outreach before any send
+	•	Sponsorship Hub — UK visa points calculator, graduate visa info, sponsor finder
+	•	Salary Benchmark — Salary trends chart, predictor tool, top companies
+
+5.3 Career Growth Loop
+	•	Career Pathfinder — 5-question wizard → Personalized career paths with match %, transition timeline, salary range
+	•	Career Steps — Step-by-step roadmap generated from Pathfinder output
+	•	Career Planner — Milestone tracker in List / Kanban / Calendar views
+	•	Career Success — Analytics: Skills Mastery %, Career Progress %, Market Value (£)
+
+6. Feature Requirements
+6.1 Application State Machine
+
+State Machine
+DISCOVERED → SCORING → DRAFTED → PENDING_APPROVAL → APPROVED → SUBMITTED
+Also: FAILED, RETRY
+
+Rule: The Submit endpoint returns 403 Forbidden if status ≠ APPROVED in the database.
+
+6.2 Tool Suite
+Tool
+Function
+Career Copilot
+AI chat with Quick Actions: Career Strategy, Resume Review, Interview Prep, Skill Analysis
+ATS Optimizer
+Upload CV + job description → keyword match score, highlighted résumé, improvement suggestions
+LinkedIn Analysis
+Section-by-section scores (Headline, Summary, Experience, Education), critique, rewrites
+Cover Letter
+AI-generated cover letter tailored to job + profile
+Career Health
+Daily check-in (mood/energy/workload), streak tracking, job satisfaction analytics
+CV Builder
+Resume builder with template selection and export
+
+6.3 Subscriptions
+Plan
+Price
+Key Features
+Standard
+£15/month
+AI Career Copilot, Smart Profile Optimization, Interview Intelligence
+Pro
+£25/month
+All Standard + expanded limits and usage
+Ultimate
+£50/month
+All Pro + priority processing, advanced analytics
+
+7. Non-Functional Requirements
+Category
+Requirement
+Performance
+API p95 < 300ms for read endpoints; async for all AI/scraping
+Availability
+99.5% uptime SLA
+Security
+HTTPS everywhere; PII encrypted at rest; audit log for all state transitions
+GDPR
+Right to erasure endpoint; data retention policy; DPA-compliant storage
+Accessibility
+WCAG 2.1 AA for all UI components
+Observability
+Structured logging; Prometheus metrics; alerting on FAILED state spike
+
+8. Success Metrics (KPIs)
+Metric
+Target
+Draft override rate
+< 30% of drafts edited before approval
+Pipeline reliability
+> 98% of jobs processed without FAILED state
+Median approval time
+< 4 minutes from draft generated
+Day-30 retention
+> 40%
+Career check-in streak
+Average streak > 7 days
+NPS
+> 50 at 90 days
+
+9. Out of Scope (v1)
+	•	Mobile native app (React Native — v2 roadmap)
+	•	Multi-user / team accounts
+	•	Employer-facing portal
+	•	Automated browser-filling of job application forms
+	•	Referral / networking features
+
+10. Open Questions
+	•	LinkedIn URL scraping: Official API or PDF export only for v1?
+	•	Job board data agreements: Which boards allow scraping under ToS?
+	•	Salary data source: Live API (Glassdoor, Levels.fyi) or static dataset updated monthly?
+	•	Career Health: Any clinical/wellness disclaimers needed for mood tracking?
+	•	Sponsorship Hub: Manual curation or automated regulatory feed for visa rule updates?
