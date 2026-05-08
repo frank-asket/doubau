@@ -27,9 +27,8 @@ services:
       DOUBOW_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/doubow
       DOUBOW_CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
       DOUBOW_JWT_SECRET: dev_only_change_me
-      DOUBOW_CLERK_JWKS_URL: ${DOUBOW_CLERK_JWKS_URL:-}
-      DOUBOW_CLERK_ISSUER: ${DOUBOW_CLERK_ISSUER:-}
-      DOUBOW_CLERK_AUDIENCE: ${DOUBOW_CLERK_AUDIENCE:-}
+      # IMPORTANT: don't set DOUBOW_CLERK_* here.
+      # If Compose expands an unset host var to an empty string, it overrides env_file values.
     ports:
       - "8000:8000"
     depends_on:
