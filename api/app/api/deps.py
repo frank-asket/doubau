@@ -42,7 +42,7 @@ async def get_current_user(
         # Clerk tokens: subject is a Clerk user id (e.g. "user_..."). Map by email.
         email = payload.get("email")
         if not isinstance(email, str) or not email:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token") from None
 
         user = db.query(User).filter(User.email == email).one_or_none()
         if user is not None:

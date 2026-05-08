@@ -6,7 +6,9 @@ export function getApiBaseUrl(): string {
 
 export async function getBackendAuthHeaders(): Promise<HeadersInit> {
   const { getToken } = await auth();
-  const token = await getToken();
+  // Use a JWT template so `aud` matches the API's expected audience.
+  // Configure this template in Clerk Dashboard (e.g. name "doubow-api").
+  const token = await getToken({ template: "doubow-api" });
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (token) headers.authorization = `Bearer ${token}`;
   return headers;

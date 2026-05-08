@@ -24,6 +24,9 @@ def upgrade() -> None:
     )
     op.execute("CREATE TYPE draft_status AS ENUM ('DRAFT','SENT')")
 
+    application_status = postgresql.ENUM(name="application_status", create_type=False)
+    draft_status = postgresql.ENUM(name="draft_status", create_type=False)
+
     op.create_table(
         "applications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
@@ -33,7 +36,7 @@ def upgrade() -> None:
         sa.Column("source_url", sa.String(length=1000), nullable=True),
         sa.Column(
             "status",
-            sa.Enum(name="application_status"),
+            application_status,
             server_default=sa.text("'DISCOVERED'::application_status"),
             nullable=False,
         ),
@@ -66,7 +69,7 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(name="draft_status"),
+            draft_status,
             server_default=sa.text("'DRAFT'::draft_status"),
             nullable=False,
         ),
