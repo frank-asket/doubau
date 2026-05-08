@@ -153,8 +153,11 @@ with httpx.Client(timeout=20.0) as client:
         rr = client.get(f"{BASE}/me/resume/{rid}", headers=headers)
         assert rr.status_code == 200, rr.text
         status = rr.json()["status"]
-        if status == "PARSED":
-            assert "FastAPI backend" in (rr.json().get("parsed_json") or {}).get("text", "")
+        if status in ("PARSED", "EMBEDDED"):
+            body = rr.json()
+            assert "FastAPI backend" in (body.get("parsed_json") or {}).get("text", "")
+            if status == "EMBEDDED":
+                assert body.get("embedding_model"), body
             latest = client.get(f"{BASE}/me/resume/latest", headers=headers)
             assert latest.status_code == 200, latest.text
             assert latest.json().get("id") == rid
@@ -163,7 +166,7 @@ with httpx.Client(timeout=20.0) as client:
             raise AssertionError(rr.json())
         time.sleep(0.5)
     else:
-        raise AssertionError("resume did not reach PARSED status in time")
+        raise AssertionError("resume did not reach PARSED/EMBEDDED status in time")
 
 print("Resume upload smoke flow: OK")
 PY

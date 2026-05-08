@@ -13,6 +13,7 @@ from app.celery_app import celery_app
 from app.core.settings import settings
 from app.db import SessionLocal
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.resume.embeddings import EmbeddingError, embed_resume_text
 from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
 from app.resume.structure import structure_resume_text
 from app.storage.s3 import s3_client
@@ -97,6 +98,7 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
     Phase 1 pipeline:
     - download raw file from S3
     - parse PDF/DOCX -> extracted_text + parsed_json
+    - OpenAI embedding -> JSONB + pgvector column (status EMBEDDED) when API key is set
     - persist back to `resume_documents`
     """
     with SessionLocal() as db:
@@ -136,6 +138,17 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
             }
             doc.status = ResumeStatus.PARSED
             doc.error = None
+
+            if settings.openai_api_key:
+                try:
+                    vec = embed_resume_text(extracted)
+                    doc.embedding = vec
+                    doc.embedding_vector = vec
+                    doc.embedding_model = settings.openai_embedding_model
+                    doc.status = ResumeStatus.EMBEDDED
+                except EmbeddingError as emb_err:
+                    doc.error = str(emb_err)
+
             db.add(doc)
             db.commit()
             return {"id": str(doc.id), "status": doc.status, "chars": len(extracted)}

@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:16
+    # pgvector extension required for résumé embeddings (Phase 1) and matching (Phase 2).
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: doubow
       POSTGRES_USER: postgres

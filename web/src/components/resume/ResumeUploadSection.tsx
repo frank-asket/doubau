@@ -25,7 +25,7 @@ function sleep(ms: number) {
 
 export type ResumeUploadSectionProps = {
   variant: "onboarding" | "dashboard";
-  /** Called after text extraction succeeds (PARSED). */
+  /** Called after pipeline succeeds (PARSED without embeddings, or EMBEDDED with OpenAI). */
   onParsed?: (result: ResumeStatusResponse) => void;
 };
 
@@ -46,7 +46,7 @@ export function ResumeUploadSection({ variant, onParsed }: ResumeUploadSectionPr
       }
       const data = (await rr.json()) as ResumeStatusResponse;
       const st = data.status ?? "";
-      if (st === "PARSED") {
+      if (st === "PARSED" || st === "EMBEDDED") {
         return data;
       }
       if (st === "FAILED") {

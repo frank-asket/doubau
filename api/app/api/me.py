@@ -15,6 +15,26 @@ from app.tasks import process_resume_document
 router = APIRouter(prefix="/me", tags=["me"])
 
 
+def _resume_document_out(doc: ResumeDocument) -> dict:
+    emb_dims: int | None = None
+    if isinstance(doc.embedding, list):
+        emb_dims = len(doc.embedding)
+    elif doc.embedding_vector is not None:
+        emb_dims = len(doc.embedding_vector)
+
+    return {
+        "id": str(doc.id),
+        "status": doc.status,
+        "file_name": doc.file_name,
+        "content_type": doc.content_type,
+        "size_bytes": doc.size_bytes,
+        "error": doc.error,
+        "parsed_json": doc.parsed_json,
+        "embedding_model": doc.embedding_model,
+        "embedding_dimensions": emb_dims,
+    }
+
+
 @router.get("/profile", response_model=ProfileOut)
 def get_profile(current_user: CurrentUserDep) -> ProfileOut:
     profile = current_user.profile
@@ -151,15 +171,7 @@ def get_resume_latest(
     if doc is None:
         raise HTTPException(status_code=404, detail="No resume uploaded yet")
 
-    return {
-        "id": str(doc.id),
-        "status": doc.status,
-        "file_name": doc.file_name,
-        "content_type": doc.content_type,
-        "size_bytes": doc.size_bytes,
-        "error": doc.error,
-        "parsed_json": doc.parsed_json,
-    }
+    return _resume_document_out(doc)
 
 
 @router.get("/resume/{resume_document_id}", response_model=dict)
@@ -181,13 +193,5 @@ def get_resume(
     if doc is None:
         raise HTTPException(status_code=404, detail="Not found")
 
-    return {
-        "id": str(doc.id),
-        "status": doc.status,
-        "file_name": doc.file_name,
-        "content_type": doc.content_type,
-        "size_bytes": doc.size_bytes,
-        "error": doc.error,
-        "parsed_json": doc.parsed_json,
-    }
+    return _resume_document_out(doc)
 

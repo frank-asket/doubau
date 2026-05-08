@@ -39,6 +39,19 @@ class Settings(BaseSettings):
     # Must stay aligned with Terraform variable resume_object_prefix (IAM resource ARN).
     s3_resume_object_prefix: str = "resumes"
 
+    # OpenAI résumé embeddings (Phase 1). Optional locally; set in prod for EMBEDDED status.
+    openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
+    embedding_max_input_chars: int = 30_000
+
+    @field_validator("openai_api_key", mode="before")
+    @classmethod
+    def empty_openai_key_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     @field_validator("s3_endpoint_url", "s3_access_key_id", "s3_secret_access_key", mode="before")
     @classmethod
     def empty_s3_optional_to_none(cls, v: object) -> object:
