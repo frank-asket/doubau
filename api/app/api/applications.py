@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUserDep, DbDep
 from app.models.application import Application, ApplicationStatus
 from app.models.outreach_draft import OutreachDraft
+from app.state_machine import InvalidTransition, assert_transition
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -82,6 +83,11 @@ def generate_draft(
     if app is None or app.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Not found")
 
+    try:
+        assert_transition(app.status, ApplicationStatus.PENDING_APPROVAL)
+    except InvalidTransition as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+
     app.status = ApplicationStatus.PENDING_APPROVAL
     draft = OutreachDraft(
         application_id=app.id,
@@ -122,6 +128,11 @@ def approve(
     app = db.get(Application, application_id)
     if app is None or app.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Not found")
+    try:
+        assert_transition(app.status, ApplicationStatus.APPROVED)
+    except InvalidTransition as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+
     app.status = ApplicationStatus.APPROVED
     db.commit()
     db.refresh(app)
@@ -144,8 +155,11 @@ def submit(
     if app is None or app.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Not found")
 
-    if app.status != ApplicationStatus.APPROVED:
-        raise HTTPException(status_code=403, detail="Application must be APPROVED before submit")
+    try:
+        assert_transition(app.status, ApplicationStatus.SUBMITTED)
+    except InvalidTransition as e:
+        # Keep the hard security semantics: submit is forbidden unless APPROVED.
+        raise HTTPException(status_code=403, detail="Application must be APPROVED before submit") from e
 
     app.status = ApplicationStatus.SUBMITTED
     db.commit()

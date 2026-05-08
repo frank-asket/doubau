@@ -3,7 +3,7 @@
 import styles from "./Features.module.css";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChatIcon, CompassIcon, UsersIcon } from "@/components/icons/FeatureIcons";
-import { PortraitThumb } from "@/components/avatars/PortraitThumb";
+import Image from "next/image";
 
 const features = [
   {
@@ -32,11 +32,11 @@ const features = [
 export default function Features() {
   const reduceMotion = useReducedMotion();
   const people = [
-    { palette: { skin: "#F1C7A3", hair: "#1F232A", shirt: "#3D7C47" }, variant: 0 as const },
-    { palette: { skin: "#D9A88E", hair: "#2B1C16", shirt: "#0F1117" }, variant: 3 as const },
-    { palette: { skin: "#E6B08A", hair: "#111111", shirt: "#2D5E35" }, variant: 2 as const },
-    { palette: { skin: "#C98D6A", hair: "#111111", shirt: "#F2D79A" }, variant: 1 as const },
-    { palette: { skin: "#F0BE97", hair: "#4B2D21", shirt: "#FFFFFF" }, variant: 4 as const },
+    "/images/Job%20Seecker%20Photo.jpg",
+    "/images/Job%20Seecker%20Photo%20(1).jpg",
+    "/images/Job%20Seecker%20Photo%20(2).jpg",
+    "/images/pexels%20rdne%207821494.jpg",
+    "/images/Job%20Seecker%20Photo.jpg",
   ];
 
   return (
@@ -104,7 +104,13 @@ export default function Features() {
                 <div className={styles.mockShell} aria-hidden="true">
                   <div className={styles.candidateStack}>
                     <div className={styles.candidateCard}>
-                      <PortraitThumb {...people[0]} size={34} className="ring-1 ring-black/10" />
+                        <Image
+                          src={people[0]}
+                          alt=""
+                          width={34}
+                          height={34}
+                          className="rounded-full object-cover ring-1 ring-black/10"
+                        />
                       <div className={styles.candidateMeta}>
                         <div className={styles.candidateName}>Maria Angelica M</div>
                         <div className={styles.candidateRole}>Product Designer</div>
@@ -112,7 +118,13 @@ export default function Features() {
                       <div className={styles.candidateScore}>78%</div>
                     </div>
                     <div className={`${styles.candidateCard} ${styles.candidateCardMuted}`}>
-                      <PortraitThumb {...people[1]} size={34} className="ring-1 ring-black/10" />
+                        <Image
+                          src={people[1]}
+                          alt=""
+                          width={34}
+                          height={34}
+                          className="rounded-full object-cover ring-1 ring-black/10"
+                        />
                       <div className={styles.candidateMeta}>
                         <div className={styles.candidateName}>Marcus Alexandru</div>
                         <div className={styles.candidateRole}>Product Manager</div>
@@ -129,11 +141,41 @@ export default function Features() {
                       <span className={styles.chatTime}>13:00</span>
                     </div>
                     <div className={styles.faceGrid}>
-                      <PortraitThumb {...people[2]} size={54} className={styles.faceThumb} />
-                      <PortraitThumb {...people[1]} size={54} className={styles.faceThumb} />
-                      <PortraitThumb {...people[4]} size={54} className={styles.faceThumb} />
-                      <PortraitThumb {...people[0]} size={54} className={styles.faceThumb} />
-                      <PortraitThumb {...people[3]} size={54} className={styles.faceThumb} />
+                      <Image
+                        src={people[2]}
+                        alt=""
+                        width={54}
+                        height={54}
+                        className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                      />
+                      <Image
+                        src={people[1]}
+                        alt=""
+                        width={54}
+                        height={54}
+                        className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                      />
+                      <Image
+                        src={people[4]}
+                        alt=""
+                        width={54}
+                        height={54}
+                        className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                      />
+                      <Image
+                        src={people[0]}
+                        alt=""
+                        width={54}
+                        height={54}
+                        className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                      />
+                      <Image
+                        src={people[3]}
+                        alt=""
+                        width={54}
+                        height={54}
+                        className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                      />
                     </div>
                   </div>
                 </div>

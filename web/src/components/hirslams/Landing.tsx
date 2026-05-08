@@ -6,6 +6,7 @@ import Integrations from "./Integrations";
 import Logos from "./Logos";
 import Navbar from "./Navbar";
 import Pricing from "./Pricing";
+import Testimonials from "./Testimonials";
 
 export default function DouBowLanding() {
   return (
@@ -20,6 +21,7 @@ export default function DouBowLanding() {
         <Logos />
         <About />
         <Features />
+        <Testimonials />
         <Integrations />
         <Pricing />
       </main>

@@ -1,5 +1,5 @@
 import styles from "./Pricing.module.css";
-import { PortraitThumb } from "@/components/avatars/PortraitThumb";
+import Image from "next/image";
 
 const plans = [
   {
@@ -51,9 +51,9 @@ const plans = [
 
 export default function Pricing() {
   const miniPeople = [
-    { palette: { skin: "#F1C7A3", hair: "#1F232A", shirt: "#3D7C47" }, variant: 0 as const },
-    { palette: { skin: "#D9A88E", hair: "#2B1C16", shirt: "#0F1117" }, variant: 3 as const },
-    { palette: { skin: "#E6B08A", hair: "#111111", shirt: "#F2D79A" }, variant: 2 as const },
+    "/images/Job%20Seecker%20Photo.jpg",
+    "/images/pexels%20rdne%207821494.jpg",
+    "/images/Job%20Seecker%20Photo%20(1).jpg",
   ];
 
   return (
@@ -114,10 +114,12 @@ export default function Pricing() {
                 className={styles.miniCard}
                 style={{ top: `${i * 24}px`, zIndex: 3 - i }}
               >
-                <PortraitThumb
-                  {...miniPeople[i]}
-                  size={32}
-                  className={styles.miniAvatar}
+                <Image
+                  src={miniPeople[i] ?? miniPeople[0]!}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className={`${styles.miniAvatar} rounded-full object-cover`}
                 />
                 <div>
                   <div className={styles.miniName}>{name}</div>

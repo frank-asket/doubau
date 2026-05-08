@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -11,24 +12,28 @@ const floatingCards = [
     name: "Maria Angelica M",
     role: "Product Designer",
     flag: "🇧🇷",
+    img: "/images/Job%20Seecker%20Photo.jpg",
     style: { top: "8%", left: "2%" },
   },
   {
     name: "Marcus Alexandru",
     role: "Product Manager",
     flag: "🇷🇴",
+    img: "/images/Job%20Seecker%20Photo%20(1).jpg",
     style: { top: "8%", right: "2%" },
   },
   {
     name: "Vince Marcoran",
     role: "Talent Recruiter",
     flag: "🇮🇹",
+    img: "/images/Job%20Seecker%20Photo%20(2).jpg",
     style: { bottom: "28%", left: "0%" },
   },
   {
     name: "Robert Williamson",
     role: "Head of HR",
     flag: "🇬🇧",
+    img: "/images/pexels%20rdne%207821494.jpg",
     style: { bottom: "28%", right: "0%" },
   },
 ];
@@ -95,7 +100,16 @@ export default function Hero() {
               className={styles.floatCard}
               style={c.style}
             >
-              <div className={styles.avatar}>{c.name.charAt(0)}</div>
+              <div className={styles.avatar} aria-hidden="true">
+                <Image
+                  src={c.img}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="h-full w-full rounded-full object-cover"
+                  priority={i < 2}
+                />
+              </div>
               <div>
                 <div className={styles.cardName}>{c.name}</div>
                 <div className={styles.cardRole}>{c.role}</div>
