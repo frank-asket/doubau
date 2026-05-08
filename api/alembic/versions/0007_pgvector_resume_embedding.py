@@ -6,7 +6,7 @@ Create Date: 2026-05-08
 
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector

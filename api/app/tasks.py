@@ -12,6 +12,7 @@ import httpx
 import redis
 from celery.signals import task_failure
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.celery_app import celery_app
 from app.core.settings import settings
@@ -191,9 +192,16 @@ def scrape_job(self, url: str) -> dict[str, Any]:
             tags=[],
         )
         db.add(job)
-        db.commit()
-        db.refresh(job)
-        jid = str(job.id)
+        try:
+            db.commit()
+            db.refresh(job)
+            jid = str(job.id)
+        except IntegrityError:
+            db.rollback()
+            existing = db.scalar(select(Job).where(Job.source_url_hash == url_fingerprint))
+            if existing is not None:
+                return {"job_id": str(existing.id), "status": "deduplicated"}
+            raise
 
     if settings.openai_api_key:
         embed_job.delay(jid)

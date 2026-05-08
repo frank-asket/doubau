@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import asc, desc, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score
@@ -78,8 +79,17 @@ def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
         source_url_hash=url_hash,
     )
     db.add(job)
-    db.commit()
-    db.refresh(job)
+    try:
+        db.commit()
+        db.refresh(job)
+    except IntegrityError:
+        db.rollback()
+        if url_hash is None:
+            raise
+        existing = db.scalar(select(Job).where(Job.source_url_hash == url_hash))
+        if existing is not None:
+            return _job_out(existing)
+        raise
 
     if settings.openai_api_key:
         embed_job_task.delay(str(job.id))
