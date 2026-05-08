@@ -159,7 +159,9 @@ def submit(
         assert_transition(app.status, ApplicationStatus.SUBMITTED)
     except InvalidTransition as e:
         # Keep the hard security semantics: submit is forbidden unless APPROVED.
-        raise HTTPException(status_code=403, detail="Application must be APPROVED before submit") from e
+        raise HTTPException(
+            status_code=403, detail="Application must be APPROVED before submit"
+        ) from e
 
     app.status = ApplicationStatus.SUBMITTED
     db.commit()

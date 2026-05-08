@@ -5,8 +5,7 @@ from time import time
 from uuid import UUID
 
 import httpx
-from jose import jwk
-from jose import jwt
+from jose import jwk, jwt
 from passlib.context import CryptContext
 
 from app.core.settings import settings

@@ -49,7 +49,8 @@ async def get_current_user(
             return user
 
         # Create a shadow user record for Clerk-authenticated users.
-        # Password is never used for Clerk users; we store a random hash to satisfy schema constraints.
+        # Password is never used for Clerk users; we store a random hash to satisfy
+        # schema constraints.
         user = User(email=email, password_hash=hash_password(f"clerk:{sub}"))
         db.add(user)
         db.commit()

@@ -29,5 +29,7 @@ class Job(Base):
 
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, index=True
+    )
 

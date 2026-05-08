@@ -149,7 +149,8 @@ def feed(
 
     jobs = db.scalars(select(Job).order_by(desc(Job.created_at)).limit(500)).all()
     scored = [
-        FeedOut(job=_job_out(j), score=_score_job(job=j, persona=persona, focus=focus)) for j in jobs
+        FeedOut(job=_job_out(j), score=_score_job(job=j, persona=persona, focus=focus))
+        for j in jobs
     ]
     scored.sort(key=lambda x: (x.score, x.job.company, x.job.title), reverse=True)
 
