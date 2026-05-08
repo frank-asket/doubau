@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,9 +13,13 @@ export type AppApprovalCardProps = {
   badgeLabel: string;
   badgeVariant?: AppBadgeVariant;
   snippet: ReactNode;
-  onApprove?: () => void;
+  /** When set, replaces the default Approve / Edit / Reject row (e.g. Submit-only). */
+  actionsSlot?: ReactNode;
+  /** Disables default Approve / Edit / Reject (ignored when `actionsSlot` is set). */
+  actionsDisabled?: boolean;
+  onApprove?: () => void | Promise<void>;
   onEdit?: () => void;
-  onReject?: () => void;
+  onReject?: () => void | Promise<void>;
   className?: string;
 };
 
@@ -25,19 +29,18 @@ export function AppApprovalCard({
   badgeLabel,
   badgeVariant = "amber",
   snippet,
+  actionsSlot,
+  actionsDisabled,
   onApprove,
   onEdit,
   onReject,
   className,
 }: AppApprovalCardProps) {
-  const [dimmed, setDimmed] = useState(false);
-
   return (
     <div
       className={cn(
         "rounded-[var(--app-radius-lg)] border-[1.5px] border-solid border-[var(--app-border)] p-3.5 transition-[border-color,opacity]",
         "hover:border-[var(--app-accent)]",
-        dimmed && "opacity-40",
         className,
       )}
     >
@@ -55,33 +58,33 @@ export function AppApprovalCard({
         {snippet}
       </div>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
-        <AppButton
-          size="sm"
-          variant="approve"
-          type="button"
-          onClick={() => {
-            onApprove?.();
-            setDimmed(true);
-          }}
-        >
-          ✓ Approve
-        </AppButton>
-        <AppButton size="sm" variant="outline" type="button" onClick={onEdit}>
-          ✏ Edit
-        </AppButton>
-        <AppButton
-          size="sm"
-          variant="danger"
-          type="button"
-          onClick={() => {
-            onReject?.();
-            setDimmed(true);
-          }}
-        >
-          ✕ Reject
-        </AppButton>
-      </div>
+      {actionsSlot === undefined ? (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <AppButton
+            disabled={actionsDisabled}
+            size="sm"
+            variant="approve"
+            type="button"
+            onClick={() => void onApprove?.()}
+          >
+            ✓ Approve
+          </AppButton>
+          <AppButton disabled={actionsDisabled} size="sm" variant="outline" type="button" onClick={onEdit}>
+            ✏ Edit
+          </AppButton>
+          <AppButton
+            disabled={actionsDisabled}
+            size="sm"
+            variant="danger"
+            type="button"
+            onClick={() => void onReject?.()}
+          >
+            ✕ Reject
+          </AppButton>
+        </div>
+      ) : actionsSlot ? (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">{actionsSlot}</div>
+      ) : null}
     </div>
   );
 }

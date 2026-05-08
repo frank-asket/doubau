@@ -145,6 +145,33 @@ def approve(
     )
 
 
+@router.post("/{application_id}/reject", response_model=ApplicationOut)
+def reject_application(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> ApplicationOut:
+    """Mark the application as FAILED (human declined the draft)."""
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    try:
+        assert_transition(app.status, ApplicationStatus.FAILED)
+    except InvalidTransition as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+
+    app.status = ApplicationStatus.FAILED
+    db.commit()
+    db.refresh(app)
+    return ApplicationOut(
+        id=app.id,
+        company=app.company,
+        job_title=app.job_title,
+        source_url=app.source_url,
+        status=app.status,
+    )
+
+
 @router.post("/{application_id}/submit", response_model=ApplicationOut)
 def submit(
     application_id: UUID,
