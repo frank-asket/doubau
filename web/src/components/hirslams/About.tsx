@@ -7,9 +7,7 @@ export default function About() {
         <div className={styles.left}>
           <div className={styles.tag}>{"// The Problem //"}</div>
           <h2 className={styles.heading}>
-            Job search is
-            <br />
-            Process With{" "}
+            Job search is{" "}
             <span className={styles.accent}>
               fragmented across
               <br />
@@ -19,6 +17,8 @@ export default function About() {
           <p className={styles.body}>
             Candidates repeat data entry, lose track of applications, and waste time on generic
             outreach. “AI apply” products that auto-submit erode trust and can harm reputations.
+            Doubow treats job search as a project: structured, measurable, and AI-assisted—without
+            removing human judgment from any consequential action.
           </p>
           <a href="#features" className={styles.btn}>
             See the Workflow
@@ -40,6 +40,14 @@ export default function About() {
             </div>
             <p>
               The submit endpoint returns 403 unless the application is APPROVED in the database.
+            </p>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statNum}>
+              1 <span>Workspace</span>
+            </div>
+            <p>
+              Discovery, scoring, drafting, approvals, tracking, and prep share the same system state.
             </p>
           </div>
         </div>

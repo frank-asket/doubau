@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     idempotency_max_body_bytes: int = 32_768
     idempotency_max_response_bytes: int = 131_072
 
+    # Celery / Redis
+    redis_url: str = "redis://localhost:6379/0"
+    dlq_redis_key: str = "doubow:dlq"
+
 
 settings = Settings()
 

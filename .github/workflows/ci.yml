@@ -47,3 +47,11 @@ jobs:
       - name: Build web image
         run: docker build -t doubow-web:ci ./web
 
+  phase1-gate:
+    name: Phase 1 Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Phase 1 gate
+        run: bash scripts/phase1_gate.sh
+

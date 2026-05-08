@@ -3,6 +3,7 @@ annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
 bcrypt==4.3.0
+celery==5.5.3
 certifi==2026.4.22
 cffi==2.0.0
 click==8.3.3
@@ -35,6 +36,7 @@ python-dotenv==1.2.2
 python-jose==3.5.0
 python-multipart==0.0.27
 PyYAML==6.0.3
+redis==5.0.8
 rsa==4.9.1
 ruff==0.15.12
 six==1.17.0

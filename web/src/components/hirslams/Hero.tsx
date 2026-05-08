@@ -175,9 +175,8 @@ export default function Hero() {
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={{ type: "spring", duration: 0.55, bounce: 0, delay: 0.18 }}
           >
-            DouBow is a multi-agent job search workspace where AI does the preparation work,
-            <br />
-            and humans approve every outbound action—enforced at the API, not just the UI.
+            Doubow is a multi-agent job search workspace where AI does the preparation work and humans
+            approve every outbound action—enforced at the API, not just the UI.
           </motion.p>
 
           <motion.div

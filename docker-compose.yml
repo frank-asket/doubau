@@ -37,6 +37,32 @@ services:
       redis:
         condition: service_started
 
+  worker:
+    build:
+      context: ./api
+    env_file:
+      - ./api/.env
+    environment:
+      DOUBOW_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/doubow
+      DOUBOW_CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
+      DOUBOW_JWT_SECRET: dev_only_change_me
+    command:
+      [
+        "celery",
+        "-A",
+        "app.celery_app.celery_app",
+        "worker",
+        "-l",
+        "INFO",
+        "-Q",
+        "default,scrape,score,draft,notify",
+      ]
+    depends_on:
+      redis:
+        condition: service_started
+      api:
+        condition: service_started
+
   web:
     image: node:20.1.0
     working_dir: /app
