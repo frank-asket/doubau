@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "rimraf .next && next build",
     "start": "next start",
-    "lint": "next lint ."
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint ."
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
