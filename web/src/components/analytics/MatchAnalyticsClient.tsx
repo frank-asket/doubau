@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type MetricsPayload = {
@@ -41,7 +42,11 @@ function eventLabel(t: string): string {
   }
 }
 
+const API_401_SIGNED_IN =
+  "The API rejected your token. Create a Clerk JWT template named \"doubow-api\" whose audience matches DOUBOW_CLERK_AUDIENCE in api/.env, and set DOUBOW_CLERK_JWKS_URL / ISSUER / AUDIENCE on the API.";
+
 export function MatchAnalyticsClient() {
+  const { isSignedIn, isLoaded } = useAuth();
   const [days, setDays] = useState<number>(14);
   const [metrics, setMetrics] = useState<MetricsPayload | null>(null);
   const [events, setEvents] = useState<MatchEventRow[]>([]);
@@ -57,7 +62,11 @@ export function MatchAnalyticsClient() {
         fetch(`/api/me/match/events?limit=40`, { cache: "no-store" }),
       ]);
       if (!mRes.ok) {
-        setError(mRes.status === 401 ? "Sign in to view match analytics." : "Could not load metrics.");
+        if (mRes.status === 401) {
+          setError(isLoaded && isSignedIn ? API_401_SIGNED_IN : "Sign in to view match analytics.");
+        } else {
+          setError("Could not load metrics.");
+        }
         setMetrics(null);
       } else {
         setMetrics((await mRes.json()) as MetricsPayload);
@@ -73,7 +82,7 @@ export function MatchAnalyticsClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     void load(days);

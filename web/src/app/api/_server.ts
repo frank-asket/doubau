@@ -6,8 +6,10 @@ export function getApiBaseUrl(): string {
 
 export async function getBackendAuthHeaders(): Promise<HeadersInit> {
   const { getToken } = await auth();
-  // Use a JWT template so `aud` matches the API's expected audience.
-  // Configure this template in Clerk Dashboard (e.g. name "doubow-api").
+  // JWT template name must match Clerk Dashboard → JWT Templates (e.g. "doubow-api").
+  // Template audience must match api DOUBOW_CLERK_AUDIENCE; include email in claims so
+  // the API can map Clerk users (see api/app/api/deps.py). If getToken returns null,
+  // BFF calls go out with no Bearer token → FastAPI returns 401 on /me/* routes.
   const token = await getToken({ template: "doubow-api" });
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (token) headers.authorization = `Bearer ${token}`;
