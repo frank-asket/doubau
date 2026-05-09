@@ -13,14 +13,25 @@ docker compose ps --status running postgres redis api worker >/dev/null 2>&1 || 
 echo "Applying migrations..."
 docker compose exec -T api alembic upgrade head
 
-echo "Running API tests..."
-docker compose exec -T api pytest -q tests/test_url_hash.py tests/test_jobs_scoring.py tests/test_resume_embeddings.py
+echo "Running API tests (Phase 2–related)..."
+docker compose exec -T api pytest -q \
+  tests/test_url_hash.py \
+  tests/test_jobs_scoring.py \
+  tests/test_resume_embeddings.py \
+  tests/test_rss_links.py \
+  tests/test_jobs_integrity_dedup.py \
+  tests/test_score_job_task.py \
+  tests/test_remoteok_ingest.py \
+  tests/test_adzuna_ingest.py \
+  tests/test_content_fingerprint.py
 
-echo "Smoke: job dedup + feed JSON..."
+echo "Smoke: job dedup + feed JSON + score_job task..."
 docker compose exec -T api python - <<'PY'
 import uuid
 
 import httpx
+
+from app.tasks import score_job
 
 BASE = "http://localhost:8000"
 email = f"phase2-{uuid.uuid4()}@example.com"
@@ -48,6 +59,12 @@ with httpx.Client(timeout=15.0) as client:
     fd = client.get(f"{BASE}/jobs/feed", headers=headers)
     assert fd.status_code == 200, fd.text
     assert isinstance(fd.json(), list)
+
+    job_id = j1.json()["id"]
+    sync_out = score_job.apply(args=(job_id,)).get(timeout=120)
+    assert sync_out.get("job_id") == job_id
+    assert "match_embedding_ready" in sync_out
+    assert sync_out["match_embedding_ready"] == (sync_out.get("status") == "embedded")
 
 print("Phase 2 Gate PASSED.")
 PY

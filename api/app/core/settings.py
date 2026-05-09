@@ -53,6 +53,21 @@ class Settings(BaseSettings):
     scrape_rss_max_entries: int = 25
     s3_job_html_prefix: str = "job-html"
 
+    # Remote OK public JSON API (v1 global-remote). Honor their ToS: link to the job on Remote OK.
+    remoteok_api_url: str = "https://remoteok.com/api"
+    remoteok_ingest_max_jobs: int = 100
+
+    # Cross-listing dedup: Redis SET NX per ``hash(title|company|location)`` (default 48h).
+    job_content_fingerprint_ttl_seconds: int = 172800
+
+    # Adzuna REST API (optional — free tier keys from developer.adzuna.com).
+    adzuna_app_id: str | None = None
+    adzuna_app_key: str | None = None
+    adzuna_country_code: str = "gb"
+    # Adzuna keyword filter; empty = broad results. Set env for your sector (e.g. nursing, sales).
+    adzuna_search_what: str = ""
+    adzuna_max_results: int = 50
+
     @field_validator("openai_api_key", mode="before")
     @classmethod
     def empty_openai_key_to_none(cls, v: object) -> object:
@@ -63,6 +78,13 @@ class Settings(BaseSettings):
     @field_validator("s3_endpoint_url", "s3_access_key_id", "s3_secret_access_key", mode="before")
     @classmethod
     def empty_s3_optional_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("adzuna_app_id", "adzuna_app_key", mode="before")
+    @classmethod
+    def empty_adzuna_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
             return None
         return v

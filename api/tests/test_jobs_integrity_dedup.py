@@ -24,6 +24,9 @@ def test_create_job_returns_existing_after_integrity_error() -> None:
     existing.description = None
     existing.tags = []
     existing.source_url = "https://jobs.example.com/role/1"
+    existing.listing_source = None
+    existing.external_ref = None
+    existing.source_posted_at = None
 
     db = MagicMock()
     db.scalar.side_effect = [None, existing]

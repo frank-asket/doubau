@@ -31,6 +31,13 @@ class Job(Base):
 
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True, index=True)
     source_url_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Ingestion provenance: e.g. remoteok, http_fetch, manual (see provider adapters / tasks).
+    listing_source: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    external_ref: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    source_posted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     embedding_vector: Mapped[list[float] | None] = mapped_column(
         Vector(_JOB_EMBEDDING_DIM),

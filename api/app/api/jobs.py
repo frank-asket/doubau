@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -16,6 +17,8 @@ from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.tasks import embed_job as embed_job_task
+from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
+from app.tasks import ingest_remoteok_jobs as ingest_remoteok_jobs_task
 from app.tasks import scrape_job as scrape_job_task
 from app.tasks import scrape_rss_feed as scrape_rss_feed_task
 
@@ -31,6 +34,7 @@ class JobCreate(BaseModel):
     description: str | None = None
     tags: list[str] = Field(default_factory=list)
     source_url: str | None = Field(default=None, max_length=1000)
+    listing_source: str | None = Field(default=None, max_length=80)
 
 
 class JobOut(BaseModel):
@@ -43,6 +47,8 @@ class JobOut(BaseModel):
     description: str | None
     tags: list[str]
     source_url: str | None
+    listing_source: str | None = None
+    source_posted_at: datetime | None = None
 
 
 def _job_out(j: Job) -> JobOut:
@@ -56,6 +62,8 @@ def _job_out(j: Job) -> JobOut:
         description=j.description,
         tags=j.tags or [],
         source_url=j.source_url,
+        listing_source=j.listing_source,
+        source_posted_at=j.source_posted_at,
     )
 
 
@@ -77,6 +85,7 @@ def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
         tags=payload.tags,
         source_url=payload.source_url,
         source_url_hash=url_hash,
+        listing_source=payload.listing_source,
     )
     db.add(job)
     try:
@@ -144,6 +153,20 @@ class ScrapeUrlIn(BaseModel):
 
     def normalized_url(self) -> str:
         return str(self.url).strip()
+
+
+@router.post("/ingest/remoteok", response_model=ScrapeQueueOut)
+def queue_remoteok_ingest(_: CurrentUserDep) -> ScrapeQueueOut:
+    """Enqueue Remote OK JSON ingest (``listing_source=remoteok``)."""
+    res = ingest_remoteok_jobs_task.delay()
+    return ScrapeQueueOut(task_id=str(res.id))
+
+
+@router.post("/ingest/adzuna", response_model=ScrapeQueueOut)
+def queue_adzuna_ingest(_: CurrentUserDep) -> ScrapeQueueOut:
+    """Enqueue Adzuna API search ingest (``listing_source=adzuna``). Requires API keys in env."""
+    res = ingest_adzuna_jobs_task.delay()
+    return ScrapeQueueOut(task_id=str(res.id))
 
 
 @router.post("/scrape", response_model=ScrapeQueueOut)

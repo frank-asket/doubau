@@ -18,6 +18,9 @@ from app.celery_app import celery_app
 from app.core.settings import settings
 from app.db import SessionLocal
 from app.jobs.html_snippet import extract_title_from_html
+from app.jobs.providers.adzuna import fetch_adzuna_canonical
+from app.jobs.providers.persist import persist_canonical_jobs
+from app.jobs.providers.remoteok import fetch_remoteok_canonical
 from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
@@ -92,9 +95,8 @@ def fail_once() -> None:
     raise RuntimeError("boom")
 
 
-@celery_app.task(name="app.tasks.embed_job")
-def embed_job(job_id: str) -> dict[str, Any]:
-    """Embed job title+company+description with OpenAI; fill ``embedding_vector``."""
+def _embed_job_sync(job_id: str) -> dict[str, Any]:
+    """Embed job fields with OpenAI; persist ``embedding_vector`` (shared by embed/score tasks)."""
     if not settings.openai_api_key:
         return {"job_id": job_id, "status": "skipped_no_openai"}
 
@@ -123,6 +125,12 @@ def embed_job(job_id: str) -> dict[str, Any]:
         db.add(job)
         db.commit()
         return {"job_id": job_id, "status": "embedded"}
+
+
+@celery_app.task(name="app.tasks.embed_job")
+def embed_job(job_id: str) -> dict[str, Any]:
+    """Embed job title+company+description with OpenAI; fill ``embedding_vector``."""
+    return _embed_job_sync(job_id)
 
 
 @celery_app.task(name="app.tasks.scrape_job", bind=True, max_retries=3)
@@ -190,6 +198,7 @@ def scrape_job(self, url: str) -> dict[str, Any]:
             source_url_hash=url_fingerprint,
             raw_html_s3_key=raw_key,
             tags=[],
+            listing_source="http_fetch",
         )
         db.add(job)
         try:
@@ -251,9 +260,57 @@ def scrape_rss_feed(self, feed_url: str) -> dict[str, Any]:
     }
 
 
+@celery_app.task(name="app.tasks.ingest_remoteok_jobs")
+def ingest_remoteok_jobs() -> dict[str, Any]:
+    """
+    Ingest from Remote OK's public JSON API via ``CanonicalJobIn`` + shared persist pipeline.
+
+    Remote OK asks that listings link back to the job URL on their site; we store that in
+    ``source_url`` for dedup and attribution in the API/UI.
+    """
+    max_n = max(1, settings.remoteok_ingest_max_jobs)
+    jobs, err = fetch_remoteok_canonical(max_n)
+    if err:
+        return {"status": "fetch_failed", "error": err, "listing_source": "remoteok"}
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    out: dict[str, Any] = {"status": "completed", "listing_source": "remoteok"}
+    out.update(stats)
+    return out
+
+
+@celery_app.task(name="app.tasks.ingest_adzuna_jobs")
+def ingest_adzuna_jobs() -> dict[str, Any]:
+    """Adzuna REST search → ``CanonicalJobIn`` + persist (requires ``DOUBOW_ADZUNA_*`` keys)."""
+    max_n = max(1, settings.adzuna_max_results)
+    jobs, err = fetch_adzuna_canonical(max_n)
+    if err == "missing_adzuna_credentials":
+        return {
+            "status": "skipped_no_credentials",
+            "detail": "Set DOUBOW_ADZUNA_APP_ID and DOUBOW_ADZUNA_APP_KEY",
+            "listing_source": "adzuna",
+        }
+    if err:
+        return {"status": "fetch_failed", "error": err, "listing_source": "adzuna"}
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    out: dict[str, Any] = {"status": "completed", "listing_source": "adzuna"}
+    out.update(stats)
+    return out
+
+
 @celery_app.task(name="app.tasks.score_job")
 def score_job(job_id: str) -> dict[str, Any]:
-    return {"job_id": job_id, "score": 0.0, "status": "stub"}
+    """
+    Refresh match embeddings for a job (same pipeline as ``embed_job``).
+
+    The personalized feed uses cosine similarity against ``Job.embedding_vector``; this task
+    re-computes that vector for backfills, rescrapes, or operator re-drive on the ``score`` queue.
+    """
+    base = _embed_job_sync(job_id)
+    status = base.get("status")
+    ready = status == "embedded"
+    return {**base, "match_embedding_ready": ready}
 
 
 @celery_app.task(name="app.tasks.generate_outreach_draft")

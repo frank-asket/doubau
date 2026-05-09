@@ -27,6 +27,8 @@ def make_celery() -> Celery:
             Queue("notify", routing_key="notify"),
         ),
         task_routes={
+            "app.tasks.ingest_remoteok_jobs": {"queue": "scrape", "routing_key": "scrape"},
+            "app.tasks.ingest_adzuna_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.scrape_job": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.score_job": {"queue": "score", "routing_key": "score"},
             "app.tasks.generate_outreach_draft": {"queue": "draft", "routing_key": "draft"},

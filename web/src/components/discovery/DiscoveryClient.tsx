@@ -19,6 +19,8 @@ export type JobRow = {
   description: string | null;
   tags: string[];
   source_url: string | null;
+  listing_source?: string | null;
+  source_posted_at?: string | null;
 };
 
 export type FeedRow = {
@@ -36,6 +38,24 @@ type FitScoreResponse = {
 };
 
 type TabKey = "feed" | "all";
+
+function listingSourceLabel(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const labels: Record<string, string> = {
+    remoteok: "Remote OK",
+    adzuna: "Adzuna",
+    http_fetch: "Imported page",
+    manual: "Manual entry",
+  };
+  return labels[code] ?? code;
+}
+
+function formatListedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
 
 function ScoreBadge({ value, label }: { value: number; label: string }) {
   const rounded = Math.round(value);
@@ -108,16 +128,31 @@ function JobCard({
           {job.description ? (
             <p className="line-clamp-3 text-[13px] leading-6 text-[var(--app-text-secondary)]">{job.description}</p>
           ) : null}
-          {job.source_url ? (
-            <Link
-              href={job.source_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block text-[12px] font-medium text-[color:rgba(26,92,255,0.95)] underline-offset-4 hover:underline"
-            >
-              View posting
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {listingSourceLabel(job.listing_source) ? (
+              <span className="text-[12px] text-[var(--app-text-tertiary)]">
+                Source:{" "}
+                <span className="font-medium text-[var(--app-text-secondary)]">
+                  {listingSourceLabel(job.listing_source)}
+                </span>
+              </span>
+            ) : null}
+            {formatListedAt(job.source_posted_at ?? undefined) ? (
+              <span className="text-[12px] text-[var(--app-text-tertiary)]">
+                Listed {formatListedAt(job.source_posted_at ?? undefined)}
+              </span>
+            ) : null}
+            {job.source_url ? (
+              <Link
+                href={job.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block text-[12px] font-medium text-[color:rgba(26,92,255,0.95)] underline-offset-4 hover:underline"
+              >
+                View posting
+              </Link>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex shrink-0 flex-row items-start gap-4 sm:flex-col sm:items-end">
@@ -195,6 +230,8 @@ export function DiscoveryClient({
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeKind, setScrapeKind] = useState<"url" | "rss">("url");
   const [scrapeBusy, setScrapeBusy] = useState(false);
+  const [remoteOkBusy, setRemoteOkBusy] = useState(false);
+  const [adzunaBusy, setAdzunaBusy] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [fitData, setFitData] = useState<Record<string, FitScoreResponse>>({});
   const [fitLoadingId, setFitLoadingId] = useState<string | null>(null);
@@ -240,6 +277,50 @@ export function DiscoveryClient({
     }
   }
 
+  async function queueRemoteOkSync() {
+    setScrapeMsg(null);
+    setRemoteOkBusy(true);
+    try {
+      const resp = await fetch("/api/jobs/ingest/remoteok", { method: "POST" });
+      const data = (await resp.json().catch(() => ({}))) as { task_id?: string; detail?: string };
+      if (resp.ok && data.task_id) {
+        setScrapeMsg(
+          `Remote OK ingest queued (task ${data.task_id}). New roles appear after the worker runs; refresh shortly.`,
+        );
+        router.refresh();
+      } else {
+        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Request failed (${resp.status})`);
+      }
+    } finally {
+      setRemoteOkBusy(false);
+    }
+  }
+
+  async function queueAdzunaSync() {
+    setScrapeMsg(null);
+    setAdzunaBusy(true);
+    try {
+      const resp = await fetch("/api/jobs/ingest/adzuna", { method: "POST" });
+      const data = (await resp.json().catch(() => ({}))) as {
+        task_id?: string;
+        detail?: string;
+        status?: string;
+      };
+      if (resp.ok && data.task_id) {
+        setScrapeMsg(
+          `Adzuna ingest queued (task ${data.task_id}). Requires API keys on the server; refresh after workers run.`,
+        );
+        router.refresh();
+      } else {
+        setScrapeMsg(
+          typeof data.detail === "string" ? data.detail : `Adzuna request failed (${resp.status})`,
+        );
+      }
+    } finally {
+      setAdzunaBusy(false);
+    }
+  }
+
   async function runFit(jobId: string) {
     setFitLoadingId(jobId);
     setScrapeMsg(null);
@@ -266,8 +347,9 @@ export function DiscoveryClient({
           Job Discovery
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-          Roles ranked by semantic match when your résumé is embedded; otherwise heuristics from your profile. Import a
-          posting URL or an RSS feed to grow the corpus.
+          Fit ranking follows your résumé across industries and role types—not only tech. With embeddings on we rank by
+          semantic match; otherwise profile heuristics. Import any posting URL or RSS feed for your field; optional
+          Remote OK / Adzuna syncs add samples (Remote OK skews remote/tech—tune Adzuna keywords in env for your sector).
         </p>
       </div>
 
@@ -311,10 +393,36 @@ export function DiscoveryClient({
               </button>
             ))}
           </div>
-          <AppButton className="lg:shrink-0" disabled={scrapeBusy} type="submit" variant="primary">
+          <AppButton
+            className="lg:shrink-0"
+            disabled={scrapeBusy || remoteOkBusy || adzunaBusy}
+            type="submit"
+            variant="primary"
+          >
             {scrapeBusy ? "Queueing…" : "Queue"}
           </AppButton>
         </form>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <AppButton
+            disabled={remoteOkBusy || scrapeBusy || adzunaBusy}
+            type="button"
+            variant="outline"
+            onClick={() => void queueRemoteOkSync()}
+          >
+            {remoteOkBusy ? "Queueing…" : "Sync Remote OK"}
+          </AppButton>
+          <AppButton
+            disabled={adzunaBusy || scrapeBusy || remoteOkBusy}
+            type="button"
+            variant="outline"
+            onClick={() => void queueAdzunaSync()}
+          >
+            {adzunaBusy ? "Queueing…" : "Sync Adzuna"}
+          </AppButton>
+          <p className="max-w-xl text-[12px] leading-5 text-[var(--app-text-tertiary)]">
+            Optional bulk samples—tune Adzuna keywords in server env for your field. Source and listed date on each card.
+          </p>
+        </div>
         {scrapeMsg ? (
           <p className="mt-3 text-[13px] leading-6 text-[var(--app-text-secondary)]">{scrapeMsg}</p>
         ) : null}

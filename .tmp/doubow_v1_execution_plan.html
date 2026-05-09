@@ -1,0 +1,172 @@
+<h2 class="sr-only">Doubow v1 execution plan — four phases from segment definition to enrollment</h2>
+
+<style>
+.phase { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; background: var(--color-background-primary); }
+.phase-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; }
+.phase-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; flex-shrink: 0; }
+.phase-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+.phase-sub { font-size: 12px; color: var(--color-text-secondary); margin-left: auto; white-space: nowrap; }
+.tasks { display: flex; flex-direction: column; gap: 6px; }
+.task { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); }
+.task-icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+.task-body { flex: 1; }
+.task-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 2px; }
+.task-detail { font-size: 12px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+.decision { border-left: 3px solid var(--color-border-warning); border-radius: 0; }
+.gate { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; margin-top: 0.75rem; }
+.gate-go { background: var(--color-background-success); color: var(--color-text-success); }
+.btn-ask { margin-top: 0.75rem; font-size: 12px; padding: 5px 12px; cursor: pointer; }
+</style>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#EEEDFE;color:#3C3489;">1</div>
+    <span class="phase-title">Define the v1 segment</span>
+    <span class="phase-sub">Before any code</span>
+  </div>
+  <div class="tasks">
+    <div class="task decision">
+      <i class="ti ti-map-pin task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Pick one geography + role family</p>
+        <p class="task-detail">e.g. "remote-global tech roles" or "West Africa + finance/ops". One segment means one adapter, one coverage story, one honest UI label.</p>
+      </div>
+    </div>
+    <div class="task decision">
+      <i class="ti ti-user task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Confirm the user persona</p>
+        <p class="task-detail">Early-career diaspora pro looking remote? Mid-career local hire? This sets what the re-ranker should weight — recency, sponsorship, seniority.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-eye task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Decide on coarse location capture</p>
+        <p class="task-detail">Ask users for country at onboarding. No GPS needed. Used for coverage transparency ("we have strong listings for remote + US/EU") and re-rank weighting.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate gate-go"><i class="ti ti-check" aria-hidden="true"></i> Gate: segment doc exists before sprint 1 starts</span>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#E1F5EE;color:#085041;">2</div>
+    <span class="phase-title">Ship one adapter end-to-end</span>
+    <span class="phase-sub">Sprint 1 — ~1 week</span>
+  </div>
+  <div class="tasks">
+    <div class="task">
+      <i class="ti ti-plug task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Implement <code>ProviderAdapter</code> base class</p>
+        <p class="task-detail">Fields: <code>fetch()</code> → raw, <code>to_canonical(raw)</code> → <code>JobIn</code>, <code>source_label</code> string. Keeps all adapters testable in isolation.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-arrows-right task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Wire Adzuna adapter first</p>
+        <p class="task-detail">Free API key, no ToS ambiguity, good for remote + global roles. Canonical output: title · company · location · apply_url · external_id · posted_at · source="adzuna".</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-filter task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Add fingerprint dedup to the Celery task</p>
+        <p class="task-detail"><code>hash(title + company + location)</code> stored in Redis with 48h TTL. Runs before embed to avoid wasting API calls on duplicates.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-brain task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Embed and write to pgvector</p>
+        <p class="task-detail">Embed <code>f"{title} {company} {description[:500]}"</code> via <code>text-embedding-3-small</code>. Store vector + metadata. Pin the model now — never change without full re-index.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-tag task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Surface source attribution in API + UI</p>
+        <p class="task-detail">Every job card shows "via Adzuna" + link to original posting. Non-negotiable for trust and ToS compliance.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate gate-go"><i class="ti ti-check" aria-hidden="true"></i> Gate: 500+ indexed jobs, one end-to-end match test passing</span>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#E1F5EE;color:#085041;">3</div>
+    <span class="phase-title">Prefill the index + test matching</span>
+    <span class="phase-sub">Sprint 2 — before marketing</span>
+  </div>
+  <div class="tasks">
+    <div class="task">
+      <i class="ti ti-calendar task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Run ingestion on a schedule for 2 weeks</p>
+        <p class="task-detail">Daily Celery beat task. Target 2,000–5,000 indexed jobs before first user. Empty index = terrible first impression.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-file-cv task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Test with 10 real resumes from your team</p>
+        <p class="task-detail">Parse → embed → query → inspect top 20 results manually. Tune re-rank weights (location, seniority, sponsorship flag) based on what looks wrong.</p>
+      </div>
+    </div>
+    <div class="task decision">
+      <i class="ti ti-alert-triangle task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Measure coverage honestly</p>
+        <p class="task-detail">If &lt;30% of test resumes get 10+ relevant matches → either the segment is too narrow, the adapter is wrong, or re-rank is mis-weighting. Fix before enrolling users.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-clock task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Add job freshness expiry</p>
+        <p class="task-detail">Mark jobs older than 30 days as <code>stale=true</code>. Exclude from default queries. Show freshness date on every card.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate gate-go"><i class="ti ti-check" aria-hidden="true"></i> Gate: 10/10 internal resumes return ≥10 relevant matches</span>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#FAECE7;color:#712B13;">4</div>
+    <span class="phase-title">Widen only after the loop is stable</span>
+    <span class="phase-sub">Sprint 3+ — only when gates 1–3 pass</span>
+  </div>
+  <div class="tasks">
+    <div class="task">
+      <i class="ti ti-plus task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Add RemoteOK adapter</p>
+        <p class="task-detail">Public JSON feed, explicit ToS allowance. Good remote coverage. Same adapter interface — drops in with ~50 lines.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-search task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Add SerpApi as a supplemental layer</p>
+        <p class="task-detail">Triggered by resume keywords + location, not a blanket crawl. Set a hard monthly query budget. Treat as enrichment, not foundation.</p>
+      </div>
+    </div>
+    <div class="task decision">
+      <i class="ti ti-building task-icon" aria-hidden="true"></i>
+      <div class="task-body">
+        <p class="task-title">Evaluate one commercial aggregator</p>
+        <p class="task-detail">Run a TheirStack or Coresignal trial only after you know which gaps the free adapters leave. Don't pay for breadth you can't match yet.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate gate-go"><i class="ti ti-check" aria-hidden="true"></i> Gate: real user match rate measured, gaps identified, budget approved</span>
+</div>
+
+<button class="btn-ask" onclick="sendPrompt('Write the ProviderAdapter base class and Adzuna adapter in Python for Doubow')">Write the Adzuna adapter code ↗</button>
+<button class="btn-ask" onclick="sendPrompt('Write the Celery task for job ingestion, dedup, and embedding for Doubow')">Write the Celery ingestion task ↗</button>
+<button class="btn-ask" onclick="sendPrompt('Write the re-ranking logic for Doubow job matches after vector retrieval')">Write the re-ranker ↗</button>
