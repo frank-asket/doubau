@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from datetime import UTC, datetime
@@ -29,6 +30,15 @@ from app.resume.embeddings import EmbeddingError, embed_resume_text
 from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
 from app.resume.structure import structure_resume_text
 from app.storage.s3 import ensure_bucket, s3_client
+
+log = logging.getLogger(__name__)
+
+def _ingest_meta(*, started_at: datetime, ended_at: datetime) -> dict[str, Any]:
+    return {
+        "ingest_started_at": started_at.isoformat(),
+        "ingest_ended_at": ended_at.isoformat(),
+        "ingest_duration_ms": int((ended_at - started_at).total_seconds() * 1000),
+    }
 
 
 def _dlq_client() -> redis.Redis:
@@ -268,34 +278,75 @@ def ingest_remoteok_jobs() -> dict[str, Any]:
     Remote OK asks that listings link back to the job URL on their site; we store that in
     ``source_url`` for dedup and attribution in the API/UI.
     """
+    started_at = datetime.now(UTC)
     max_n = max(1, settings.remoteok_ingest_max_jobs)
     jobs, err = fetch_remoteok_canonical(max_n)
     if err:
-        return {"status": "fetch_failed", "error": err, "listing_source": "remoteok"}
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_remoteok_jobs fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "remoteok",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
 
     stats = persist_canonical_jobs(jobs, max_created=max_n)
-    out: dict[str, Any] = {"status": "completed", "listing_source": "remoteok"}
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "remoteok",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
     out.update(stats)
+    log.info(
+        "ingest_remoteok_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
     return out
 
 
 @celery_app.task(name="app.tasks.ingest_adzuna_jobs")
 def ingest_adzuna_jobs() -> dict[str, Any]:
     """Adzuna REST search → ``CanonicalJobIn`` + persist (requires ``DOUBOW_ADZUNA_*`` keys)."""
+    started_at = datetime.now(UTC)
     max_n = max(1, settings.adzuna_max_results)
     jobs, err = fetch_adzuna_canonical(max_n)
     if err == "missing_adzuna_credentials":
+        ended_at = datetime.now(UTC)
+        log.info("ingest_adzuna_jobs skipped_no_credentials")
         return {
             "status": "skipped_no_credentials",
             "detail": "Set DOUBOW_ADZUNA_APP_ID and DOUBOW_ADZUNA_APP_KEY",
             "listing_source": "adzuna",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
         }
     if err:
-        return {"status": "fetch_failed", "error": err, "listing_source": "adzuna"}
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_adzuna_jobs fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "adzuna",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
 
     stats = persist_canonical_jobs(jobs, max_created=max_n)
-    out: dict[str, Any] = {"status": "completed", "listing_source": "adzuna"}
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "adzuna",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
     out.update(stats)
+    log.info(
+        "ingest_adzuna_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
     return out
 
 

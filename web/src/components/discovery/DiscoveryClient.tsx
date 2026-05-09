@@ -21,6 +21,7 @@ export type JobRow = {
   source_url: string | null;
   listing_source?: string | null;
   source_posted_at?: string | null;
+  created_at: string;
 };
 
 export type FeedRow = {
@@ -140,6 +141,10 @@ function JobCard({
             {formatListedAt(job.source_posted_at ?? undefined) ? (
               <span className="text-[12px] text-[var(--app-text-tertiary)]">
                 Listed {formatListedAt(job.source_posted_at ?? undefined)}
+              </span>
+            ) : formatListedAt(job.created_at) ? (
+              <span className="text-[12px] text-[var(--app-text-tertiary)]">
+                Added {formatListedAt(job.created_at)}
               </span>
             ) : null}
             {job.source_url ? (

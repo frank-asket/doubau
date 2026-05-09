@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
@@ -49,6 +49,7 @@ class JobOut(BaseModel):
     source_url: str | None
     listing_source: str | None = None
     source_posted_at: datetime | None = None
+    created_at: datetime
 
 
 def _job_out(j: Job) -> JobOut:
@@ -64,6 +65,7 @@ def _job_out(j: Job) -> JobOut:
         source_url=j.source_url,
         listing_source=j.listing_source,
         source_posted_at=j.source_posted_at,
+        created_at=j.created_at,
     )
 
 
@@ -120,6 +122,8 @@ def list_jobs(
     offset = max(0, offset)
 
     stmt = select(Job)
+    cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
+    stmt = stmt.where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
     if q:
         like = f"%{q.strip().lower()}%"
         stmt = stmt.where(
@@ -256,12 +260,14 @@ def feed(
             focus = maybe
 
     vec = _resume_embedding_vector(db, current_user.id)
+    cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
 
     if vec and settings.openai_api_key:
         dist_expr = Job.embedding_vector.cosine_distance(vec)
         stmt = (
             select(Job, dist_expr.label("dist"))
             .where(Job.embedding_vector.is_not(None))
+            .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
             .order_by(dist_expr.asc())
             .limit(500)
         )
@@ -275,7 +281,12 @@ def feed(
                 out.append(FeedOut(job=_job_out(job), score=sim, similarity=sim))
             return out[offset : offset + limit]
 
-    jobs = db.scalars(select(Job).order_by(desc(Job.created_at)).limit(500)).all()
+    jobs = db.scalars(
+        select(Job)
+        .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+        .order_by(desc(Job.created_at))
+        .limit(500)
+    ).all()
     scored = [
         FeedOut(
             job=_job_out(j),

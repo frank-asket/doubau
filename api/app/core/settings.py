@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     adzuna_search_what: str = ""
     adzuna_max_results: int = 50
 
+    # Freshness: exclude jobs older than N days by default (posted_at else created_at).
+    jobs_stale_after_days: int = 30
+
     @field_validator("openai_api_key", mode="before")
     @classmethod
     def empty_openai_key_to_none(cls, v: object) -> object:

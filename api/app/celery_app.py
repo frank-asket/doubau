@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from celery import Celery
+from celery.schedules import crontab
 from kombu import Queue
 
 from app.core.settings import settings
@@ -37,6 +38,19 @@ def make_celery() -> Celery:
         task_track_started=True,
         worker_prefetch_multiplier=1,
         task_acks_late=True,
+        timezone="UTC",
+        enable_utc=True,
+        beat_schedule={
+            # Daily provider ingest (Week 3 sprint). Requires running celery beat.
+            "ingest-adzuna-0600-utc": {
+                "task": "app.tasks.ingest_adzuna_jobs",
+                "schedule": crontab(hour=6, minute=0),
+            },
+            "ingest-remoteok-0700-utc": {
+                "task": "app.tasks.ingest_remoteok_jobs",
+                "schedule": crontab(hour=7, minute=0),
+            },
+        },
     )
     return app
 

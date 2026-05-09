@@ -1,0 +1,210 @@
+<h2 class="sr-only">Doubow 4-week sprint plan for West Africa v1 launch</h2>
+<style>
+*{box-sizing:border-box}
+.week{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem;background:var(--color-background-primary)}
+.wk-header{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
+.wk-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.wk-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.wk-focus{font-size:12px;color:var(--color-text-secondary);margin-left:auto}
+.tasks{display:flex;flex-direction:column;gap:6px}
+.task{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:var(--border-radius-md);background:var(--color-background-secondary)}
+.task.warn{border-left:3px solid var(--color-border-warning);border-radius:0}
+.task.block{border-left:3px solid var(--color-border-danger);border-radius:0}
+.ti{font-size:15px;margin-top:1px;flex-shrink:0;color:var(--color-text-secondary)}
+.t-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 2px}
+.t-detail{font-size:12px;color:var(--color-text-secondary);margin:0;line-height:1.5}
+.gate{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;margin-top:0.75rem;background:var(--color-background-success);color:var(--color-text-success)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:1rem}
+button{font-size:12px;padding:5px 12px;cursor:pointer}
+</style>
+
+<div class="week">
+  <div class="wk-header">
+    <span class="wk-badge" style="background:#EEEDFE;color:#3C3489">Week 1</span>
+    <span class="wk-title">Foundation + first adapter</span>
+    <span class="wk-focus">Days 1–7</span>
+  </div>
+  <div class="tasks">
+    <div class="task block">
+      <i class="ti ti-alert-circle" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Decide your coverage honesty strategy today</p>
+        <p class="t-detail">Your UI must tell users "strong coverage: remote/global + some Nigeria, Ghana, Senegal local roles." Don't promise what Adzuna + RemoteOK can't deliver. Write this copy before any code.</p>
+      </div>
+    </div>
+    <div class="task block">
+      <i class="ti ti-shield-check" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Provider ToS + attribution checklist (Week 1, non-negotiable)</p>
+        <p class="t-detail">For each provider: required UI labels, required link-outs, caching rules, and any restrictions. Bake into acceptance criteria: every job card shows provider label + "view original" (and uses the provider job URL where required).</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-plug" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Build <code>ProviderAdapter</code> base class</p>
+        <p class="t-detail"><code>fetch()</code> → raw, <code>to_canonical(raw)</code> → <code>JobIn</code>, <code>source_label</code>, <code>source_region</code>. 30–50 lines. Everything else inherits this.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-world" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Remote OK adapter (first quick win)</p>
+        <p class="t-detail">Public JSON feed. Strong remote coverage for diaspora + global roles. Map to canonical and persist with source label "Remote OK" + required link-out URL.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-arrows-right" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Adzuna adapter — Nigeria/Ghana queries (add breadth)</p>
+        <p class="t-detail">Hit Adzuna with queries scoped to <code>country=ng</code> and <code>country=gh</code> (and optional keyword sets per persona). Map to canonical. Source label: "Adzuna".</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-filter" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Fingerprint dedup in Redis</p>
+        <p class="t-detail"><code>hash(title + company + location)</code>, 48h TTL. Runs before embed call — prevents wasting OpenAI tokens on duplicates.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-brain" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Embed + write to pgvector</p>
+        <p class="t-detail">Embed <code>f"{title} at {company} — {description[:400]}"</code>. Pin <code>text-embedding-3-small</code>. Store vector + all canonical fields. Never change the model without full re-index.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate"><i class="ti ti-check" aria-hidden="true"></i> Gate: 200+ jobs indexed, attribution + link-out shown on every card, one manual match test passing</span>
+</div>
+
+<div class="week">
+  <div class="wk-header">
+    <span class="wk-badge" style="background:#E1F5EE;color:#085041">Week 2</span>
+    <span class="wk-title">Resume pipeline + matcher</span>
+    <span class="wk-focus">Days 8–14</span>
+  </div>
+  <div class="tasks">
+    <div class="task">
+      <i class="ti ti-file-cv" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Resume parser</p>
+        <p class="t-detail">Accept PDF + DOCX. Extract: title, skills list, location, years of experience, seniority. Use Claude API (structured output) for speed — but <b>never block matching</b>: if parsing fails, store raw extracted text and proceed with embeddings-only matching.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-brain" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Embed resume profile</p>
+        <p class="t-detail">Embed <code>f"{title}, {', '.join(skills)}, {location}, {seniority}"</code> with the same <code>text-embedding-3-small</code> model. Same template as job embedding = better cosine alignment.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">ANN query + re-ranker</p>
+        <p class="t-detail">Pull top 50 via pgvector cosine. Re-rank with weighted score: vector sim (0.5) + location match (0.2) + seniority match (0.2) + recency (0.1). Return top 15 to user.</p>
+      </div>
+    </div>
+    <div class="task warn">
+      <i class="ti ti-map-pin" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Location matching for West Africa</p>
+        <p class="t-detail">Normalise location strings: "Lagos", "Lagos, NG", "Nigeria" all → <code>NG</code>. Remote jobs get a soft boost for all West Africa users. Don't filter out remote roles because they lack a GH/NG tag.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-tag" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Source attribution on every result</p>
+        <p class="t-detail">Every job card: "via Adzuna · posted 3 days ago · [view original]". Link must go to the actual apply URL. Non-negotiable for ToS and user trust.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate"><i class="ti ti-check" aria-hidden="true"></i> Gate: upload a real resume, get ≥10 relevant results in &lt;3s</span>
+</div>
+
+<div class="week">
+  <div class="wk-header">
+    <span class="wk-badge" style="background:#E1F5EE;color:#085041">Week 3</span>
+    <span class="wk-title">Index prefill + internal testing</span>
+    <span class="wk-focus">Days 15–21</span>
+  </div>
+  <div class="tasks">
+    <div class="task">
+      <i class="ti ti-calendar" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Run ingestion daily via Celery beat</p>
+        <p class="t-detail">Target 2,000+ indexed jobs before any user sees the product. Schedule: Adzuna at 06:00 UTC, RemoteOK at 07:00 UTC. Monitor index size daily.</p>
+      </div>
+    </div>
+    <div class="task warn">
+      <i class="ti ti-users" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Test with 10 real team resumes</p>
+        <p class="t-detail">Manually inspect top 20 results per resume. If &lt;3 of 10 get strong matches → your re-rank weights or query template is wrong. Fix before week 4. Don't skip this.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Add job freshness expiry</p>
+        <p class="t-detail">Mark <code>stale = true</code> on jobs older than 30 days. Exclude from default queries. If provider lacks a posted timestamp, fall back to <code>ingested_at</code> for recency. Show "posted/ingested N days ago" on every card — stale jobs destroy trust fast.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Instrument match quality metrics</p>
+        <p class="t-detail">Log: jobs indexed, match latency p50/p95, avg results per resume, click-through on apply links, and a lightweight satisfaction signal (hide / thumbs down) to tune ranking without waiting for apply clicks.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate"><i class="ti ti-check" aria-hidden="true"></i> Gate: 2,000+ jobs indexed, 8/10 internal resumes get strong matches</span>
+</div>
+
+<div class="week">
+  <div class="wk-header">
+    <span class="wk-badge" style="background:#FAECE7;color:#712B13">Week 4</span>
+    <span class="wk-title">Enroll first users</span>
+    <span class="wk-focus">Days 22–28</span>
+  </div>
+  <div class="tasks">
+    <div class="task block">
+      <i class="ti ti-alert-circle" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Only open if week 3 gate passes</p>
+        <p class="t-detail">If internal testing is weak, delay enrollment by one week and fix the matcher. One bad first impression from a known contact is worse than a one-week delay.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Invite 20–30 known users (warm network only)</p>
+        <p class="t-detail">Ghana/Nigeria diaspora + local professionals from your own network. Not a public launch. You need qualitative feedback, not volume. Ask them to talk to you after upload.</p>
+      </div>
+    </div>
+    <div class="task">
+      <i class="ti ti-message" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Collect structured feedback per user</p>
+        <p class="t-detail">3 questions: (1) Were results relevant? (2) Any roles you expected but didn't see? (3) Did you click apply on anything? Answers directly drive week 5 priorities.</p>
+      </div>
+    </div>
+    <div class="task warn">
+      <i class="ti ti-world" aria-hidden="true"></i>
+      <div>
+        <p class="t-title">Watch for coverage gaps by persona</p>
+        <p class="t-detail">Early-career + remote: likely fine. Mid-career diaspora: depends on seniority filter. Local hire in Accra/Lagos: expect thin results — be honest about this in the UI, don't hide it.</p>
+      </div>
+    </div>
+  </div>
+  <span class="gate"><i class="ti ti-check" aria-hidden="true"></i> Gate: &gt;60% of beta users click apply on at least one result</span>
+</div>
+
+<div class="btns">
+  <button onclick="sendPrompt('Write the ProviderAdapter base class and Adzuna adapter in Python for Doubow')">Write Adzuna adapter ↗</button>
+  <button onclick="sendPrompt('Write the resume parser using Claude API with structured output for Doubow')">Write resume parser ↗</button>
+  <button onclick="sendPrompt('Write the re-ranking function for Doubow job matches with location and seniority weights')">Write re-ranker ↗</button>
+  <button onclick="sendPrompt('Write the Celery beat schedule for Doubow job ingestion with Adzuna and RemoteOK')">Write Celery schedule ↗</button>
+</div>
