@@ -50,6 +50,10 @@ def make_celery() -> Celery:
                 "task": "app.tasks.ingest_remoteok_jobs",
                 "schedule": crontab(hour=7, minute=0),
             },
+            "mark-stale-jobs-0800-utc": {
+                "task": "app.tasks.mark_stale_jobs",
+                "schedule": crontab(hour=8, minute=0),
+            },
         },
     )
     return app

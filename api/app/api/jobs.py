@@ -143,6 +143,37 @@ def clear_feedback(job_id: UUID, db: DbDep, user: CurrentUserDep) -> dict:
     return {"status": "ok"}
 
 
+class JobMatchEventIn(BaseModel):
+    event_type: Literal[
+        "impression",
+        "click_out",
+        "apply_click",
+        "dismiss",
+        "save",
+    ]
+    reason: str | None = Field(default=None, max_length=240)
+    meta: dict | None = None
+
+
+@router.post("/{job_id}/events", response_model=dict)
+def track_job_event(job_id: UUID, payload: JobMatchEventIn, db: DbDep, user: CurrentUserDep) -> dict:
+    from app.models.job_match_event import JobMatchEvent
+
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    ev = JobMatchEvent(
+        user_id=user.id,
+        job_id=job_id,
+        event_type=payload.event_type,
+        reason=payload.reason,
+        meta=payload.meta,
+    )
+    db.add(ev)
+    db.commit()
+    return {"status": "ok"}
+
+
 @router.post("", response_model=JobOut)
 def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
     url_hash = hash_source_url(payload.source_url) if payload.source_url else None
@@ -198,6 +229,7 @@ def list_jobs(
     stmt = select(Job)
     cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
     stmt = stmt.where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+    stmt = stmt.where(Job.is_stale.is_(False))
     stmt = stmt.where(
         ~select(JobFeedback.id)
         .where(
@@ -252,6 +284,7 @@ def list_hidden_jobs(
             ),
         )
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+        .where(Job.is_stale.is_(False))
         .order_by(desc(JobFeedback.created_at))
     )
     jobs = db.scalars(stmt.limit(limit).offset(offset)).all()
@@ -349,6 +382,36 @@ def _resume_embedding_vector(db: Session, user_id: UUID) -> list[float] | None:
     return None
 
 
+def _feedback_adjustments(db: Session, *, user_id: UUID, job_ids: list[UUID]) -> dict[UUID, float]:
+    """
+    Convert explicit user feedback into a small adjustment to blended score.
+
+    - hide: excluded upstream
+    - upvote: slight boost
+    - downvote: noticeable penalty
+    """
+    if not job_ids:
+        return {}
+
+    rows = db.execute(
+        select(JobFeedback.job_id, JobFeedback.action).where(
+            and_(
+                JobFeedback.user_id == user_id,
+                JobFeedback.job_id.in_(job_ids),
+                JobFeedback.action.in_(("upvote", "downvote")),
+            )
+        )
+    ).all()
+
+    out: dict[UUID, float] = {}
+    for job_id, action in rows:
+        if action == "upvote":
+            out[job_id] = 0.08
+        elif action == "downvote":
+            out[job_id] = -0.18
+    return out
+
+
 @router.get("/feed", response_model=list[FeedOut])
 def feed(
     db: DbDep,
@@ -380,6 +443,7 @@ def feed(
             select(Job, dist_expr.label("dist"))
             .where(Job.embedding_vector.is_not(None))
             .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+            .where(Job.is_stale.is_(False))
             .where(
                 ~select(JobFeedback.id)
                 .where(
@@ -399,6 +463,11 @@ def feed(
             user_loc = profile.location if profile else None
             user_yrs = profile.years_experience if profile else None
             window = max(1, settings.jobs_stale_after_days)
+            fb_adj = _feedback_adjustments(
+                db,
+                user_id=current_user.id,
+                job_ids=[r[0].id for r in rows],
+            )
 
             scored_rows: list[tuple[float, float, Job]] = []
             for row in rows:
@@ -422,6 +491,7 @@ def feed(
                     seniority_score=sen_s,
                     recency_score_=rec_s,
                 )
+                blended = max(0.0, min(1.0, blended + fb_adj.get(job.id, 0.0)))
                 scored_rows.append((blended, vec_sim, job))
 
             scored_rows.sort(key=lambda t: (t[0], t[1]), reverse=True)
@@ -437,6 +507,7 @@ def feed(
     jobs = db.scalars(
         select(Job)
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+        .where(Job.is_stale.is_(False))
         .where(
             ~select(JobFeedback.id)
             .where(
@@ -454,6 +525,7 @@ def feed(
     user_loc = profile.location if profile else None
     user_yrs = profile.years_experience if profile else None
     window = max(1, settings.jobs_stale_after_days)
+    fb_adj2 = _feedback_adjustments(db, user_id=current_user.id, job_ids=[j.id for j in jobs])
 
     # Heuristic max (student persona): intern(3)+graduate(2)+junior(1)+find_jobs(0.5)
     heur_max = 6.5
@@ -480,6 +552,7 @@ def feed(
             seniority_score=sen_s,
             recency_score_=rec_s,
         )
+        blended = max(0.0, min(1.0, blended + fb_adj2.get(j.id, 0.0)))
         scored_rows2.append((blended, base_sim, j))
 
     scored_rows2.sort(

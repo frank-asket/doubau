@@ -83,6 +83,13 @@ function JobCard({
   hideBusyId,
   onHide,
   hideLabel,
+  feedbackBusyId,
+  downvoteOpenId,
+  downvoteReason,
+  onToggleDownvote,
+  onChangeDownvoteReason,
+  onUpvote,
+  onDownvote,
 }: {
   row: FeedRow;
   tab: TabKey;
@@ -94,6 +101,13 @@ function JobCard({
   hideBusyId: string | null;
   onHide: (jobId: string) => void;
   hideLabel?: string;
+  feedbackBusyId: string | null;
+  downvoteOpenId: string | null;
+  downvoteReason: string;
+  onToggleDownvote: (jobId: string) => void;
+  onChangeDownvoteReason: (v: string) => void;
+  onUpvote: (jobId: string) => void;
+  onDownvote: (jobId: string, reason: string) => void;
 }) {
   const job = row.job;
   const score = row.score;
@@ -191,6 +205,24 @@ function JobCard({
             <AppButton
               size="sm"
               variant="outline"
+              disabled={feedbackBusyId === job.id}
+              onClick={() => onUpvote(job.id)}
+              title="Tell us this job is a good match"
+            >
+              {feedbackBusyId === job.id ? "Working…" : "Upvote"}
+            </AppButton>
+            <AppButton
+              size="sm"
+              variant="outline"
+              disabled={feedbackBusyId === job.id}
+              onClick={() => onToggleDownvote(job.id)}
+              title="Tell us this job is not a good match"
+            >
+              {feedbackBusyId === job.id ? "Working…" : "Downvote"}
+            </AppButton>
+            <AppButton
+              size="sm"
+              variant="outline"
               disabled={hideBusyId === job.id}
               onClick={() => onHide(job.id)}
               title="Hide this job from your feed"
@@ -200,6 +232,43 @@ function JobCard({
           </div>
         </div>
       </div>
+
+      {downvoteOpenId === job.id ? (
+        <div className="mt-4 flex flex-col gap-2 border-t border-[var(--app-border)] pt-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+            Why is this a bad fit?
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <select
+              value={downvoteReason}
+              onChange={(e) => onChangeDownvoteReason(e.target.value)}
+              className="w-full max-w-xl rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus:border-[color:rgba(26,92,255,0.45)]"
+            >
+              <option value="">Select a reason…</option>
+              <option value="irrelevant_role">Role is irrelevant</option>
+              <option value="wrong_level">Seniority/level mismatch</option>
+              <option value="wrong_location">Location mismatch</option>
+              <option value="pay_too_low">Compensation too low</option>
+              <option value="not_remote">Not remote / remote mismatch</option>
+              <option value="duplicate">Duplicate listing</option>
+              <option value="other">Other</option>
+            </select>
+            <div className="flex gap-2">
+              <AppButton
+                size="sm"
+                variant="primary"
+                disabled={feedbackBusyId === job.id || !downvoteReason}
+                onClick={() => onDownvote(job.id, downvoteReason)}
+              >
+                Submit
+              </AppButton>
+              <AppButton size="sm" variant="outline" disabled={feedbackBusyId === job.id} onClick={() => onToggleDownvote(job.id)}>
+                Cancel
+              </AppButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {open && fit ? (
         <motion.div
@@ -259,6 +328,9 @@ export function DiscoveryClient({
   const [fitLoadingId, setFitLoadingId] = useState<string | null>(null);
   const [expandedFitId, setExpandedFitId] = useState<string | null>(null);
   const [hideBusyId, setHideBusyId] = useState<string | null>(null);
+  const [feedbackBusyId, setFeedbackBusyId] = useState<string | null>(null);
+  const [downvoteOpenId, setDownvoteOpenId] = useState<string | null>(null);
+  const [downvoteReason, setDownvoteReason] = useState("");
 
   const feedRows = useMemo(() => initialFeed, [initialFeed]);
   const allRows: FeedRow[] = useMemo(
@@ -403,6 +475,53 @@ export function DiscoveryClient({
       router.refresh();
     } finally {
       setHideBusyId(null);
+    }
+  }
+
+  function toggleDownvote(jobId: string) {
+    setDownvoteReason("");
+    setDownvoteOpenId((cur) => (cur === jobId ? null : jobId));
+  }
+
+  async function upvoteJob(jobId: string) {
+    setFeedbackBusyId(jobId);
+    setScrapeMsg(null);
+    try {
+      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "upvote" }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Upvote failed (${resp.status})`);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setFeedbackBusyId(null);
+    }
+  }
+
+  async function downvoteJob(jobId: string, reason: string) {
+    setFeedbackBusyId(jobId);
+    setScrapeMsg(null);
+    try {
+      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "downvote", reason }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Downvote failed (${resp.status})`);
+        return;
+      }
+      setDownvoteOpenId(null);
+      setDownvoteReason("");
+      router.refresh();
+    } finally {
+      setFeedbackBusyId(null);
     }
   }
 
@@ -560,9 +679,16 @@ export function DiscoveryClient({
                 fitData={fitData}
                 fitLoadingId={fitLoadingId}
                 hideBusyId={hideBusyId}
+                feedbackBusyId={feedbackBusyId}
+                downvoteOpenId={downvoteOpenId}
+                downvoteReason={downvoteReason}
                 row={row}
                 tab={tab}
                 onFit={runFit}
+                onToggleDownvote={toggleDownvote}
+                onChangeDownvoteReason={setDownvoteReason}
+                onUpvote={upvoteJob}
+                onDownvote={downvoteJob}
                 onHide={tab === "hidden" ? unhideJob : hideJob}
                 hideLabel={tab === "hidden" ? "Undo hide" : "Hide"}
                 onToggleFit={(id) => setExpandedFitId((cur) => (cur === id ? null : id))}

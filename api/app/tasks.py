@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
@@ -12,7 +12,7 @@ from uuid import UUID
 import httpx
 import redis
 from celery.signals import task_failure
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.celery_app import celery_app
@@ -448,4 +448,24 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
             db.add(doc)
             db.commit()
             raise
+
+
+@celery_app.task(name="app.tasks.mark_stale_jobs")
+def mark_stale_jobs() -> dict[str, Any]:
+    """
+    Mark jobs as stale based on the configured freshness window.
+
+    This makes query-time freshness cheaper/consistent and supports future UX like "show stale".
+    """
+    cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
+    now = datetime.now(UTC)
+    with SessionLocal() as db:
+        res2 = db.execute(
+            update(Job)
+            .where(Job.is_stale.is_(False))
+            .where(func.coalesce(Job.source_posted_at, Job.created_at) < cutoff)
+            .values(is_stale=True, stale_at=now)
+        )
+        db.commit()
+        return {"status": "completed", "marked_stale": int(res2.rowcount or 0), "cutoff": cutoff.isoformat()}
 

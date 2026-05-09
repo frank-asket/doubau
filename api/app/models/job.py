@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -45,6 +45,9 @@ class Job(Base):
     )
     embedding_model: Mapped[str | None] = mapped_column(String(80), nullable=True)
     raw_html_s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
+    is_stale: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    stale_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -1,13 +1,15 @@
+from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, UploadFile
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 
 from app.api.deps import CurrentUserDep, DbDep
 from app.api.schemas import ProfileOut, ProfileUpsert
 from app.core.settings import settings
 from app.models.profile import Profile
+from app.models.job_match_event import JobMatchEvent
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.storage.s3 import ensure_bucket, s3_client
 from app.tasks import process_resume_document
@@ -194,4 +196,63 @@ def get_resume(
         raise HTTPException(status_code=404, detail="Not found")
 
     return _resume_document_out(doc)
+
+
+@router.get("/match/events", response_model=list[dict])
+def list_match_events(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[dict]:
+    limit = max(1, min(limit, 500))
+    offset = max(0, offset)
+    rows = db.execute(
+        select(JobMatchEvent)
+        .where(JobMatchEvent.user_id == current_user.id)
+        .order_by(desc(JobMatchEvent.created_at))
+        .limit(limit)
+        .offset(offset)
+    ).scalars()
+    out: list[dict] = []
+    for ev in rows:
+        out.append(
+            {
+                "id": str(ev.id),
+                "job_id": str(ev.job_id),
+                "event_type": ev.event_type,
+                "reason": ev.reason,
+                "meta": ev.meta,
+                "created_at": ev.created_at,
+            }
+        )
+    return out
+
+
+@router.get("/match/metrics", response_model=dict)
+def match_metrics(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    days: int = 14,
+) -> dict:
+    days = max(1, min(days, 90))
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    rows = db.execute(
+        select(
+            JobMatchEvent.event_type,
+            JobMatchEvent.reason,
+            func.count().label("n"),
+        )
+        .where(JobMatchEvent.user_id == current_user.id)
+        .where(JobMatchEvent.created_at >= cutoff)
+        .group_by(JobMatchEvent.event_type, JobMatchEvent.reason)
+        .order_by(desc(func.count()))
+    ).all()
+    by_event: dict[str, int] = {}
+    by_reason: dict[str, int] = {}
+    for event_type, reason, n in rows:
+        by_event[str(event_type)] = by_event.get(str(event_type), 0) + int(n)
+        if reason:
+            by_reason[str(reason)] = by_reason.get(str(reason), 0) + int(n)
+    return {"window_days": days, "by_event_type": by_event, "by_reason": by_reason}
 
