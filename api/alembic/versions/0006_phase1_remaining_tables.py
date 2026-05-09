@@ -97,7 +97,12 @@ def upgrade() -> None:
         "resume_documents",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("status", sa.String(length=40), server_default=sa.text("'UPLOADED'"), nullable=False),
+        sa.Column(
+            "status",
+            sa.String(length=40),
+            server_default=sa.text("'UPLOADED'"),
+            nullable=False,
+        ),
         sa.Column("file_name", sa.String(length=260), nullable=False),
         sa.Column("content_type", sa.String(length=120), nullable=True),
         sa.Column("size_bytes", sa.Integer(), nullable=True),

@@ -49,8 +49,10 @@ def llm_structure_resume_text(text: str) -> dict[str, object]:
         '"links": string[],'
         '"summary": string|null,'
         '"skills": string[],'
-        '"experience": [{"company": string|null, "title": string|null, "start": string|null, "end": string|null, "bullets": string[]}],'
-        '"education": [{"school": string|null, "degree": string|null, "start": string|null, "end": string|null}]'
+        '"experience": [{"company": string|null, "title": string|null, "start": string|null, '
+        '"end": string|null, "bullets": string[]}],'
+        '"education": [{"school": string|null, "degree": string|null, "start": string|null, '
+        '"end": string|null}]'
         '}'
     )
     sys_msg = (

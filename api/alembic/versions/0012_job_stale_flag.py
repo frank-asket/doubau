@@ -7,9 +7,10 @@ Create Date: 2026-05-09
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0012_job_stale_flag"
@@ -19,7 +20,15 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("jobs", sa.Column("is_stale", sa.Boolean(), nullable=False, server_default=sa.text("false")))
+    op.add_column(
+        "jobs",
+        sa.Column(
+            "is_stale",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
+    )
     op.add_column("jobs", sa.Column("stale_at", sa.DateTime(timezone=True), nullable=True))
     op.create_index("ix_jobs_is_stale", "jobs", ["is_stale"])
     op.create_index("ix_jobs_stale_at", "jobs", ["stale_at"])

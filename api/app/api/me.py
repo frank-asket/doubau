@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -8,8 +10,8 @@ from sqlalchemy import desc, func, select
 from app.api.deps import CurrentUserDep, DbDep
 from app.api.schemas import ProfileOut, ProfileUpsert
 from app.core.settings import settings
-from app.models.profile import Profile
 from app.models.job_match_event import JobMatchEvent
+from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.storage.s3 import ensure_bucket, s3_client
 from app.tasks import process_resume_document

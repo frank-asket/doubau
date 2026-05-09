@@ -89,7 +89,12 @@ class JobFeedbackOut(BaseModel):
 
 
 @router.post("/{job_id}/feedback", response_model=JobFeedbackOut)
-def leave_feedback(job_id: UUID, payload: JobFeedbackIn, db: DbDep, user: CurrentUserDep) -> JobFeedbackOut:
+def leave_feedback(
+    job_id: UUID,
+    payload: JobFeedbackIn,
+    db: DbDep,
+    user: CurrentUserDep,
+) -> JobFeedbackOut:
     job = db.get(Job, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -124,7 +129,12 @@ def leave_feedback(job_id: UUID, payload: JobFeedbackIn, db: DbDep, user: Curren
     db.add(fb)
     db.commit()
     db.refresh(fb)
-    return JobFeedbackOut(job_id=fb.job_id, action=fb.action, reason=fb.reason, created_at=fb.created_at)
+    return JobFeedbackOut(
+        job_id=fb.job_id,
+        action=fb.action,
+        reason=fb.reason,
+        created_at=fb.created_at,
+    )
 
 
 @router.delete("/{job_id}/feedback", response_model=dict)
@@ -156,7 +166,12 @@ class JobMatchEventIn(BaseModel):
 
 
 @router.post("/{job_id}/events", response_model=dict)
-def track_job_event(job_id: UUID, payload: JobMatchEventIn, db: DbDep, user: CurrentUserDep) -> dict:
+def track_job_event(
+    job_id: UUID,
+    payload: JobMatchEventIn,
+    db: DbDep,
+    user: CurrentUserDep,
+) -> dict:
     from app.models.job_match_event import JobMatchEvent
 
     job = db.get(Job, job_id)

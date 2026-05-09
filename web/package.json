@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "rimraf .next && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint ."
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",

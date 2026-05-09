@@ -40,5 +40,9 @@ class JobMatchEvent(Base):
     reason: Mapped[str | None] = mapped_column(String(240), nullable=True)
     meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        index=True,
+    )
 

@@ -467,5 +467,9 @@ def mark_stale_jobs() -> dict[str, Any]:
             .values(is_stale=True, stale_at=now)
         )
         db.commit()
-        return {"status": "completed", "marked_stale": int(res2.rowcount or 0), "cutoff": cutoff.isoformat()}
+        return {
+            "status": "completed",
+            "marked_stale": int(res2.rowcount or 0),
+            "cutoff": cutoff.isoformat(),
+        }
 

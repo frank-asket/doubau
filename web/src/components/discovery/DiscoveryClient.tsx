@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
@@ -90,6 +90,8 @@ function JobCard({
   onChangeDownvoteReason,
   onUpvote,
   onDownvote,
+  onImpression,
+  onClickOut,
 }: {
   row: FeedRow;
   tab: TabKey;
@@ -108,6 +110,8 @@ function JobCard({
   onChangeDownvoteReason: (v: string) => void;
   onUpvote: (jobId: string) => void;
   onDownvote: (jobId: string, reason: string) => void;
+  onImpression: (jobId: string, meta: Record<string, unknown>) => void;
+  onClickOut: (jobId: string, meta: Record<string, unknown>) => void;
 }) {
   const job = row.job;
   const score = row.score;
@@ -117,8 +121,37 @@ function JobCard({
   const fit = fitData[job.id];
   const open = expandedFitId === job.id;
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first) return;
+        if (first.isIntersecting) {
+          onImpression(job.id, {
+            tab,
+            similarity,
+            score,
+            listing_source: job.listing_source ?? null,
+          });
+          obs.disconnect();
+        }
+      },
+      { root: null, threshold: 0.4 },
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [job.id, job.listing_source, onImpression, score, similarity, tab]);
+
   return (
-    <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 transition-colors hover:border-[var(--app-border-strong,#ffffff14)]">
+    <div
+      ref={rootRef}
+      className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 transition-colors hover:border-[var(--app-border-strong,#ffffff14)]"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -173,6 +206,13 @@ function JobCard({
                 target="_blank"
                 rel="noreferrer"
                 className="inline-block text-[12px] font-medium text-[color:rgba(26,92,255,0.95)] underline-offset-4 hover:underline"
+                onClick={() => {
+                  onClickOut(job.id, {
+                    tab,
+                    url: job.source_url,
+                    listing_source: job.listing_source ?? null,
+                  });
+                }}
               >
                 View posting
               </Link>
@@ -331,6 +371,30 @@ export function DiscoveryClient({
   const [feedbackBusyId, setFeedbackBusyId] = useState<string | null>(null);
   const [downvoteOpenId, setDownvoteOpenId] = useState<string | null>(null);
   const [downvoteReason, setDownvoteReason] = useState("");
+  const impressedIdsRef = useRef<Set<string>>(new Set());
+
+  async function trackEvent(jobId: string, payload: { event_type: string; reason?: string; meta?: unknown }) {
+    try {
+      await fetch(`/api/jobs/${jobId}/events`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      });
+    } catch {
+      // best-effort only
+    }
+  }
+
+  function onImpression(jobId: string, meta: Record<string, unknown>) {
+    if (impressedIdsRef.current.has(jobId)) return;
+    impressedIdsRef.current.add(jobId);
+    void trackEvent(jobId, { event_type: "impression", meta });
+  }
+
+  function onClickOut(jobId: string, meta: Record<string, unknown>) {
+    void trackEvent(jobId, { event_type: "click_out", meta });
+  }
 
   const feedRows = useMemo(() => initialFeed, [initialFeed]);
   const allRows: FeedRow[] = useMemo(
@@ -692,6 +756,8 @@ export function DiscoveryClient({
                 onHide={tab === "hidden" ? unhideJob : hideJob}
                 hideLabel={tab === "hidden" ? "Undo hide" : "Hide"}
                 onToggleFit={(id) => setExpandedFitId((cur) => (cur === id ? null : id))}
+                onImpression={onImpression}
+                onClickOut={onClickOut}
               />
             </motion.div>
           ))}

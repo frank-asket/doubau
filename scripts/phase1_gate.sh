@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "== Phase 1 Gate =="
+if [ ! -f "api/.env" ] && [ -f "api/.env.example" ]; then
+  echo "api/.env missing; copying from api/.env.example for CI..."
+  cp "api/.env.example" "api/.env"
+fi
 echo "Bringing up services with fresh volumes..."
 docker compose down -v --remove-orphans >/dev/null 2>&1 || true
 
