@@ -32,6 +32,7 @@ from app.resume.llm_structure import (
     ResumeLLMStructureError,
     openai_structure_resume_text,
 )
+from app.resume.openrouter_structure import openrouter_structure_resume_text
 from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
 from app.resume.structure import structure_resume_text
 from app.storage.s3 import ensure_bucket, s3_client
@@ -41,7 +42,7 @@ log = logging.getLogger(__name__)
 
 def _run_llm_resume_structure(text: str) -> dict[str, object]:
     """
-    Pick Claude and/or OpenAI per ``resume_structuring_provider``.
+    Pick OpenRouter, Claude, and/or OpenAI per ``resume_structuring_provider``.
 
     Returns structured fields plus ``_provider``, or ``{"error": ...}``.
     """
@@ -68,13 +69,27 @@ def _run_llm_resume_structure(text: str) -> dict[str, object]:
             errs.append(f"openai:{e}")
             return None
 
+    def try_openrouter() -> dict[str, object] | None:
+        if not settings.openrouter_api_key:
+            return None
+        try:
+            data = openrouter_structure_resume_text(text)
+            return {"_provider": "openrouter", **data}
+        except ResumeLLMStructureError as e:
+            errs.append(f"openrouter:{e}")
+            return None
+
     if prov == "claude":
         r = try_claude()
         return r if r is not None else {"error": "; ".join(errs) if errs else "claude_unconfigured"}
     if prov == "openai":
         r = try_openai()
         return r if r is not None else {"error": "; ".join(errs) if errs else "openai_unconfigured"}
-    r = try_claude() or try_openai()
+    if prov == "openrouter":
+        r = try_openrouter()
+        err_body = "; ".join(errs) if errs else "openrouter_unconfigured"
+        return r if r is not None else {"error": err_body}
+    r = try_openrouter() or try_claude() or try_openai()
     return r if r is not None else {"error": "; ".join(errs) if errs else "no_llm_keys"}
 
 

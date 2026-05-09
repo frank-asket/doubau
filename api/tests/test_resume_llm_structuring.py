@@ -138,6 +138,87 @@ def test_run_llm_resume_structure_auto_prefers_claude(monkeypatch: pytest.Monkey
         settings.openai_api_key = prev_o
 
 
+def test_openrouter_structure_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.resume.openrouter_structure import openrouter_structure_resume_text
+
+    prev_key = settings.openrouter_api_key
+    settings.openrouter_api_key = "or-key"
+
+    class _FakeClient:
+        def __init__(self, *_a: object, **_kw: object) -> None:
+            pass
+
+        class chat:  # noqa: N801
+            class completions:  # noqa: N801
+                @staticmethod
+                def create(**_kwargs):  # type: ignore[no-untyped-def]
+                    msg = types.SimpleNamespace(content='{"name":"ViaOR","skills":["go"]}')
+                    choice = types.SimpleNamespace(message=msg)
+                    return types.SimpleNamespace(choices=[choice])
+
+    monkeypatch.setattr("app.resume.openrouter_structure.OpenAI", _FakeClient)
+
+    try:
+        out = openrouter_structure_resume_text("hello")
+        assert out["name"] == "ViaOR"
+        assert out["skills"] == ["go"]
+    finally:
+        settings.openrouter_api_key = prev_key
+
+
+def test_run_llm_auto_prefers_openrouter(monkeypatch: pytest.MonkeyPatch) -> None:
+    prev_prov = settings.resume_structuring_provider
+    prev_or = settings.openrouter_api_key
+    prev_a = settings.anthropic_api_key
+    prev_o = settings.openai_api_key
+    settings.resume_structuring_provider = "auto"
+    settings.openrouter_api_key = "or"
+    settings.anthropic_api_key = "a"
+    settings.openai_api_key = "o"
+
+    monkeypatch.setattr(
+        "app.tasks.openrouter_structure_resume_text",
+        lambda _t: {"name": "OpenRouterUser"},
+    )
+
+    try:
+        out = _run_llm_resume_structure("x")
+        assert out["_provider"] == "openrouter"
+        assert out["name"] == "OpenRouterUser"
+    finally:
+        settings.resume_structuring_provider = prev_prov
+        settings.openrouter_api_key = prev_or
+        settings.anthropic_api_key = prev_a
+        settings.openai_api_key = prev_o
+
+
+def test_run_llm_auto_openrouter_fails_then_claude(monkeypatch: pytest.MonkeyPatch) -> None:
+    prev_prov = settings.resume_structuring_provider
+    prev_or = settings.openrouter_api_key
+    prev_a = settings.anthropic_api_key
+    settings.resume_structuring_provider = "auto"
+    settings.openrouter_api_key = "or"
+    settings.anthropic_api_key = "a"
+
+    def _fail_or(_t: str) -> None:
+        raise ResumeLLMStructureError("openrouter down")
+
+    monkeypatch.setattr("app.tasks.openrouter_structure_resume_text", _fail_or)
+    monkeypatch.setattr(
+        "app.tasks.claude_structure_resume_text",
+        lambda _t: {"headline": "ClaudeOK"},
+    )
+
+    try:
+        out = _run_llm_resume_structure("x")
+        assert out["_provider"] == "claude"
+        assert out["headline"] == "ClaudeOK"
+    finally:
+        settings.resume_structuring_provider = prev_prov
+        settings.openrouter_api_key = prev_or
+        settings.anthropic_api_key = prev_a
+
+
 def test_run_llm_auto_fallback_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     prev_prov = settings.resume_structuring_provider
     prev_a = settings.anthropic_api_key

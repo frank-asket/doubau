@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     # Anthropic Claude (optional résumé structuring via Messages API).
     anthropic_api_key: str | None = None
     anthropic_chat_model: str = "claude-3-5-haiku-20241022"
+
+    # OpenRouter — OpenAI-compatible API; use one key for Claude/GPT/etc. (optional structuring).
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_chat_model: str = "anthropic/claude-3.5-haiku"
+    openrouter_http_referer: str | None = None
+    openrouter_app_title: str | None = "DouBow"
     embedding_dimensions: int = 1536
     embedding_max_input_chars: int = 30_000
 
@@ -80,10 +87,10 @@ class Settings(BaseSettings):
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).
     resume_llm_structuring_enabled: bool = False
     resume_llm_structuring_max_chars: int = 12_000
-    # auto: prefer Anthropic when ``anthropic_api_key`` is set; otherwise OpenAI if configured.
-    resume_structuring_provider: Literal["auto", "claude", "openai"] = "auto"
+    # auto: OpenRouter first, then direct Anthropic, then OpenAI (when respective keys are set).
+    resume_structuring_provider: Literal["auto", "claude", "openai", "openrouter"] = "auto"
 
-    @field_validator("openai_api_key", "anthropic_api_key", mode="before")
+    @field_validator("openai_api_key", "anthropic_api_key", "openrouter_api_key", mode="before")
     @classmethod
     def empty_llm_keys_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
