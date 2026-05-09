@@ -26,5 +26,7 @@ class LlmLog(Base):
     user_edit: Mapped[str | None] = mapped_column(Text, nullable=True)
     feedback_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, index=True
+    )
 
