@@ -38,7 +38,7 @@ type FitScoreResponse = {
   strength_skills: string[];
 };
 
-type TabKey = "feed" | "all";
+type TabKey = "feed" | "all" | "hidden";
 
 function listingSourceLabel(code: string | null | undefined): string | null {
   if (!code) return null;
@@ -80,6 +80,9 @@ function JobCard({
   expandedFitId,
   onFit,
   onToggleFit,
+  hideBusyId,
+  onHide,
+  hideLabel,
 }: {
   row: FeedRow;
   tab: TabKey;
@@ -88,6 +91,9 @@ function JobCard({
   expandedFitId: string | null;
   onFit: (jobId: string) => void;
   onToggleFit: (jobId: string) => void;
+  hideBusyId: string | null;
+  onHide: (jobId: string) => void;
+  hideLabel?: string;
 }) {
   const job = row.job;
   const score = row.score;
@@ -182,6 +188,15 @@ function JobCard({
             >
               {fitLoadingId === job.id ? "Scoring…" : fit ? (open ? "Hide fit" : "Show fit") : "AI fit"}
             </AppButton>
+            <AppButton
+              size="sm"
+              variant="outline"
+              disabled={hideBusyId === job.id}
+              onClick={() => onHide(job.id)}
+              title="Hide this job from your feed"
+            >
+              {hideBusyId === job.id ? "Working…" : (hideLabel ?? "Hide")}
+            </AppButton>
           </div>
         </div>
       </div>
@@ -224,10 +239,12 @@ function JobCard({
 export function DiscoveryClient({
   initialFeed,
   initialJobs,
+  initialHiddenJobs,
   loadError,
 }: {
   initialFeed: FeedRow[];
   initialJobs: JobRow[];
+  initialHiddenJobs: JobRow[];
   loadError: boolean;
 }) {
   const router = useRouter();
@@ -241,6 +258,7 @@ export function DiscoveryClient({
   const [fitData, setFitData] = useState<Record<string, FitScoreResponse>>({});
   const [fitLoadingId, setFitLoadingId] = useState<string | null>(null);
   const [expandedFitId, setExpandedFitId] = useState<string | null>(null);
+  const [hideBusyId, setHideBusyId] = useState<string | null>(null);
 
   const feedRows = useMemo(() => initialFeed, [initialFeed]);
   const allRows: FeedRow[] = useMemo(
@@ -251,6 +269,15 @@ export function DiscoveryClient({
         similarity: null,
       })),
     [initialJobs],
+  );
+  const hiddenRows: FeedRow[] = useMemo(
+    () =>
+      initialHiddenJobs.map((j) => ({
+        job: j,
+        score: 0,
+        similarity: null,
+      })),
+    [initialHiddenJobs],
   );
 
   async function submitScrape(e: React.FormEvent) {
@@ -343,7 +370,43 @@ export function DiscoveryClient({
     }
   }
 
-  const list = tab === "feed" ? feedRows : allRows;
+  async function hideJob(jobId: string) {
+    setHideBusyId(jobId);
+    setScrapeMsg(null);
+    try {
+      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "hide" }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Hide failed (${resp.status})`);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setHideBusyId(null);
+    }
+  }
+
+  async function unhideJob(jobId: string) {
+    setHideBusyId(jobId);
+    setScrapeMsg(null);
+    try {
+      const resp = await fetch(`/api/jobs/${jobId}/feedback`, { method: "DELETE" });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Undo failed (${resp.status})`);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setHideBusyId(null);
+    }
+  }
+
+  const list = tab === "feed" ? feedRows : tab === "hidden" ? hiddenRows : allRows;
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
@@ -458,6 +521,18 @@ export function DiscoveryClient({
         >
           All roles
         </button>
+        <button
+          type="button"
+          className={cn(
+            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors",
+            tab === "hidden"
+              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
+              : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
+          )}
+          onClick={() => setTab("hidden")}
+        >
+          Hidden
+        </button>
       </div>
 
       {tab === "feed" && feedRows.length === 0 ? (
@@ -465,6 +540,11 @@ export function DiscoveryClient({
           No personalized rows yet. Embed a résumé on the Dashboard (with OpenAI configured), add jobs via{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or switch to{" "}
           <span className="font-medium text-[var(--app-text-primary)]">All roles</span>.
+        </div>
+      ) : tab === "hidden" && hiddenRows.length === 0 ? (
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 text-center text-[13px] leading-6 text-[var(--app-text-secondary)]">
+          Nothing hidden yet. Use{" "}
+          <span className="font-medium text-[var(--app-text-primary)]">Hide</span> on a card to remove it from your feed.
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -479,9 +559,12 @@ export function DiscoveryClient({
                 expandedFitId={expandedFitId}
                 fitData={fitData}
                 fitLoadingId={fitLoadingId}
+                hideBusyId={hideBusyId}
                 row={row}
                 tab={tab}
                 onFit={runFit}
+                onHide={tab === "hidden" ? unhideJob : hideJob}
+                hideLabel={tab === "hidden" ? "Undo hide" : "Hide"}
                 onToggleFit={(id) => setExpandedFitId((cur) => (cur === id ? null : id))}
               />
             </motion.div>

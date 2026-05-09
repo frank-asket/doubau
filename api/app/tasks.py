@@ -27,6 +27,7 @@ from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.resume.embeddings import EmbeddingError, embed_resume_text
+from app.resume.llm_structure import ResumeLLMStructureError, llm_structure_resume_text
 from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
 from app.resume.structure import structure_resume_text
 from app.storage.s3 import ensure_bucket, s3_client
@@ -413,10 +414,17 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
 
             doc.extracted_text = extracted
             structured = structure_resume_text(extracted)
+            llm_structured: dict[str, object] | None = None
+            if settings.resume_llm_structuring_enabled and settings.openai_api_key:
+                try:
+                    llm_structured = llm_structure_resume_text(extracted)
+                except ResumeLLMStructureError as llm_err:
+                    llm_structured = {"error": str(llm_err)}
             doc.parsed_json = {
                 "text": extracted,
                 "length": len(extracted),
                 "structured": structured,
+                "structured_llm": llm_structured,
             }
             doc.status = ResumeStatus.PARSED
             doc.error = None

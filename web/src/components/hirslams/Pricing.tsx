@@ -120,6 +120,7 @@ export default function Pricing() {
                   width={32}
                   height={32}
                   className={`${styles.miniAvatar} rounded-full object-cover`}
+                  style={{ width: "auto", height: "auto" }}
                 />
                 <div>
                   <div className={styles.miniName}>{name}</div>

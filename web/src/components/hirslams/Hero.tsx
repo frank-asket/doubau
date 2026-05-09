@@ -107,6 +107,7 @@ export default function Hero() {
                   width={36}
                   height={36}
                   className="h-full w-full rounded-full object-cover"
+                  style={{ width: "auto", height: "auto" }}
                   priority={i < 2}
                 />
               </div>

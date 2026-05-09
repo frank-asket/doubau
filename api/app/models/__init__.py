@@ -2,6 +2,7 @@ from app.models.application import Application
 from app.models.check_in import CheckIn
 from app.models.idempotency_key import IdempotencyKey
 from app.models.job import Job
+from app.models.job_feedback import JobFeedback
 from app.models.llm_log import LlmLog
 from app.models.milestone import Milestone
 from app.models.outreach_draft import OutreachDraft
@@ -16,6 +17,7 @@ __all__ = [
     "OutreachDraft",
     "IdempotencyKey",
     "Job",
+    "JobFeedback",
     "LlmLog",
     "CheckIn",
     "Milestone",

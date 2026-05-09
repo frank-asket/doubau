@@ -110,6 +110,7 @@ export default function Features() {
                           width={34}
                           height={34}
                           className="rounded-full object-cover ring-1 ring-black/10"
+                          style={{ width: "auto", height: "auto" }}
                         />
                       <div className={styles.candidateMeta}>
                         <div className={styles.candidateName}>Maria Angelica M</div>
@@ -124,6 +125,7 @@ export default function Features() {
                           width={34}
                           height={34}
                           className="rounded-full object-cover ring-1 ring-black/10"
+                          style={{ width: "auto", height: "auto" }}
                         />
                       <div className={styles.candidateMeta}>
                         <div className={styles.candidateName}>Marcus Alexandru</div>
@@ -147,6 +149,7 @@ export default function Features() {
                         width={54}
                         height={54}
                         className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                        style={{ width: "auto", height: "auto" }}
                       />
                       <Image
                         src={people[1]}
@@ -154,6 +157,7 @@ export default function Features() {
                         width={54}
                         height={54}
                         className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                        style={{ width: "auto", height: "auto" }}
                       />
                       <Image
                         src={people[4]}
@@ -161,6 +165,7 @@ export default function Features() {
                         width={54}
                         height={54}
                         className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                        style={{ width: "auto", height: "auto" }}
                       />
                       <Image
                         src={people[0]}
@@ -168,6 +173,7 @@ export default function Features() {
                         width={54}
                         height={54}
                         className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                        style={{ width: "auto", height: "auto" }}
                       />
                       <Image
                         src={people[3]}
@@ -175,6 +181,7 @@ export default function Features() {
                         width={54}
                         height={54}
                         className={`${styles.faceThumb} rounded-full object-cover ring-1 ring-black/10`}
+                        style={{ width: "auto", height: "auto" }}
                       />
                     </div>
                   </div>

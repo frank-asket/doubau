@@ -6,15 +6,22 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
-from sqlalchemy import asc, desc, func, or_, select
+from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score
 from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
+from app.jobs.matching import (
+    location_match_score,
+    recency_score,
+    seniority_match_score,
+    weighted_match_score,
+)
 from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
+from app.models.job_feedback import JobFeedback
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.tasks import embed_job as embed_job_task
 from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
@@ -69,6 +76,73 @@ def _job_out(j: Job) -> JobOut:
     )
 
 
+class JobFeedbackIn(BaseModel):
+    action: Literal["hide", "downvote", "upvote"] = "hide"
+    reason: str | None = Field(default=None, max_length=240)
+
+
+class JobFeedbackOut(BaseModel):
+    job_id: UUID
+    action: str
+    reason: str | None = None
+    created_at: datetime
+
+
+@router.post("/{job_id}/feedback", response_model=JobFeedbackOut)
+def leave_feedback(job_id: UUID, payload: JobFeedbackIn, db: DbDep, user: CurrentUserDep) -> JobFeedbackOut:
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    existing = db.scalar(
+        select(JobFeedback).where(
+            and_(
+                JobFeedback.user_id == user.id,
+                JobFeedback.job_id == job_id,
+            )
+        )
+    )
+    if existing is not None:
+        existing.action = payload.action
+        existing.reason = payload.reason
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        return JobFeedbackOut(
+            job_id=existing.job_id,
+            action=existing.action,
+            reason=existing.reason,
+            created_at=existing.created_at,
+        )
+
+    fb = JobFeedback(
+        user_id=user.id,
+        job_id=job_id,
+        action=payload.action,
+        reason=payload.reason,
+    )
+    db.add(fb)
+    db.commit()
+    db.refresh(fb)
+    return JobFeedbackOut(job_id=fb.job_id, action=fb.action, reason=fb.reason, created_at=fb.created_at)
+
+
+@router.delete("/{job_id}/feedback", response_model=dict)
+def clear_feedback(job_id: UUID, db: DbDep, user: CurrentUserDep) -> dict:
+    fb = db.scalar(
+        select(JobFeedback).where(
+            and_(
+                JobFeedback.user_id == user.id,
+                JobFeedback.job_id == job_id,
+            )
+        )
+    )
+    if fb is not None:
+        db.delete(fb)
+        db.commit()
+    return {"status": "ok"}
+
+
 @router.post("", response_model=JobOut)
 def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
     url_hash = hash_source_url(payload.source_url) if payload.source_url else None
@@ -111,7 +185,7 @@ def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
 @router.get("", response_model=list[JobOut])
 def list_jobs(
     db: DbDep,
-    _: CurrentUserDep,
+    user: CurrentUserDep,
     q: str | None = None,
     sort_by: Literal["created_at", "title", "company"] = "created_at",
     order: Literal["asc", "desc"] = "desc",
@@ -124,6 +198,17 @@ def list_jobs(
     stmt = select(Job)
     cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
     stmt = stmt.where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+    stmt = stmt.where(
+        ~select(JobFeedback.id)
+        .where(
+            and_(
+                JobFeedback.user_id == user.id,
+                JobFeedback.job_id == Job.id,
+                JobFeedback.action == "hide",
+            )
+        )
+        .exists()
+    )
     if q:
         like = f"%{q.strip().lower()}%"
         stmt = stmt.where(
@@ -142,6 +227,33 @@ def list_jobs(
 
     stmt = stmt.order_by(desc(sort_col) if order == "desc" else asc(sort_col))
 
+    jobs = db.scalars(stmt.limit(limit).offset(offset)).all()
+    return [_job_out(j) for j in jobs]
+
+
+@router.get("/hidden", response_model=list[JobOut])
+def list_hidden_jobs(
+    db: DbDep,
+    user: CurrentUserDep,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[JobOut]:
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
+    stmt = (
+        select(Job)
+        .join(
+            JobFeedback,
+            and_(
+                JobFeedback.job_id == Job.id,
+                JobFeedback.user_id == user.id,
+                JobFeedback.action == "hide",
+            ),
+        )
+        .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+        .order_by(desc(JobFeedback.created_at))
+    )
     jobs = db.scalars(stmt.limit(limit).offset(offset)).all()
     return [_job_out(j) for j in jobs]
 
@@ -268,36 +380,119 @@ def feed(
             select(Job, dist_expr.label("dist"))
             .where(Job.embedding_vector.is_not(None))
             .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+            .where(
+                ~select(JobFeedback.id)
+                .where(
+                    and_(
+                        JobFeedback.user_id == current_user.id,
+                        JobFeedback.job_id == Job.id,
+                        JobFeedback.action == "hide",
+                    )
+                )
+                .exists()
+            )
             .order_by(dist_expr.asc())
             .limit(500)
         )
         rows = db.execute(stmt).all()
         if rows:
-            out: list[FeedOut] = []
+            user_loc = profile.location if profile else None
+            user_yrs = profile.years_experience if profile else None
+            window = max(1, settings.jobs_stale_after_days)
+
+            scored_rows: list[tuple[float, float, Job]] = []
             for row in rows:
                 job = row[0]
                 dist = float(row[1])
-                sim = max(0.0, min(100.0, 100.0 * (1.0 - dist / 2.0)))
-                out.append(FeedOut(job=_job_out(job), score=sim, similarity=sim))
+                vec_sim = max(0.0, min(1.0, 1.0 - dist / 2.0))
+                loc_s = location_match_score(user_location=user_loc, job_location=job.location)
+                sen_s = seniority_match_score(
+                    years_experience=user_yrs,
+                    job_seniority=job.seniority,
+                    job_title=job.title,
+                )
+                rec_s = recency_score(
+                    posted_at=job.source_posted_at,
+                    created_at=job.created_at,
+                    window_days=window,
+                )
+                blended = weighted_match_score(
+                    vector_sim=vec_sim,
+                    location_score=loc_s,
+                    seniority_score=sen_s,
+                    recency_score_=rec_s,
+                )
+                scored_rows.append((blended, vec_sim, job))
+
+            scored_rows.sort(key=lambda t: (t[0], t[1]), reverse=True)
+
+            out: list[FeedOut] = []
+            for blended, vec_sim, job in scored_rows:
+                pct = max(0.0, min(100.0, 100.0 * blended))
+                sim_pct = max(0.0, min(100.0, 100.0 * vec_sim))
+                out.append(FeedOut(job=_job_out(job), score=pct, similarity=sim_pct))
+
             return out[offset : offset + limit]
 
     jobs = db.scalars(
         select(Job)
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
+        .where(
+            ~select(JobFeedback.id)
+            .where(
+                and_(
+                    JobFeedback.user_id == current_user.id,
+                    JobFeedback.job_id == Job.id,
+                    JobFeedback.action == "hide",
+                )
+            )
+            .exists()
+        )
         .order_by(desc(Job.created_at))
         .limit(500)
     ).all()
-    scored = [
-        FeedOut(
-            job=_job_out(j),
-            score=_score_job_heuristic(job=j, persona=persona, focus=focus),
-            similarity=None,
-        )
-        for j in jobs
-    ]
-    scored.sort(key=lambda x: (x.score, x.job.company, x.job.title), reverse=True)
+    user_loc = profile.location if profile else None
+    user_yrs = profile.years_experience if profile else None
+    window = max(1, settings.jobs_stale_after_days)
 
-    return scored[offset : offset + limit]
+    # Heuristic max (student persona): intern(3)+graduate(2)+junior(1)+find_jobs(0.5)
+    heur_max = 6.5
+
+    reranked: list[FeedOut] = []
+    scored_rows2: list[tuple[float, float, Job]] = []
+    for j in jobs:
+        heur = _score_job_heuristic(job=j, persona=persona, focus=focus)
+        base_sim = max(0.0, min(1.0, heur / heur_max))
+        loc_s = location_match_score(user_location=user_loc, job_location=j.location)
+        sen_s = seniority_match_score(
+            years_experience=user_yrs,
+            job_seniority=j.seniority,
+            job_title=j.title,
+        )
+        rec_s = recency_score(
+            posted_at=j.source_posted_at,
+            created_at=j.created_at,
+            window_days=window,
+        )
+        blended = weighted_match_score(
+            vector_sim=base_sim,
+            location_score=loc_s,
+            seniority_score=sen_s,
+            recency_score_=rec_s,
+        )
+        scored_rows2.append((blended, base_sim, j))
+
+    scored_rows2.sort(
+        key=lambda t: (t[0], t[1], (t[2].company or ""), (t[2].title or "")),
+        reverse=True,
+    )
+
+    for blended, base_sim, j in scored_rows2:
+        pct = max(0.0, min(100.0, 100.0 * blended))
+        sim_pct = max(0.0, min(100.0, 100.0 * base_sim))
+        reranked.append(FeedOut(job=_job_out(j), score=pct, similarity=sim_pct))
+
+    return reranked[offset : offset + limit]
 
 
 @router.post("/{job_id}/fit", response_model=FitScoreOut)

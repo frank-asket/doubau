@@ -74,6 +74,7 @@ export default function Testimonials() {
                     width={44}
                     height={44}
                     className={styles.avatarImg}
+                    style={{ width: "auto", height: "auto" }}
                   />
                 </span>
                 <span className={styles.meta}>
