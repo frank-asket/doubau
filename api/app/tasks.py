@@ -15,6 +15,7 @@ from celery.signals import task_failure
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
+from app.agents.outreach import generate_email_draft_content
 from app.celery_app import celery_app
 from app.core.settings import settings
 from app.db import SessionLocal
@@ -24,7 +25,10 @@ from app.jobs.providers.persist import persist_canonical_jobs
 from app.jobs.providers.remoteok import fetch_remoteok_canonical
 from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
+from app.llm.logging import record_llm_interaction
+from app.models.application import Application
 from app.models.job import Job
+from app.models.outreach_draft import OutreachDraft
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.resume.claude_structure import claude_structure_resume_text
 from app.resume.embeddings import EmbeddingError, embed_resume_text
@@ -426,12 +430,46 @@ def score_job(job_id: str) -> dict[str, Any]:
 
 @celery_app.task(name="app.tasks.generate_outreach_draft")
 def generate_outreach_draft(application_id: str) -> dict[str, Any]:
-    return {"application_id": application_id, "status": "stub"}
+    """Enqueue-able regeneration of email outreach (writes draft + ``llm_logs`` row)."""
+    with SessionLocal() as db:
+        try:
+            aid = UUID(application_id)
+        except Exception:
+            return {"application_id": application_id, "status": "invalid_id"}
+        app_obj = db.get(Application, aid)
+        if app_obj is None:
+            return {"application_id": application_id, "status": "missing"}
+        content, meta = generate_email_draft_content(db, app_obj)
+        draft = OutreachDraft(application_id=app_obj.id, channel="email", content=content)
+        db.add(draft)
+        db.commit()
+        db.refresh(draft)
+        return {
+            "application_id": application_id,
+            "status": "ok",
+            "draft_id": str(draft.id),
+            "meta": meta,
+        }
 
 
 @celery_app.task(name="app.tasks.send_notification")
 def send_notification(user_id: str, message: str) -> dict[str, Any]:
-    return {"user_id": user_id, "sent": False, "message": message, "status": "stub"}
+    """Phase 3 stub: log intent (no SMTP). Approved-submit triggers this for audit."""
+    with SessionLocal() as db:
+        try:
+            uid = UUID(user_id)
+        except Exception:
+            return {"user_id": user_id, "status": "invalid_id"}
+        record_llm_interaction(
+            db,
+            user_id=uid,
+            agent_name="sender_notification",
+            prompt_parts=(message, "phase3_stub_no_smtp"),
+            raw_output=json.dumps({"message": message, "sent": False, "channel": "stub"}),
+            latency_ms=0,
+        )
+        db.commit()
+    return {"user_id": user_id, "sent": False, "message": message, "status": "logged"}
 
 
 @celery_app.task(name="app.tasks.process_resume_document")

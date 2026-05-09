@@ -1,13 +1,23 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from app.agents.outreach import (
+    generate_email_draft_content,
+    generate_interview_prep_content,
+    latest_resume_excerpt_for_user,
+)
 from app.api.deps import CurrentUserDep, DbDep
 from app.models.application import Application, ApplicationStatus
+from app.models.job import Job
 from app.models.outreach_draft import OutreachDraft
 from app.state_machine import InvalidTransition, assert_transition
+from app.tasks import send_notification as notify_submitted_task
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -31,6 +41,12 @@ class DraftOut(BaseModel):
     application_id: UUID
     channel: str
     content: str
+
+
+class InterviewPrepOut(BaseModel):
+    themes: list[str]
+    suggested_questions: list[str]
+    talking_points: list[str]
 
 
 @router.get("", response_model=list[ApplicationOut])
@@ -89,10 +105,11 @@ def generate_draft(
         raise HTTPException(status_code=409, detail=str(e)) from e
 
     app.status = ApplicationStatus.PENDING_APPROVAL
+    content, _meta = generate_email_draft_content(db, app)
     draft = OutreachDraft(
         application_id=app.id,
         channel="email",
-        content=f"Hi there — I’m interested in the {app.job_title} role at {app.company}.",
+        content=content,
     )
     db.add(draft)
     db.commit()
@@ -117,6 +134,38 @@ def list_drafts(db: DbDep, current_user: CurrentUserDep) -> list[DraftOut]:
         DraftOut(id=d.id, application_id=d.application_id, channel=d.channel, content=d.content)
         for d in drafts
     ]
+
+
+@router.post("/{application_id}/interview_prep", response_model=InterviewPrepOut)
+def interview_prep(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> InterviewPrepOut:
+    """Phase 3 — RAG-style interview prep from job context + latest résumé excerpt."""
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    desc: str | None = None
+    if app.source_url:
+        job = db.execute(
+            select(Job).where(Job.source_url == app.source_url).limit(1)
+        ).scalar_one_or_none()
+        if job is not None and job.description:
+            desc = job.description[:4000]
+
+    resume_excerpt = latest_resume_excerpt_for_user(db, current_user.id)
+    data, _meta = generate_interview_prep_content(
+        db,
+        user_id=current_user.id,
+        company=app.company,
+        job_title=app.job_title,
+        description_excerpt=desc,
+        resume_excerpt=resume_excerpt,
+    )
+    db.commit()
+    return InterviewPrepOut(**data)
 
 
 @router.post("/{application_id}/approve", response_model=ApplicationOut)
@@ -193,6 +242,13 @@ def submit(
     app.status = ApplicationStatus.SUBMITTED
     db.commit()
     db.refresh(app)
+    try:
+        notify_submitted_task.delay(
+            str(current_user.id),
+            f"Application submitted: {app.company} — {app.job_title}",
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("notify_submitted_task.delay failed (broker down?): %s", exc)
     return ApplicationOut(
         id=app.id,
         company=app.company,
