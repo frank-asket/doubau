@@ -11,53 +11,34 @@ import json
 from openai import OpenAI
 
 from app.core.settings import settings
+from app.resume.structure_schema import (
+    RESUME_STRUCTURE_SCHEMA_HINT,
+    parse_structure_json_from_llm_text,
+    truncate_for_llm,
+)
 
 
 class ResumeLLMStructureError(Exception):
     """Raised when the LLM response is missing/invalid JSON."""
 
 
-def _truncate_for_llm(text: str, max_chars: int) -> str:
-    t = text.strip()
-    if len(t) <= max_chars:
-        return t
-    return t[:max_chars]
-
-
-def llm_structure_resume_text(text: str) -> dict[str, object]:
+def openai_structure_resume_text(text: str) -> dict[str, object]:
     """
-    Return a normalized JSON object with core résumé fields.
+    Structure résumé text using OpenAI chat JSON mode.
 
-    Requires `DOUBOW_OPENAI_API_KEY` and `DOUBOW_RESUME_LLM_STRUCTURING_ENABLED=true`.
+    Caller must ensure ``DOUBOW_OPENAI_API_KEY`` is set (no global enabled flag).
     """
-    if not settings.resume_llm_structuring_enabled:
-        raise ResumeLLMStructureError("LLM structuring disabled")
     if not settings.openai_api_key:
         raise ResumeLLMStructureError("DOUBOW_OPENAI_API_KEY is not set")
 
-    trimmed = _truncate_for_llm(text, max(1, settings.resume_llm_structuring_max_chars))
+    trimmed = truncate_for_llm(text, max(1, settings.resume_llm_structuring_max_chars))
     if not trimmed:
         raise ResumeLLMStructureError("No text to structure")
 
-    schema_hint = (
-        '{'
-        '"name": string|null,'
-        '"headline": string|null,'
-        '"location": string|null,'
-        '"emails": string[],'
-        '"phones": string[],'
-        '"links": string[],'
-        '"summary": string|null,'
-        '"skills": string[],'
-        '"experience": [{"company": string|null, "title": string|null, "start": string|null, '
-        '"end": string|null, "bullets": string[]}],'
-        '"education": [{"school": string|null, "degree": string|null, "start": string|null, '
-        '"end": string|null}]'
-        '}'
-    )
     sys_msg = (
         "Extract structured résumé data. Respond ONLY with a single JSON object "
-        f"matching this schema (extra keys allowed, but keep it small): {schema_hint}. "
+        f"matching this schema (extra keys allowed, but keep it small): "
+        f"{RESUME_STRUCTURE_SCHEMA_HINT}. "
         "No markdown, no prose outside JSON."
     )
 
@@ -80,11 +61,21 @@ def llm_structure_resume_text(text: str) -> dict[str, object]:
         raise ResumeLLMStructureError("Empty model response")
 
     try:
-        data = json.loads(raw)
+        data = parse_structure_json_from_llm_text(raw)
     except json.JSONDecodeError as e:
         raise ResumeLLMStructureError(f"Invalid JSON: {e}") from e
+    except ValueError as e:
+        raise ResumeLLMStructureError(str(e)) from e
 
-    if not isinstance(data, dict):
-        raise ResumeLLMStructureError("Expected a JSON object")
     return data
 
+
+def llm_structure_resume_text(text: str) -> dict[str, object]:
+    """
+    Return a normalized JSON object with core résumé fields.
+
+    Requires ``DOUBOW_RESUME_LLM_STRUCTURING_ENABLED=true`` and ``DOUBOW_OPENAI_API_KEY``.
+    """
+    if not settings.resume_llm_structuring_enabled:
+        raise ResumeLLMStructureError("LLM structuring disabled")
+    return openai_structure_resume_text(text)

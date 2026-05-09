@@ -26,13 +26,57 @@ from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.resume.claude_structure import claude_structure_resume_text
 from app.resume.embeddings import EmbeddingError, embed_resume_text
-from app.resume.llm_structure import ResumeLLMStructureError, llm_structure_resume_text
+from app.resume.llm_structure import (
+    ResumeLLMStructureError,
+    openai_structure_resume_text,
+)
 from app.resume.parser import ResumeParseError, parse_docx_bytes, parse_pdf_bytes
 from app.resume.structure import structure_resume_text
 from app.storage.s3 import ensure_bucket, s3_client
 
 log = logging.getLogger(__name__)
+
+
+def _run_llm_resume_structure(text: str) -> dict[str, object]:
+    """
+    Pick Claude and/or OpenAI per ``resume_structuring_provider``.
+
+    Returns structured fields plus ``_provider``, or ``{"error": ...}``.
+    """
+    prov = settings.resume_structuring_provider
+    errs: list[str] = []
+
+    def try_claude() -> dict[str, object] | None:
+        if not settings.anthropic_api_key:
+            return None
+        try:
+            data = claude_structure_resume_text(text)
+            return {"_provider": "claude", **data}
+        except ResumeLLMStructureError as e:
+            errs.append(f"claude:{e}")
+            return None
+
+    def try_openai() -> dict[str, object] | None:
+        if not settings.openai_api_key:
+            return None
+        try:
+            data = openai_structure_resume_text(text)
+            return {"_provider": "openai", **data}
+        except ResumeLLMStructureError as e:
+            errs.append(f"openai:{e}")
+            return None
+
+    if prov == "claude":
+        r = try_claude()
+        return r if r is not None else {"error": "; ".join(errs) if errs else "claude_unconfigured"}
+    if prov == "openai":
+        r = try_openai()
+        return r if r is not None else {"error": "; ".join(errs) if errs else "openai_unconfigured"}
+    r = try_claude() or try_openai()
+    return r if r is not None else {"error": "; ".join(errs) if errs else "no_llm_keys"}
+
 
 def _ingest_meta(*, started_at: datetime, ended_at: datetime) -> dict[str, Any]:
     return {
@@ -415,11 +459,8 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
             doc.extracted_text = extracted
             structured = structure_resume_text(extracted)
             llm_structured: dict[str, object] | None = None
-            if settings.resume_llm_structuring_enabled and settings.openai_api_key:
-                try:
-                    llm_structured = llm_structure_resume_text(extracted)
-                except ResumeLLMStructureError as llm_err:
-                    llm_structured = {"error": str(llm_err)}
+            if settings.resume_llm_structuring_enabled:
+                llm_structured = _run_llm_resume_structure(extracted)
             doc.parsed_json = {
                 "text": extracted,
                 "length": len(extracted),

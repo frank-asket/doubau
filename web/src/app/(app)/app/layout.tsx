@@ -28,6 +28,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </Link>
         <nav className="mt-8 space-y-0.5">
           <NavItem href="/app/dashboard">Dashboard</NavItem>
+          <NavItem href="/app/analytics">Match analytics</NavItem>
           <NavItem href="/app/discovery">Job Discovery</NavItem>
           <NavItem href="/app/tracker">Job Tracker</NavItem>
           <NavItem href="/app/approvals">Approvals</NavItem>

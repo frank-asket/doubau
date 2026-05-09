@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -44,6 +46,10 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-small"
     # Chat model for fit scorer and later agents (Phase 2+).
     openai_chat_model: str = "gpt-4o-mini"
+
+    # Anthropic Claude (optional résumé structuring via Messages API).
+    anthropic_api_key: str | None = None
+    anthropic_chat_model: str = "claude-3-5-haiku-20241022"
     embedding_dimensions: int = 1536
     embedding_max_input_chars: int = 30_000
 
@@ -74,10 +80,12 @@ class Settings(BaseSettings):
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).
     resume_llm_structuring_enabled: bool = False
     resume_llm_structuring_max_chars: int = 12_000
+    # auto: prefer Anthropic when ``anthropic_api_key`` is set; otherwise OpenAI if configured.
+    resume_structuring_provider: Literal["auto", "claude", "openai"] = "auto"
 
-    @field_validator("openai_api_key", mode="before")
+    @field_validator("openai_api_key", "anthropic_api_key", mode="before")
     @classmethod
-    def empty_openai_key_to_none(cls, v: object) -> object:
+    def empty_llm_keys_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
             return None
         return v
