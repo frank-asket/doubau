@@ -1,18 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, Newsreader } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-
-const instrumentSans = Instrument_Sans({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const newsreader = Newsreader({
-  variable: "--font-display",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://doubow.com"),
@@ -42,10 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${instrumentSans.variable} ${newsreader.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <ClerkProvider>{children}</ClerkProvider>
       </body>

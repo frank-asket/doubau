@@ -117,9 +117,11 @@ def test_claude_structure_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_run_llm_resume_structure_auto_prefers_claude(monkeypatch: pytest.MonkeyPatch) -> None:
     prev_prov = settings.resume_structuring_provider
+    prev_or = settings.openrouter_api_key
     prev_a = settings.anthropic_api_key
     prev_o = settings.openai_api_key
     settings.resume_structuring_provider = "auto"
+    settings.openrouter_api_key = None
     settings.anthropic_api_key = "a"
     settings.openai_api_key = "o"
 
@@ -134,6 +136,7 @@ def test_run_llm_resume_structure_auto_prefers_claude(monkeypatch: pytest.Monkey
         assert out["name"] == "ClaudeUser"
     finally:
         settings.resume_structuring_provider = prev_prov
+        settings.openrouter_api_key = prev_or
         settings.anthropic_api_key = prev_a
         settings.openai_api_key = prev_o
 
@@ -221,9 +224,11 @@ def test_run_llm_auto_openrouter_fails_then_claude(monkeypatch: pytest.MonkeyPat
 
 def test_run_llm_auto_fallback_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     prev_prov = settings.resume_structuring_provider
+    prev_or = settings.openrouter_api_key
     prev_a = settings.anthropic_api_key
     prev_o = settings.openai_api_key
     settings.resume_structuring_provider = "auto"
+    settings.openrouter_api_key = None
     settings.anthropic_api_key = "a"
     settings.openai_api_key = "o"
 
@@ -242,6 +247,6 @@ def test_run_llm_auto_fallback_openai(monkeypatch: pytest.MonkeyPatch) -> None:
         assert out["headline"] == "Engineer"
     finally:
         settings.resume_structuring_provider = prev_prov
+        settings.openrouter_api_key = prev_or
         settings.anthropic_api_key = prev_a
         settings.openai_api_key = prev_o
-

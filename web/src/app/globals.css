@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "./hirslams.css";
 @import "../styles/app-theme.css";
@@ -8,6 +7,9 @@
   --foreground: #0f1117;
   --muted: #667085;
   --border: rgba(15, 17, 23, 0.12);
+  --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: Newsreader, Georgia, "Times New Roman", ui-serif, serif;
+  --font-app-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* brand */
   --accent: #88e03f;
@@ -93,7 +95,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Plus Jakarta Sans", var(--font-sans), system-ui, -apple-system, Segoe UI, sans-serif;
+  font-family: var(--font-sans);
   text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -233,4 +235,3 @@ html {
     transform: none;
   }
 }
-
