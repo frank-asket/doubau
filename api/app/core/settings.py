@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     environment: str = "local"
     # Comma-separated or JSON array — NOT a bare hostname without scheme unless you use comma form (we add https).
-    cors_allow_origins: str = "http://localhost:3000"
+    cors_allow_origins: str = "http://localhost:3000,https://doubau.vercel.app"
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/doubow"
     jwt_secret: str = "dev_only_change_me"
