@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
 
+import { getSiteUrl } from "@/lib/site-url";
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://doubow.com";
+  const baseUrl = getSiteUrl();
   const now = new Date();
 
   const routes = ["", "/features", "/pricing", "/faq", "/security"];

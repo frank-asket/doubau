@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 
+import { getSiteUrl } from "@/lib/site-url";
+
 export default function robots(): MetadataRoute.Robots {
+  const base = getSiteUrl();
   return {
     rules: [
       {
@@ -9,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/app/", "/api/"],
       },
     ],
-    sitemap: "https://doubow.com/sitemap.xml",
+    sitemap: `${base}/sitemap.xml`,
   };
 }
 

@@ -11,7 +11,6 @@ export const dynamic = "force-dynamic";
 
 export default async function DiscoveryPage() {
   const base = getApiBaseUrl();
-  const headers = await getBackendAuthHeaders();
 
   let feed: FeedRow[] = [];
   let jobs: JobRow[] = [];
@@ -19,6 +18,7 @@ export default async function DiscoveryPage() {
   let loadError = false;
 
   try {
+    const headers = await getBackendAuthHeaders();
     const [feedRes, jobsRes, hiddenRes] = await Promise.all([
       fetch(`${base}/jobs/feed?limit=50`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs?limit=50&sort_by=created_at&order=desc`, { headers, cache: "no-store" }),

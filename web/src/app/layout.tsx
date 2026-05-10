@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
+import { getSiteUrl } from "@/lib/site-url";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -17,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://doubow.com"),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "DouBow",
     template: "%s · DouBow",

@@ -68,19 +68,7 @@ type DraftOut = {
 };
 
 export default async function DashboardPage() {
-  const base = getApiBaseUrl();
-  const headers = await getBackendAuthHeaders();
-  const profileRes = await fetch(`${base}/me/profile`, {
-    headers,
-    cache: "no-store",
-  });
-
-  const profile: Profile = profileRes.ok
-    ? ((await profileRes.json().catch(() => ({}))) as Profile)
-    : {};
-
-  const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
-
+  let profile: Profile = {};
   let pendingCard: {
     title: string;
     subtitle: string;
@@ -88,6 +76,17 @@ export default async function DashboardPage() {
   } | null = null;
 
   try {
+    const base = getApiBaseUrl();
+    const headers = await getBackendAuthHeaders();
+    const profileRes = await fetch(`${base}/me/profile`, {
+      headers,
+      cache: "no-store",
+    });
+
+    profile = profileRes.ok
+      ? ((await profileRes.json().catch(() => ({}))) as Profile)
+      : {};
+
     const [appsRes, draftsRes] = await Promise.all([
       fetch(`${base}/applications`, { headers, cache: "no-store" }),
       fetch(`${base}/applications/drafts`, { headers, cache: "no-store" }),
@@ -120,8 +119,10 @@ export default async function DashboardPage() {
       }
     }
   } catch {
-    pendingCard = null;
+    /* Clerk auth failure or API unreachable (e.g. NEXT_PUBLIC_API_BASE_URL unset → localhost on Vercel). */
   }
+
+  const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">

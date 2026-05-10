@@ -46,3 +46,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+**Demo / `*.vercel.app` (e.g. demo day on `doubau.vercel.app`):** Use Clerk’s **Development** instance keys — **`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`** (`pk_test_…`) and **`CLERK_SECRET_KEY`** (`sk_test_…`). Add `https://doubau.vercel.app` under Clerk → **Development** → **Domains** (allowed origins / redirects). The browser may warn about “development keys”; that is expected for this setup and fine for a demo.
+
+**Backend:** Set **`NEXT_PUBLIC_API_BASE_URL`** to your public API URL (e.g. Railway). If unset, server-side calls default to `http://localhost:8000` and will fail on Vercel. Optional: **`NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`**.
+
+**Canonical URL:** On Vercel, metadata/sitemap use **`https://${VERCEL_URL}`** automatically (e.g. `https://doubau.vercel.app`). Set **`NEXT_PUBLIC_SITE_URL`** only if you want a fixed origin (e.g. later `https://doubow.com`).
+
+**Later (custom domain + “real” production):** Clerk **Production** (`pk_live_…` / `sk_live_…`) does **not** support `*.vercel.app`. After you buy a domain, add it in Vercel → **Domains**, then create or switch to a Clerk **Production** app and register that hostname per [Clerk deployments](https://clerk.com/docs/deployments/overview).
