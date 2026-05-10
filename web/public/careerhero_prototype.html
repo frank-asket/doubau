@@ -1,0 +1,1148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareerHero Prototype</title>
+  <style>
+    :root {
+      --sidebar: #17191d;
+      --sidebar-soft: #222b38;
+      --canvas: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f7f9fc;
+      --text: #17191d;
+      --muted: #6e7685;
+      --faint: #9aa3b2;
+      --line: #e9edf3;
+      --blue: #6da2f8;
+      --blue-dark: #397ee2;
+      --blue-soft: #eaf2ff;
+      --green: #58c98b;
+      --green-soft: #eaf8f1;
+      --red: #ef526e;
+      --red-soft: #fff0f3;
+      --pink: #dc75d5;
+      --shadow: 0 18px 45px rgba(36, 46, 70, .07), 0 2px 8px rgba(36, 46, 70, .04);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: linear-gradient(120deg, #e8f0ff, #d9f6e6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .device {
+      height: calc(100vh - 20px);
+      min-height: 780px;
+      margin: 10px;
+      overflow: hidden;
+      border: 10px solid #15191f;
+      border-radius: 34px;
+      background: var(--canvas);
+      box-shadow: 0 26px 60px rgba(11, 20, 31, .25);
+      display: grid;
+      grid-template-columns: 300px 1fr;
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      color: rgba(255, 255, 255, .56);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      height: 78px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      color: #fff;
+      font-size: 24px;
+      font-weight: 760;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border: 4px solid var(--blue);
+      border-radius: 9px;
+      transform: rotate(45deg);
+      position: relative;
+    }
+
+    .logo:after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border: 3px solid var(--blue);
+      border-radius: 4px;
+      position: absolute;
+      inset: 7px;
+    }
+
+    .collapse { margin-left: auto; color: rgba(255, 255, 255, .36); }
+    .nav { display: grid; gap: 8px; }
+    .nav-section { display: grid; gap: 8px; }
+    .nav-btn {
+      min-height: 54px;
+      width: 100%;
+      border: 0;
+      border-radius: 15px;
+      background: transparent;
+      color: inherit;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-align: left;
+      transition-property: background, color, transform;
+      transition-duration: .18s;
+      transition-timing-function: cubic-bezier(.2, 0, 0, 1);
+    }
+
+    .nav-btn:hover { background: rgba(255, 255, 255, .045); color: rgba(255, 255, 255, .82); }
+    .nav-btn:active, .primary:active, .icon-btn:active { transform: scale(.96); }
+    .nav-btn.active { background: var(--sidebar-soft); color: var(--blue); }
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: rgba(148, 163, 184, .24);
+      display: grid;
+      place-items: center;
+      color: currentColor;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .subnav {
+      margin: -2px 0 4px 32px;
+      padding-left: 18px;
+      border-left: 1px solid rgba(255, 255, 255, .08);
+      display: none;
+      gap: 4px;
+    }
+
+    .subnav.open { display: grid; }
+    .sub-btn {
+      border: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, .44);
+      text-align: left;
+      min-height: 38px;
+      padding: 0 8px;
+      border-radius: 10px;
+      transition-property: background, color;
+      transition-duration: .16s;
+    }
+
+    .sub-btn:hover, .sub-btn.active { color: var(--blue); background: rgba(109, 162, 248, .08); }
+    .sidebar-footer { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, .06); padding-top: 16px; }
+
+    .app {
+      min-width: 0;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 116px 1fr;
+    }
+
+    .topbar {
+      margin: 0;
+      padding: 22px 26px 12px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: var(--surface);
+      border-bottom-left-radius: 24px;
+    }
+
+    .back-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      display: none;
+      place-items: center;
+      box-shadow: 0 7px 18px rgba(28, 40, 65, .05);
+    }
+
+    .back-btn.visible { display: grid; }
+    .page-title {
+      font-size: 32px;
+      font-weight: 760;
+      letter-spacing: 0;
+      text-wrap: balance;
+      margin-right: auto;
+    }
+
+    .search {
+      width: min(420px, 32vw);
+      min-height: 58px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      color: var(--muted);
+      box-shadow: 0 8px 20px rgba(28, 40, 65, .04);
+    }
+
+    .key {
+      margin-left: auto;
+      background: #f0f2f6;
+      border-radius: 10px;
+      color: #16191f;
+      padding: 4px 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .icon-btn {
+      width: 58px;
+      height: 58px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      position: relative;
+      transition-property: transform, box-shadow;
+      transition-duration: .16s;
+      box-shadow: 0 8px 20px rgba(28, 40, 65, .04);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      border: 2px solid #fff;
+      position: absolute;
+      top: 15px;
+      right: 16px;
+    }
+
+    .avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 3px solid #b8d5ff;
+      background: linear-gradient(135deg, #f2d0b9, #7fb6ff 65%, #a78bfa);
+      display: grid;
+      place-items: center;
+      font-size: 25px;
+    }
+
+    .content {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px 26px 30px;
+    }
+
+    .screen { display: none; animation: enter .28s cubic-bezier(.2, 0, 0, 1); }
+    .screen.active { display: block; }
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .main-aside { grid-template-columns: minmax(0, 1fr) 410px; }
+    .wide-aside { grid-template-columns: minmax(0, 1fr) 520px; }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(222, 228, 237, .72);
+      padding: 24px;
+    }
+
+    .card.compact { padding: 18px; border-radius: var(--radius-md); }
+    .soft { background: var(--surface-soft); }
+    .muted { color: var(--muted); }
+    .faint { color: var(--faint); }
+    .small { font-size: 14px; }
+    .title-sm { font-size: 22px; font-weight: 760; margin: 0 0 18px; }
+    .title-md { font-size: 28px; font-weight: 790; margin: 0 0 16px; text-wrap: balance; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .primary {
+      min-height: 58px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--blue);
+      color: #fff;
+      padding: 0 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 740;
+      transition-property: transform, background, box-shadow;
+      transition-duration: .16s;
+      box-shadow: 0 12px 22px rgba(109, 162, 248, .26);
+    }
+
+    .primary:hover { background: var(--blue-dark); }
+    .ghost {
+      min-height: 48px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: #f7f9fd;
+      color: var(--blue-dark);
+      padding: 0 20px;
+      font-weight: 710;
+    }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 9px; }
+    .pill {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      background: #eef1f6;
+      color: var(--muted);
+      padding: 0 12px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .pill.blue { color: var(--blue-dark); background: var(--blue-soft); }
+    .pill.green { color: #2b9664; background: var(--green-soft); }
+    .pill.red { color: var(--red); background: var(--red-soft); }
+
+    .metric {
+      min-height: 220px;
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .metric-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .metric-value {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin: 16px 0 10px;
+      font-size: 38px;
+      font-weight: 780;
+    }
+
+    .delta { font-size: 15px; font-weight: 760; color: var(--green); }
+    .delta.down { color: var(--red); }
+    .mini-bars {
+      height: 60px;
+      display: flex;
+      align-items: end;
+      gap: 9px;
+    }
+
+    .bar {
+      width: 12px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .bar.red { background: var(--red); }
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #eef1f5;
+      overflow: hidden;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .tabs {
+      min-height: 66px;
+      padding: 8px;
+      background: #f8f9fc;
+      border-radius: 999px;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+    }
+
+    .tab {
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 28px;
+      font-weight: 720;
+    }
+
+    .tab.active {
+      color: var(--blue-dark);
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(32, 42, 68, .08);
+    }
+
+    .job-card {
+      min-height: 310px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: #fbfcff;
+    }
+
+    .company-logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      color: #fff;
+      background: #111;
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      font-weight: 850;
+    }
+
+    .job-head { display: flex; gap: 14px; align-items: start; }
+    .salary { margin-top: auto; color: var(--blue-dark); font-size: 25px; font-weight: 780; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .table th, .table td {
+      padding: 18px;
+      text-align: left;
+      border-bottom: 1px dashed var(--line);
+      vertical-align: middle;
+    }
+
+    .table th { color: var(--muted); font-weight: 740; background: #f8faff; }
+    .select {
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 0 20px;
+      background: #fff;
+    }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    .field { display: grid; gap: 10px; }
+    label { font-weight: 720; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      min-height: 58px;
+      padding: 0 18px;
+      outline: 0;
+      color: var(--text);
+      transition-property: border-color, box-shadow;
+      transition-duration: .15s;
+    }
+
+    textarea {
+      min-height: 150px;
+      border-radius: 18px;
+      padding: 16px 18px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(109, 162, 248, .14);
+    }
+
+    .ring {
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: conic-gradient(var(--green) 0 270deg, #eceff5 270deg 360deg);
+      display: grid;
+      place-items: center;
+      margin: 24px auto;
+    }
+
+    .ring-core {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .score-list { display: grid; gap: 12px; }
+    .score-item {
+      min-height: 54px;
+      border-radius: 999px;
+      background: #f7f9fd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-weight: 720;
+    }
+
+    .chat {
+      max-width: 920px;
+      margin: 0 auto;
+      min-height: calc(100vh - 210px);
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      gap: 20px;
+    }
+
+    .message { display: flex; align-items: end; gap: 12px; }
+    .message.user { justify-content: end; }
+    .bubble {
+      max-width: 680px;
+      border-radius: 18px;
+      padding: 18px 20px;
+      line-height: 1.55;
+      background: #f6f8fc;
+      text-wrap: pretty;
+    }
+
+    .user .bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 6px; }
+    .bot .bubble { border-bottom-left-radius: 6px; }
+    .composer {
+      min-height: 70px;
+      border: 2px solid #b7d4ff;
+      border-radius: 999px;
+      padding: 6px 8px 6px 18px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .composer input { border: 0; box-shadow: none; min-height: 50px; padding: 0; }
+    .send { min-width: 120px; background: #17191d; box-shadow: none; }
+    .center-hero {
+      min-height: calc(100vh - 210px);
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .hero-cards { width: min(920px, 100%); display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 40px auto; text-align: left; }
+    .hero-card { background: linear-gradient(135deg, #fff, #e8f2ff); padding: 28px; border-radius: 16px; box-shadow: var(--shadow); }
+    .chart {
+      height: 330px;
+      display: flex;
+      align-items: end;
+      gap: 22px;
+      padding-top: 30px;
+    }
+
+    .stack { flex: 1; display: grid; align-items: end; grid-template-rows: 1fr auto; gap: 12px; }
+    .stack-bars { display: flex; align-items: end; justify-content: center; gap: 4px; height: 230px; }
+    .stack-bars span { width: 36px; border-radius: 14px 14px 6px 6px; }
+    .stack small { color: var(--muted); background: #f2f4f8; border-radius: 999px; padding: 6px; }
+
+    .planner-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 8px 22px rgba(32, 42, 68, .06);
+      display: grid;
+      gap: 12px;
+    }
+
+    .kanban { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .column { background: #f1f3f8; border-radius: 20px; padding: 16px; display: grid; gap: 14px; align-content: start; min-height: 520px; }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .day {
+      min-height: 138px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 14px;
+    }
+
+    .event { margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .floating-ai {
+      position: fixed;
+      right: 46px;
+      bottom: 46px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 0;
+      color: #fff;
+      background: #111;
+      box-shadow: 0 14px 32px rgba(0,0,0,.25);
+      z-index: 10;
+    }
+
+    .modal-layer {
+      position: fixed;
+      inset: 10px;
+      border-radius: 34px;
+      background: rgba(16, 18, 22, .58);
+      display: none;
+      place-items: center;
+      z-index: 20;
+    }
+
+    .modal-layer.open { display: grid; }
+    .modal { width: min(850px, calc(100vw - 60px)); background: #fff; border-radius: 20px; padding: 32px; box-shadow: 0 30px 80px rgba(0,0,0,.28); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+
+    .onboarding {
+      min-height: calc(100vh - 20px);
+      display: grid;
+      grid-template-columns: minmax(520px, 47%) 1fr;
+      background: linear-gradient(125deg, #ffffff 0 46%, #e8f1ff 46% 100%);
+    }
+
+    .on-card {
+      margin: 18px;
+      border-radius: 30px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      padding: 42px;
+      box-shadow: var(--shadow);
+    }
+
+    .on-form { width: min(720px, 100%); }
+    .steps { display: flex; align-items: center; gap: 18px; margin: 36px 0; }
+    .step { display: grid; gap: 8px; place-items: center; color: var(--muted); font-weight: 760; }
+    .step span { width: 34px; height: 34px; border-radius: 50%; background: #eef1f6; display: grid; place-items: center; }
+    .step.done span, .step.active span { background: var(--blue); color: #fff; }
+    .step.active { color: var(--blue); }
+    .line { height: 2px; flex: 1; background: #d4e2fb; margin-top: -28px; }
+    .product-shot {
+      display: grid;
+      place-items: center;
+      padding: 60px;
+    }
+
+    .mock-window {
+      width: min(820px, 100%);
+      aspect-ratio: 1.3;
+      border-radius: 22px;
+      border: 12px solid #111;
+      background: #fff;
+      box-shadow: 0 32px 90px rgba(29, 45, 78, .28);
+      padding: 24px;
+      transform: perspective(900px) rotateY(-7deg);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 1180px) {
+      .device { grid-template-columns: 86px 1fr; }
+      .brand span, .collapse, .nav-btn span, .subnav, .sidebar-footer span { display: none; }
+      .sidebar { padding: 18px 10px; }
+      .brand { justify-content: center; }
+      .nav-btn { justify-content: center; padding: 0; }
+      .grid-4, .grid-3, .main-aside, .wide-aside, .kanban { grid-template-columns: 1fr; }
+      .metric { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .device { margin: 0; height: 100vh; min-height: 100vh; border: 0; border-radius: 0; grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .topbar { padding: 16px; display: grid; grid-template-columns: auto 1fr auto; }
+      .search, .icon-btn { display: none; }
+      .page-title { font-size: 24px; }
+      .content { padding: 12px; }
+      .grid-2, .form-grid, .hero-cards, .onboarding { grid-template-columns: 1fr; }
+      .onboarding { min-height: 100vh; }
+      .product-shot { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main id="prototype" class="device">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <span>CareerHero</span>
+        <span class="collapse"><<</span>
+      </div>
+
+      <nav class="nav" aria-label="Prototype navigation">
+        <div class="nav-section">
+          <button class="nav-btn active" data-screen="dashboard"><span class="nav-icon">D</span><span>Dashboard</span></button>
+        </div>
+        <div class="nav-section">
+          <button class="nav-btn" data-open="career"><span class="nav-icon">C</span><span>Career Growth</span></button>
+          <div class="subnav open" id="career">
+            <button class="sub-btn" data-screen="profile">Career Profile</button>
+            <button class="sub-btn" data-screen="pathfinder">Career Pathfinder</button>
+            <button class="sub-btn" data-screen="planner">Career Planner</button>
+            <button class="sub-btn" data-screen="success">Career Success</button>
+          </div>
+        </div>
+        <div class="nav-section">
+          <button class="nav-btn" data-open="jobs"><span class="nav-icon">J</span><span>Job Search</span></button>
+          <div class="subnav open" id="jobs">
+            <button class="sub-btn" data-screen="discovery">Job Discovery</button>
+            <button class="sub-btn" data-screen="tracker">Job Tracker</button>
+            <button class="sub-btn" data-screen="sponsorship">Sponsorship Hub</button>
+            <button class="sub-btn" data-screen="salary">Salary Benchmark</button>
+          </div>
+        </div>
+        <div class="nav-section">
+          <button class="nav-btn" data-open="tools"><span class="nav-icon">T</span><span>Tools</span></button>
+          <div class="subnav open" id="tools">
+            <button class="sub-btn" data-screen="copilot">Career Copilot</button>
+            <button class="sub-btn" data-screen="ats">ATS Optimizer</button>
+            <button class="sub-btn" data-screen="linkedin">LinkedIn Analysis</button>
+            <button class="sub-btn" data-screen="health">Career Health</button>
+          </div>
+        </div>
+        <button class="nav-btn" data-screen="discussion"><span class="nav-icon">B</span><span>Discussion Board</span></button>
+      </nav>
+
+      <div class="sidebar-footer nav">
+        <button class="nav-btn" data-screen="settings"><span class="nav-icon">S</span><span>Settings</span></button>
+        <button class="nav-btn" data-screen="onboarding"><span class="nav-icon">O</span><span>Onboarding</span></button>
+      </div>
+    </aside>
+
+    <section class="app">
+      <header class="topbar">
+        <button class="back-btn" id="backBtn" aria-label="Back"><</button>
+        <h1 class="page-title" id="pageTitle">Welcome back, Robert!</h1>
+        <div class="search"><span>O</span><span>Search...</span><span class="key">⌘K</span></div>
+        <button class="icon-btn" aria-label="Notifications">N<span class="dot"></span></button>
+        <div class="avatar" aria-label="Profile">R</div>
+      </header>
+
+      <div class="content">
+        <section class="screen active" id="dashboard" data-title="Welcome back, Robert!">
+          <div class="grid wide-aside">
+            <div class="grid">
+              <div class="card compact" style="display:flex;align-items:center;gap:28px;">
+                <div style="font-size:62px;color:var(--blue);">DI</div>
+                <div>
+                  <h2 class="title-sm" style="margin-bottom:6px;">Upgrade to PRO!</h2>
+                  <p class="muted" style="margin:0 0 10px;">Get unlimited access to all premium features for <strong style="color:var(--text);">£18/month</strong></p>
+                  <button class="ghost">Upgrade now ></button>
+                </div>
+                <button class="icon-btn" style="margin-left:auto;width:44px;height:44px;">X</button>
+              </div>
+              <div class="grid grid-2">
+                <article class="card metric">
+                  <div>
+                    <div class="metric-icon">C</div>
+                    <div class="mini-bars"><span class="bar" style="height:26px"></span><span class="bar" style="height:38px"></span><span class="bar" style="height:50px"></span><span class="bar" style="height:64px"></span><span class="bar" style="height:42px"></span><span class="bar" style="height:32px"></span></div>
+                  </div>
+                  <div><h3 class="title-sm">Career Score</h3><div class="metric-value num">85 <span class="small">(points)</span> <span class="delta">+13%</span></div><p class="muted">Your career progress increased by <strong>13%</strong> over the past 30 days.</p></div>
+                </article>
+                <article class="card metric">
+                  <div><div class="metric-icon">S</div><div class="mini-bars"><span class="bar red" style="height:28px"></span><span class="bar red" style="height:44px"></span><span class="bar red" style="height:56px"></span><span class="bar red" style="height:34px"></span><span class="bar red" style="height:42px"></span></div></div>
+                  <div><h3 class="title-sm">Skills Growth</h3><div class="metric-value num">12 <span class="small">(new skills)</span> <span class="delta down">-15%</span></div><p class="muted">You have made less progress on your skills in the past 30 days.</p></div>
+                </article>
+                <article class="card metric">
+                  <div><div class="metric-icon">in</div><div class="mini-bars"><span class="bar red" style="height:36px"></span><span class="bar red" style="height:48px"></span><span class="bar red" style="height:60px"></span><span class="bar red" style="height:38px"></span><span class="bar red" style="height:44px"></span></div></div>
+                  <div><h3 class="title-sm">LinkedIn Health</h3><div class="metric-value num">82 <span class="small">(points)</span> <span class="delta down">-8%</span></div><p class="muted">LinkedIn visibility dropped by <strong>8%</strong> over the past 30 days.</p></div>
+                </article>
+                <article class="card metric">
+                  <div><div class="metric-icon">CV</div><div class="mini-bars"><span class="bar" style="height:42px"></span><span class="bar" style="height:28px"></span><span class="bar" style="height:36px"></span><span class="bar" style="height:50px"></span><span class="bar" style="height:44px"></span></div></div>
+                  <div><h3 class="title-sm">CV Score</h3><div class="metric-value num">75 <span class="small">(points)</span> <span class="delta">+10%</span></div><p class="muted">Resume quality increased by <strong>10%</strong> in 30 days.</p></div>
+                </article>
+              </div>
+              <div class="card">
+                <h3 class="title-sm">Application Trends</h3>
+                <div class="chart">
+                  <div class="stack"><div class="stack-bars"><span style="height:80px;background:var(--blue)"></span><span style="height:32px;background:var(--green)"></span><span style="height:28px;background:var(--pink)"></span></div><small>1-4</small></div>
+                  <div class="stack"><div class="stack-bars"><span style="height:160px;background:var(--blue)"></span><span style="height:96px;background:var(--green)"></span><span style="height:56px;background:var(--pink)"></span></div><small>5-8</small></div>
+                  <div class="stack"><div class="stack-bars"><span style="height:90px;background:var(--blue)"></span><span style="height:110px;background:var(--green)"></span><span style="height:44px;background:var(--pink)"></span></div><small>9-12</small></div>
+                  <div class="stack"><div class="stack-bars"><span style="height:150px;background:var(--blue)"></span><span style="height:126px;background:var(--green)"></span><span style="height:64px;background:var(--pink)"></span></div><small>13-16</small></div>
+                  <div class="stack"><div class="stack-bars"><span style="height:140px;background:var(--blue)"></span><span style="height:145px;background:var(--green)"></span><span style="height:76px;background:var(--pink)"></span></div><small>17-20</small></div>
+                  <div class="stack"><div class="stack-bars"><span style="height:110px;background:var(--blue)"></span><span style="height:70px;background:var(--green)"></span><span style="height:42px;background:var(--pink)"></span></div><small>21-24</small></div>
+                </div>
+              </div>
+            </div>
+            <aside class="grid">
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="title-sm">Career Goals</h3><button class="ghost">View All ></button></div>
+                <div class="grid">
+                  <div class="card compact soft"><span class="pill green">Current</span><h3>Project Manager <span class="delta" style="float:right;">£35,000/year</span></h3></div>
+                  <div class="card compact soft"><span class="pill blue">Next target</span><h3>Senior Project Manager <span class="muted" style="float:right;">£50,000/year</span></h3></div>
+                  <div class="card compact soft"><span class="pill">Future</span><h3>Program Manager <span class="muted" style="float:right;">£65,000/year</span></h3></div>
+                </div>
+              </div>
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="title-sm">Top Picks for your next role</h3><button class="ghost">View All ></button></div>
+                <div class="grid">
+                  <article class="card compact soft"><div class="job-head"><div class="company-logo">C</div><div><h3 style="margin:0;">Project Manager</h3><p class="muted">HAYS</p></div></div><div class="pill-row"><span class="pill">3 year exp</span><span class="pill">Full time</span><span class="pill">Office</span></div><p>Outcomes First Group renewed focus on customer experience...</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+                  <article class="card compact soft"><div class="job-head"><div class="company-logo">G</div><div><h3 style="margin:0;">Senior PM</h3><p class="muted">Google</p></div></div><div class="pill-row"><span class="pill">5 year exp</span><span class="pill">Remote</span></div><div class="salary">£65,000 <span class="small muted">/year</span></div></article>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" id="discovery" data-title="Job Discovery">
+          <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+            <div class="tabs"><button class="tab active">All Jobs <span class="pill blue">108</span></button><button class="tab">Favorites Jobs <span class="pill">12</span></button></div>
+            <div style="margin-left:auto;display:flex;gap:12px;"><button class="icon-btn">F</button><button class="icon-btn">S</button><button class="icon-btn">O</button><button class="primary">Open to Work</button><button class="primary">+ Add Job</button></div>
+          </div>
+          <div class="grid grid-3">
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#2f80ed;">M</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Meta Platform, Inc</p></div><button class="icon-btn" style="margin-left:auto;width:44px;height:44px;">☆</button></div><div class="pill-row"><span class="pill">3 year exp</span><span class="pill">Full time</span><span class="pill">Office</span></div><p>Meta is placing renewed emphasis on meaningful digital interactions across its platforms.</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#fff;color:#4285f4;">G</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Google LLC</p></div><button class="icon-btn" style="margin-left:auto;width:44px;height:44px;">★</button></div><div class="pill-row"><span class="pill">8 year exp</span><span class="pill">Full time</span><span class="pill">Remote</span></div><p>Google continues to transform how billions search, work, and connect through cloud and AI.</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#fff;color:#111;">a</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Amazon.com, Inc</p></div><button class="icon-btn" style="margin-left:auto;width:44px;height:44px;">☆</button></div><div class="pill-row"><span class="pill">4 year exp</span><span class="pill">Part time</span><span class="pill">Office</span></div><p>Amazon is elevating its end-to-end customer journey for millions of daily users.</p><div class="salary">£75,000 <span class="small muted">/year</span></div></article>
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#fa5725;">Z</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Zalando, SE</p></div></div><div class="pill-row"><span class="pill">10 year exp</span><span class="pill">Full time</span><span class="pill">Remote</span></div><p>Zalando is investing in smarter recommendations and logistics visibility.</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#f6c760;">G</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Glovo</p></div></div><div class="pill-row"><span class="pill">3 year exp</span><span class="pill">Full time</span><span class="pill">Office</span></div><p>Glovo is optimizing routing, onboarding, and regional delivery operations.</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+            <article class="card job-card"><div class="job-head"><div class="company-logo" style="background:#111;">R</div><div><h3 class="title-sm">Project Manager</h3><p class="muted">Revolut</p></div></div><div class="pill-row"><span class="pill">2 year exp</span><span class="pill">Full time</span><span class="pill">Office</span></div><p>Revolut is improving onboarding, protection, and financial tools.</p><div class="salary">£50,000 <span class="small muted">/year</span></div></article>
+          </div>
+        </section>
+
+        <section class="screen" id="tracker" data-title="Job Tracker">
+          <div class="grid grid-3" style="margin-bottom:16px;">
+            <article class="card metric"><div><div class="metric-icon">A</div><div class="mini-bars"><span class="bar" style="height:32px"></span><span class="bar" style="height:46px"></span><span class="bar" style="height:58px"></span><span class="bar" style="height:44px"></span></div></div><div><h3>Total Applications</h3><div class="metric-value">86 <span class="small">(applications)</span><span class="delta">+13%</span></div></div></article>
+            <article class="card metric"><div><div class="metric-icon">AC</div><div class="mini-bars"><span class="bar red" style="height:34px"></span><span class="bar red" style="height:58px"></span><span class="bar red" style="height:42px"></span></div></div><div><h3>Active Applications</h3><div class="metric-value">64 <span class="small">(applications)</span><span class="delta down">-8%</span></div></div></article>
+            <article class="card metric"><div><div class="metric-icon">I</div><div class="mini-bars"><span class="bar" style="height:32px"></span><span class="bar" style="height:52px"></span><span class="bar" style="height:68px"></span></div></div><div><h3>Interviews</h3><div class="metric-value">18 <span class="small">(total)</span><span class="delta">+10%</span></div></div></article>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;margin-bottom:22px;"><div class="tabs"><button class="tab active">All Jobs 86</button><button class="tab">Favorites 12</button></div><div style="margin-left:auto;display:flex;gap:12px;"><button class="icon-btn">F</button><button class="icon-btn">S</button><button class="icon-btn">O</button></div></div>
+            <table class="table">
+              <thead><tr><th>Position & Company</th><th>Status</th><th>Salary</th><th>Applied date</th><th>Timeline</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="job-head"><div class="company-logo">C</div><div><strong>Senior Product Designer</strong><br><span class="muted">HAYS</span></div></div></td><td><select class="select"><option>Applied</option><option>Phone Screen</option><option>Interview</option></select></td><td>£45,000</td><td>02 May 2025</td><td><div class="progress"><span style="width:25%"></span></div></td><td><button class="ghost">Delete</button></td></tr>
+                <tr><td><div class="job-head"><div class="company-logo" style="background:#0b3d91;">N</div><div><strong>Product Designer</strong><br><span class="muted">NASA</span></div></div></td><td><select class="select"><option>Phone Screen</option><option>Offer</option><option>Rejected</option></select></td><td>£45,000</td><td>02 May 2025</td><td><div class="progress"><span style="width:50%"></span></div></td><td><button class="ghost">Delete</button></td></tr>
+                <tr><td><div class="job-head"><div class="company-logo">A</div><div><strong>Middle Designer</strong><br><span class="muted">Apple</span></div></div></td><td><select class="select"><option>Interview</option></select></td><td>£45,000</td><td>02 May 2025</td><td><div class="progress"><span style="width:75%"></span></div></td><td><button class="ghost">Delete</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="screen" id="planner" data-title="Career Planner">
+          <div class="grid grid-3" style="margin-bottom:16px;">
+            <article class="card metric"><div><div class="metric-icon">P</div><div class="mini-bars"><span class="bar" style="height:28px"></span><span class="bar" style="height:42px"></span><span class="bar" style="height:58px"></span></div></div><div><h3>Planned Tasks</h3><div class="metric-value">10 <span class="small">(tasks)</span><span class="delta">+13%</span></div></div></article>
+            <article class="card metric"><div><div class="metric-icon">IP</div><div class="mini-bars"><span class="bar red" style="height:30px"></span><span class="bar red" style="height:52px"></span><span class="bar red" style="height:40px"></span></div></div><div><h3>In Progress Tasks</h3><div class="metric-value">5 <span class="small">(tasks)</span><span class="delta down">-8%</span></div></div></article>
+            <article class="card metric"><div><div class="metric-icon">CO</div><div class="mini-bars"><span class="bar" style="height:28px"></span><span class="bar" style="height:46px"></span><span class="bar" style="height:64px"></span></div></div><div><h3>Completed Tasks</h3><div class="metric-value">10 <span class="small">(tasks)</span><span class="delta">+10%</span></div></div></article>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;"><div class="tabs"><button class="tab active" data-planner="list">List</button><button class="tab" data-planner="kanban">Kanban</button><button class="tab" data-planner="calendar">Calendar</button></div><div style="margin-left:auto;display:flex;gap:12px;"><button class="icon-btn">F</button><button class="icon-btn">U</button><button class="primary" id="openMilestone">+ Add Milestone</button></div></div>
+            <div class="planner-view" id="planner-list">
+              <div class="grid">
+                <h3>In Progress <span class="pill">5</span></h3>
+                <article class="planner-card"><div style="display:flex;justify-content:space-between;"><h3>Software Engineer</h3><span>Due: 30/06/2025</span></div><p class="muted">Full-stack development role focusing on web applications</p><div class="progress"><span style="width:33%"></span></div><label><input type="checkbox" checked style="width:auto;min-height:auto;"> Ship first feature to production</label><label><input type="checkbox" style="width:auto;min-height:auto;"> Complete onboarding training</label><div class="pill-row"><span class="pill">React</span><span class="pill">Node.js</span><span class="pill">TypeScript</span></div></article>
+                <article class="planner-card"><div style="display:flex;justify-content:space-between;"><h3>AWS Solutions Architect Associate</h3><span>Due: 30/06/2025</span></div><p class="muted">Cloud architecture certification</p><div class="progress"><span style="width:50%"></span></div></article>
+              </div>
+            </div>
+            <div class="planner-view hidden" id="planner-kanban">
+              <div class="grid kanban">
+                <div class="column"><h3>Planned <span class="pill">10</span></h3><article class="planner-card"><strong>Software Engineer</strong><p class="muted">Full-stack development role</p><div class="progress"><span style="width:0%"></span></div></article><article class="planner-card"><strong>AWS Solutions</strong><p class="muted">Cloud certification</p></article></div>
+                <div class="column"><h3>In Progress <span class="pill">5</span></h3><article class="planner-card"><strong>Software Engineer</strong><p class="muted">Ship first feature</p><div class="progress"><span style="width:33%"></span></div></article></div>
+                <div class="column"><h3>Completed <span class="pill">10</span></h3><article class="planner-card"><strong>Portfolio refresh</strong><p class="muted">Case study finished</p><div class="progress"><span style="width:100%"></span></div></article></div>
+              </div>
+            </div>
+            <div class="planner-view hidden" id="planner-calendar">
+              <h3>June, 2025</h3>
+              <div class="calendar">
+                <div class="day">Monday</div><div class="day">Tuesday</div><div class="day">Wednesday</div><div class="day">Thursday</div><div class="day">Friday</div><div class="day">Saturday</div><div class="day">Sunday</div>
+                <div class="day">1</div><div class="day">2<div class="event">Upskill in...</div></div><div class="day">3<div class="event">AWS Solutio...</div></div><div class="day">4</div><div class="day">5</div><div class="day">6</div><div class="day">7</div>
+                <div class="day">8</div><div class="day">9</div><div class="day">10</div><div class="day">11<div class="event">Software...</div></div><div class="day">12</div><div class="day">13<div class="event">Senior Soft...</div></div><div class="day">14</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="copilot" data-title="Career Copilot">
+          <div class="center-hero" id="copilot-empty">
+            <div>
+              <h2 style="font-size:52px;margin:0;">Hi! I'm your Career Copilot!</h2>
+              <h3 style="font-size:44px;color:#c7cdd9;margin:10px 0 0;">I can help you with:</h3>
+              <div class="hero-cards">
+                <button class="hero-card quick-prompt"><h3>Career Strategy</h3><p class="muted">Get personalized career roadmaps and growth strategies.</p></button>
+                <button class="hero-card quick-prompt"><h3>Resume Review</h3><p class="muted">AI-powered resume optimization and feedback.</p></button>
+                <button class="hero-card quick-prompt"><h3>Interview Preparation</h3><p class="muted">Practice and refine your interviewing skills.</p></button>
+                <button class="hero-card quick-prompt"><h3>Skill Analysis</h3><p class="muted">Identify and bridge professional skill gaps.</p></button>
+              </div>
+              <div class="composer"><span>Attach</span><input value="I'd like help developing my career strategy"><button class="primary send">Send</button></div>
+            </div>
+          </div>
+          <div class="chat hidden" id="copilot-chat">
+            <div class="message user"><div class="bubble">I'd like help developing my career strategy</div><div class="avatar" style="width:42px;height:42px;">R</div></div>
+            <div class="message bot"><div class="company-logo" style="width:42px;height:42px;font-size:16px;">AI</div><div class="bubble"><strong>What you need for the next step and a 6-12 month growth plan:</strong><p>Strengthen your portfolio, sharpen UX research and product thinking, and map your next role into measurable milestones.</p><ul><li>Portfolio: show process, decisions, and impact.</li><li>Hard skills: deepen research, systems, motion, or product strategy.</li><li>Communication: prepare crisp stories for interviews.</li></ul></div></div>
+            <div class="message user"><div class="bubble">Can you recommend specific platforms or courses?</div><div class="avatar" style="width:42px;height:42px;">R</div></div>
+            <div class="composer"><span>Attach</span><input placeholder="Type a message"><button class="primary send">Send</button></div>
+          </div>
+        </section>
+
+        <section class="screen" id="ats" data-title="ATS Optimizer">
+          <div class="grid main-aside">
+            <main class="grid">
+              <div class="card">
+                <h2 class="title-sm">Upload Your CV</h2><p class="muted">Upload your CV in PDF format</p>
+                <div class="card soft" style="text-align:center;padding:60px;"><div style="font-size:62px;color:var(--blue);">DOC</div><h3>Drop or select file</h3><p class="muted">Drop files here or click to browse through your machine.</p></div>
+                <h3>Extracted Content</h3><textarea>John Taylor
+Digital Marketing Specialist
+Austin, TX - john.taylor@email.com - (123) 456-7890
+
+Professional Summary
+Results-driven digital marketer with 5+ years...</textarea>
+              </div>
+              <div class="card"><h2 class="title-sm">Job Description</h2><textarea placeholder="Paste the job description here..."></textarea><button class="primary" data-screen="ats-result">Analyse CV</button></div>
+            </main>
+            <aside class="grid">
+              <div class="card"><h2 class="title-sm">ATS Tips</h2><div class="grid"><div class="card compact soft"><strong>Use Simple Formatting</strong><p class="muted">Stick to standard fonts and simple layouts</p></div><div class="card compact soft"><strong>Match Keywords</strong><p class="muted">Use exact phrases from the job description</p></div><div class="card compact soft"><strong>Highlight Achievements</strong><p class="muted">Include measurable results and metrics</p></div></div></div>
+              <div class="card"><h2 class="title-sm">Common ATS Terms</h2><div class="pill-row"><span class="pill">Technical Skills</span><span class="pill">Leadership</span><span class="pill">Project Management</span><span class="pill">Communication</span></div></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" id="ats-result" data-title="Result" data-back="ats">
+          <div class="grid main-aside">
+            <aside class="card"><div class="ring"><div class="ring-core"><div><h2 class="num" style="font-size:42px;margin:0;">75%</h2><p>Match</p></div></div></div><h3>Keywords</h3><p class="muted">Your resume has <strong>6 out of 10</strong> keywords that appear in the job description.</p><div class="pill-row"><span class="pill blue">SEO</span><span class="pill blue">Google Ads</span><span class="pill">A/B Testing</span><span class="pill">GA4</span></div></aside>
+            <main class="grid">
+              <div class="card"><h2 class="title-sm">Improvement Suggestions</h2><div class="grid"><div class="card compact soft"><strong>! Add A/B testing example in work experience</strong><p class="muted">Show a real example with results.</p></div><div class="card compact soft"><strong>! Mention GA4 or updated analytics platform</strong><p class="muted">Referencing GA4 shows you are up to date.</p></div></div></div>
+              <div class="card"><h2 class="title-sm">Resume View</h2><div class="card soft"><p><strong>John Taylor - Digital Marketing Specialist</strong></p><p>Results-driven digital marketer with over 5 years managing <mark>SEO</mark>, <mark>Google Ads</mark>, and <mark>email campaigns</mark>. Missing: <span style="color:var(--red)">A/B Testing</span>.</p></div><button class="primary">Optimize Resume</button><button class="ghost" style="float:right;">Download PDF</button></div>
+            </main>
+          </div>
+        </section>
+
+        <section class="screen" id="linkedin" data-title="LinkedIn Analysis">
+          <div class="grid main-aside">
+            <aside class="card"><div class="ring" style="background:conic-gradient(var(--green) 0 180deg,#eceff5 180deg 360deg);"><div class="ring-core"><div><h2 class="num" style="font-size:42px;margin:0;">50</h2><p>Overall score</p></div></div></div><div class="score-list"><div class="score-item blue">Headline <span class="delta">7/10</span></div><div class="score-item">Summary <span class="delta down">2/10</span></div><div class="score-item">Experience <span style="color:var(--pink);">5/10</span></div><div class="score-item">Education <span class="delta">10/10</span></div></div><button class="primary" style="width:100%;margin-top:40px;">Analyze Profile</button></aside>
+            <main class="card"><h2 class="title-sm">Headline: <span class="delta">7/10</span></h2><p><strong>Current Headline:</strong> <em>Helping brands grow through words | Content Creator & Strategist</em></p><div class="grid"><div class="card compact soft"><h3>Critique</h3><p class="muted">The tone is friendly, but lacks specifics. It does not mention industries, key skills, or measurable impact.</p></div><div class="card compact soft"><h3>Suggestions & Tips</h3><p class="muted">Add target industry, experience level, and one measurable outcome.</p></div><div class="card compact soft"><h3>Example Headlines</h3><p class="muted">Content Marketing Strategist | 5+ Years Driving Growth for SaaS & B2B Brands</p></div></div></main>
+          </div>
+        </section>
+
+        <section class="screen" id="health" data-title="Career Health">
+          <div class="grid main-aside">
+            <main class="grid grid-2">
+              <article class="card metric"><div><div class="metric-icon">G</div><div class="mini-bars"><span class="bar" style="height:28px"></span><span class="bar" style="height:46px"></span><span class="bar" style="height:64px"></span></div></div><div><h3>Good Days Streak</h3><div class="metric-value">12 <span class="small">(days)</span><span class="delta">+25%</span></div></div></article>
+              <article class="card metric"><div><div class="metric-icon">E</div><div class="mini-bars"><span class="bar red" style="height:34px"></span><span class="bar red" style="height:54px"></span><span class="bar red" style="height:38px"></span></div></div><div><h3>Energy</h3><div class="metric-value">70% <span class="small">(avg energy)</span><span class="delta down">-18%</span></div></div></article>
+              <div class="card" style="grid-column:1 / -1;"><h2 class="title-sm">Career Health Metrics</h2><div class="grid grid-2"><div class="card compact soft"><h3>Job Satisfaction <span class="delta down" style="float:right;">-25%</span></h3><div class="metric-value">37%</div><div class="progress"><span style="width:37%;background:var(--pink);"></span></div><h4>Key Insights</h4><p class="muted">Slight decrease in overall satisfaction. Strong collaboration. Project challenges noted.</p></div><div class="card compact soft"><h3>Work-Life Balance <span class="delta down" style="float:right;">-5%</span></h3><div class="metric-value">60%</div><div class="progress"><span style="width:60%"></span></div><h4>Recommendations</h4><p class="muted">Maintain schedule, continue setting boundaries, plan regular time off.</p></div></div></div>
+            </main>
+            <aside class="card"><h2 class="title-sm">Daily Career Check-in</h2><p>How are you feeling about work today?</p><div class="pill-row"><button class="pill">Terrible</button><button class="pill">Bad</button><button class="pill">Neutral</button><button class="pill">Good</button><button class="pill">Great</button></div><hr style="border:0;border-top:1px solid var(--line);margin:28px 0;"><label>Energy Level <span class="faint">(50%)</span></label><input type="range" value="50"><label>Workload Level <span class="faint">(50%)</span></label><input type="range" value="50"><label>What's on your mind?</label><textarea placeholder="Share your thoughts here..."></textarea><button class="primary" style="width:100%;">Save Today's Check-in</button></aside>
+          </div>
+        </section>
+
+        <section class="screen" id="pathfinder" data-title="Career Pathfinder">
+          <div class="card">
+            <div style="display:flex;align-items:start;justify-content:space-between;"><div><h2 class="title-md">Your Personalized Career Paths</h2><p>Based on your skills, interests, and goals, we identified these promising career transitions.</p><div class="pill-row"><span class="pill blue">AI-Powered Matching</span><span class="pill blue">Real Success Stories</span><span class="pill blue">Live Opportunities</span></div></div><button class="ghost">+ Explore New Path</button></div>
+          </div>
+          <div class="grid grid-3" style="margin-top:16px;">
+            <article class="card"><h2>Senior UX Designer</h2><div class="pill-row"><span class="pill">0-6 months transition</span><span class="pill">£45,000-£65,000</span></div><p>A Senior UX Designer leads the design of digital products.</p><div class="progress"><span style="width:90%"></span></div><p><strong>90% match</strong></p><h3>Skills</h3><div class="pill-row"><span class="pill green">Problem-solving</span><span class="pill green">Creativity</span><span class="pill green">Analytical</span></div><button class="primary" style="width:100%;margin-top:30px;">Create Transition Plan</button></article>
+            <article class="card"><h2>UX Researcher</h2><div class="pill-row"><span class="pill">3-9 months transition</span><span class="pill">£35,000-£55,000</span></div><p>A UX Researcher studies user behaviours, needs, and motivations.</p><div class="progress"><span style="width:75%"></span></div><p><strong>75% match</strong></p><h3>Market Insights</h3><p class="muted">AI and ML are increasing the value of research methods.</p><button class="primary" style="width:100%;margin-top:30px;">Create Transition Plan</button></article>
+            <article class="card"><h2>Product Manager</h2><div class="pill-row"><span class="pill">6-12 months transition</span><span class="pill">£40,000-£70,000</span></div><p>A Product Manager owns strategy, roadmap, and feature definition.</p><div class="progress"><span style="width:70%"></span></div><p><strong>70% match</strong></p><h3>Opportunities</h3><p class="muted">Lead cross-functional product launches.</p><button class="primary" style="width:100%;margin-top:30px;">Create Transition Plan</button></article>
+          </div>
+        </section>
+
+        <section class="screen" id="profile" data-title="Career Profile">
+          <div class="card">
+            <div class="steps"><div class="step done"><span>✓</span>Personal Info</div><div class="line"></div><div class="step active"><span>2</span>Skills & Expertise</div><div class="line"></div><div class="step"><span>3</span>Career Goals</div><div class="line"></div><div class="step"><span>4</span>Work Style</div></div>
+            <div class="progress" style="margin-bottom:30px;"><span style="width:50%"></span></div>
+            <h2 class="title-sm">Technical Skills</h2>
+            <div style="display:flex;gap:14px;margin-bottom:26px;"><input placeholder="Search technical skills..."><button class="primary">+ Add Skill</button></div>
+            <div class="grid grid-3">
+              <div class="card soft"><h2>React</h2><div class="pill-row"><span class="pill">1 year exp</span><span class="pill">Learning</span></div><p>Current Proficiency</p><div class="progress"><span style="width:50%"></span></div><p>Target Level</p><div class="progress"><span style="width:80%"></span></div></div>
+              <div class="card soft"><h2>Kubernetes</h2><div class="pill-row"><span class="pill">2 year exp</span><span class="pill">Learning</span></div><p>Current Proficiency</p><div class="progress"><span style="width:24%"></span></div><p>Target Level</p><div class="progress"><span style="width:100%"></span></div></div>
+              <div class="card soft"><h2>Docker</h2><div class="pill-row"><span class="pill">3 year exp</span><span class="pill">Learning</span></div><p>Current Proficiency</p><div class="progress"><span style="width:62%"></span></div><p>Target Level</p><div class="progress"><span style="width:90%"></span></div></div>
+            </div>
+            <div style="display:flex;gap:18px;margin-top:28px;"><button class="ghost" style="flex:1;">Back: Personal Info</button><button class="primary" style="flex:1;">Next: Career Goals ></button></div>
+          </div>
+        </section>
+
+        <section class="screen" id="salary" data-title="Salary Benchmark">
+          <div class="grid main-aside">
+            <main class="grid">
+              <div class="card"><h2 class="title-sm">Salary Overview</h2><div class="metric-value">£65,000 <span class="small">(Average annual salary)</span><span class="delta">+5.2% YoY</span></div><svg viewBox="0 0 900 260" style="width:100%;height:300px;"><polyline points="10,180 90,70 170,175 250,220 330,150 410,120 490,45 570,165 650,130 730,115 810,82 890,164" fill="none" stroke="#6da2f8" stroke-width="5"/><g fill="#6da2f8"><circle cx="90" cy="70" r="10"/><circle cx="490" cy="45" r="13"/><circle cx="810" cy="82" r="10"/></g></svg></div>
+              <div class="card"><h2 class="title-sm">Top Companies</h2><div class="grid"><div class="card compact soft"><strong>Google</strong><span class="salary" style="float:right;">£85,000</span><p>Leading the way in tech and innovation</p><div class="pill-row"><span class="pill">Remote Work</span><span class="pill">Health Insurance</span><span class="pill">Stock Options</span></div></div><div class="card compact soft"><strong>Amazon</strong><span class="salary" style="float:right;">£85,000</span><p>Leading the way in tech and innovation</p></div></div></div>
+            </main>
+            <aside class="grid"><div class="card"><h2 class="title-sm">Salary Predictor</h2><div class="field"><label>Job Title</label><input placeholder="e.g. Software Engineer"></div><div class="field"><label>Location</label><input placeholder="e.g. London, UK"></div><div class="field"><label>Years of Experience</label><input placeholder="e.g. 1 year of experience"></div><button class="primary" style="width:100%;margin-top:20px;">Predict Salary</button></div><div class="card"><h2 class="title-sm">Top Picks for your next role</h2><article class="card compact soft"><h3>Senior Project Manager</h3><p class="muted">HAYS</p><div class="salary">£45,000 <span class="small muted">/year</span></div></article></div></aside>
+          </div>
+        </section>
+
+        <section class="screen" id="sponsorship" data-title="Sponsorship Hub">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><div class="tabs"><button class="tab active">Overview</button><button class="tab">Point Calculator</button><button class="tab">Graduate Visa</button><button class="tab">Find Sponsors</button></div><button class="primary">Get Guidance</button></div>
+            <hr style="border:0;border-top:1px solid var(--line);margin:28px 0;">
+            <div class="grid grid-3"><div class="card compact"><h3>Eligibility Check</h3><p class="muted">Check if you qualify for a UK work visa</p></div><div class="card compact"><h3>Visa Calculator</h3><p class="muted">Calculate points and visa costs</p></div><div class="card compact"><h3>Visa Guide</h3><p class="muted">Step-by-step application guide</p></div></div>
+            <div class="grid grid-2" style="margin-top:16px;"><div class="card"><h2 class="title-sm">April 2024 Changes</h2><div class="grid"><div class="card compact soft"><strong>New Salary Thresholds</strong><p class="muted">New salary thresholds</p></div><div class="card compact soft"><strong>Health & Care Workers</strong><p class="muted">Lower threshold at £26,200</p></div><div class="card compact soft"><strong>English Requirements</strong><p class="muted">Minimum B1 level required</p></div></div></div><div class="card"><h2 class="title-sm">Points System</h2><div class="grid"><div class="card compact soft"><strong>70 Points Required</strong><p class="muted">Mandatory criteria plus tradeable points</p></div><div class="card compact soft"><strong>Shortage Occupations</strong><p class="muted">Additional points for listed roles</p></div><div class="card compact soft"><strong>Qualifications</strong><p class="muted">Extra points for PhD level</p></div></div></div></div>
+          </div>
+        </section>
+
+        <section class="screen" id="success" data-title="Career Success">
+          <div class="grid main-aside">
+            <main class="grid grid-2">
+              <article class="card metric"><div><div class="metric-icon">SM</div><div class="mini-bars"><span class="bar" style="height:26px"></span><span class="bar" style="height:52px"></span><span class="bar" style="height:66px"></span></div></div><div><h3>Skills Mastery</h3><div class="metric-value">35% <span class="small">(total)</span><span class="delta">+15%</span></div></div></article>
+              <article class="card metric"><div><div class="metric-icon">CP</div><div class="mini-bars"><span class="bar red" style="height:32px"></span><span class="bar red" style="height:56px"></span><span class="bar red" style="height:40px"></span></div></div><div><h3>Career Progress</h3><div class="metric-value">65% <span class="small">(total)</span><span class="delta down">-8%</span></div></div></article>
+              <div class="card" style="grid-column:1/-1;"><h2 class="title-sm">Career Goals</h2><div class="grid"><div class="card compact soft"><strong>Complete System Design Course</strong><span style="float:right;">75%</span><div class="progress"><span style="width:75%"></span></div></div><div class="card compact soft"><strong>Apply to 5 Senior Positions</strong><span style="float:right;">42%</span><div class="progress"><span style="width:42%"></span></div></div></div></div>
+            </main>
+            <aside class="grid"><div class="card"><h2 class="title-sm">Skills Growth</h2><div class="grid"><div><strong>Strategic planning</strong><span class="delta" style="float:right;">+12%</span><div class="progress"><span style="width:30%"></span></div></div><div><strong>Communication</strong><span class="delta" style="float:right;">+18%</span><div class="progress"><span style="width:40%"></span></div></div><div><strong>Data analysis</strong><span class="delta" style="float:right;">+22%</span><div class="progress"><span style="width:50%"></span></div></div></div></div><div class="card"><h2 class="title-sm">Recent Achievements</h2><div class="grid"><div class="card compact soft"><strong>Profile Strength Increased</strong><p>Your LinkedIn profile is now in the top 10%</p></div><div class="card compact soft"><strong>New Skill Badge</strong><p>Earned React Expert certification</p></div></div></div></aside>
+          </div>
+        </section>
+
+        <section class="screen" id="discussion" data-title="Thread View" data-back="dashboard">
+          <div class="grid main-aside">
+            <main class="card"><div class="job-head"><div class="avatar" style="width:58px;height:58px;">A</div><div><h2>Annette Black</h2><p class="muted">1 day ago</p></div></div><h2>Switching careers after 30 - is it worth it?</h2><p>Hey everyone, I am curious how many of you have completely changed careers after turning 30 and how that worked out for you.</p><div class="grid grid-2"><div class="card soft" style="height:260px;background:linear-gradient(135deg,#f8dec7,#fff);"></div><div class="card soft" style="height:260px;background:linear-gradient(135deg,#eaf2ff,#fff);"></div></div><div class="pill-row" style="margin:18px 0;"><span class="pill">#career-change</span><span class="pill">#life-decision</span></div><hr style="border:0;border-top:1px dashed var(--line);"><p><strong>Guy Hawkins</strong></p><p>I have been thinking about this too, but with kids and mortgage it feels irresponsible to start over.</p><div class="card compact soft"><strong>Dianne Russell</strong><p>It took longer, but it is doable if you plan carefully and involve your partner early.</p></div></main>
+            <aside class="card"><h2 class="title-sm">Similar Topics for Discussion</h2><div class="grid"><article class="card compact soft"><h3>Jacob Jones</h3><p>How did you land your current role?</p><div class="pill-row"><span class="pill">#career-advice</span><span class="pill">#job-search</span></div></article><article class="card compact soft"><h3>Annette Black</h3><p>Switching careers after 30 - is it worth it?</p><div class="pill-row"><span class="pill">#career-change</span></div></article><article class="card compact soft"><h3>Savannah Nguyen</h3><p>What would you do differently?</p></article></div></aside>
+          </div>
+        </section>
+
+        <section class="screen" id="settings" data-title="Settings">
+          <div class="card">
+            <div class="tabs" style="width:100%;justify-content:space-around;"><button class="tab">General</button><button class="tab">Change Password</button><button class="tab active">Subscription</button><button class="tab">Notifications</button></div>
+            <hr style="border:0;border-top:1px solid var(--line);margin:30px 0;">
+            <h2>Plan</h2>
+            <div class="grid grid-3">
+              <article class="card"><h2>Standard <span class="pill green" style="float:right;">Current plan</span></h2><div class="metric-value" style="color:var(--blue);">$15.00 <span class="small muted">/per month</span></div><button class="ghost" style="width:100%;">Cancel Plan</button><h3>AI Career Copilot</h3><p class="muted">24/7 AI-powered career guidance</p><h3>Smart Profile Optimization</h3><p class="muted">AI-enhanced CV and LinkedIn recommendations</p></article>
+              <article class="card"><h2>Pro</h2><div class="metric-value" style="color:var(--blue);">$25.00 <span class="small muted">/per month</span></div><button class="primary" style="width:100%;background:#17191d;">Select</button><h3>AI Career Copilot</h3><p class="muted">24/7 AI-powered career guidance</p><h3>Interview Intelligence</h3><p class="muted">Advanced AI interview prep</p></article>
+              <article class="card"><h2>Ultimate</h2><div class="metric-value" style="color:var(--blue);">$50.00 <span class="small muted">/per month</span></div><button class="primary" style="width:100%;background:#17191d;">Select</button><h3>Everything in Pro</h3><p class="muted">Plus market insights and dedicated reports</p></article>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="onboarding" data-title="What's your Top Priority?">
+          <div class="onboarding">
+            <div class="on-card">
+              <div class="on-form">
+                <div class="logo" style="margin:0 auto 50px;"></div>
+                <h2 style="font-size:50px;text-align:center;margin:0;">What's your Top Priority?</h2>
+                <p class="muted" style="text-align:center;">Already have an account? <span style="color:var(--blue-dark);font-weight:800;">Sign in</span></p>
+                <div class="steps"><div class="step done"><span>✓</span>Account</div><div class="line"></div><div class="step done"><span>✓</span>Career</div><div class="line"></div><div class="step done"><span>✓</span>Contact</div><div class="line"></div><div class="step active"><span>4</span>Goals</div><div class="line"></div><div class="step"><span>5</span>Plan</div></div>
+                <h3>Select Your Main Focus</h3>
+                <div class="pill-row"><button class="pill blue">Improve your CV</button><button class="pill">Find new jobs</button><button class="pill">Interview prep</button><button class="pill">Get promoted</button><button class="pill">Boost LinkedIn</button></div>
+                <button class="primary" style="width:100%;margin-top:48px;">Next: Plan ></button>
+                <button class="ghost" style="width:100%;margin-top:16px;">Back: Contact</button>
+              </div>
+            </div>
+            <div class="product-shot">
+              <div>
+                <h2 style="font-size:34px;max-width:800px;"><span style="color:var(--blue);">CareerHero</span> is an AI-powered platform that helps candidates build successful careers.</h2>
+                <p class="muted">Loved by 57 122 heroes</p>
+                <div class="mock-window"><div class="grid grid-2"><div class="card compact"><strong>Career Score</strong><div class="metric-value">85</div><div class="mini-bars"><span class="bar" style="height:28px"></span><span class="bar" style="height:46px"></span><span class="bar" style="height:60px"></span></div></div><div class="card compact"><strong>Skills Growth</strong><div class="metric-value">12</div><div class="mini-bars"><span class="bar red" style="height:28px"></span><span class="bar red" style="height:48px"></span><span class="bar red" style="height:32px"></span></div></div></div><div class="card compact" style="margin-top:14px;"><strong>Application Trends</strong><div class="chart" style="height:160px;"><div class="stack"><div class="stack-bars" style="height:120px"><span style="height:80px;background:var(--blue)"></span><span style="height:60px;background:var(--green)"></span><span style="height:32px;background:var(--pink)"></span></div></div><div class="stack"><div class="stack-bars" style="height:120px"><span style="height:100px;background:var(--blue)"></span><span style="height:90px;background:var(--green)"></span><span style="height:45px;background:var(--pink)"></span></div></div></div></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <button class="floating-ai" aria-label="AI assistant" data-screen="copilot">AI</button>
+
+  <div class="modal-layer" id="milestoneModal">
+    <div class="modal">
+      <div class="modal-head"><h2 class="title-sm" style="margin:0;">Add New Milestone</h2><button class="icon-btn" id="closeMilestone" style="width:44px;height:44px;">X</button></div>
+      <div class="steps"><div class="step active"><span>1</span>Basic Info</div><div class="line"></div><div class="step"><span>2</span>Details</div><div class="line"></div><div class="step"><span>3</span>Requirements</div></div>
+      <label>Category</label>
+      <div class="pill-row" style="margin:12px 0 22px;"><button class="pill blue">Goal</button><button class="pill">Role</button><button class="pill">Education</button><button class="pill">Certification</button><button class="pill">Skill</button></div>
+      <div class="form-grid">
+        <div class="field" style="grid-column:1 / -1;"><label>Title</label><input placeholder="e.g. Become Senior Software Engineer"></div>
+        <div class="field"><label>Status</label><select><option>Planned</option><option>In Progress</option></select></div>
+        <div class="field"><label>Priority</label><select><option>Select</option><option>High</option></select></div>
+      </div>
+      <button class="primary" style="width:100%;margin-top:28px;">Next: Details ></button>
+    </div>
+  </div>
+
+  <script>
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const pageTitle = document.getElementById("pageTitle");
+    const backBtn = document.getElementById("backBtn");
+    let historyStack = ["dashboard"];
+
+    function showScreen(id, push = true) {
+      const target = document.getElementById(id);
+      if (!target) return;
+      screens.forEach(screen => screen.classList.toggle("active", screen.id === id));
+      document.querySelectorAll("[data-screen]").forEach(btn => btn.classList.toggle("active", btn.dataset.screen === id));
+      document.querySelectorAll(".sub-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.screen === id));
+      pageTitle.textContent = target.dataset.title || target.id;
+      const hasBack = target.dataset.back || historyStack.length > 1;
+      backBtn.classList.toggle("visible", !!hasBack);
+      if (push && historyStack[historyStack.length - 1] !== id) historyStack.push(id);
+      document.querySelector(".content").scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.addEventListener("click", event => {
+      const screenBtn = event.target.closest("[data-screen]");
+      if (screenBtn) showScreen(screenBtn.dataset.screen);
+
+      const openBtn = event.target.closest("[data-open]");
+      if (openBtn) document.getElementById(openBtn.dataset.open)?.classList.toggle("open");
+
+      const quickPrompt = event.target.closest(".quick-prompt");
+      if (quickPrompt) {
+        document.getElementById("copilot-empty").classList.add("hidden");
+        document.getElementById("copilot-chat").classList.remove("hidden");
+      }
+    });
+
+    backBtn.addEventListener("click", () => {
+      const current = document.querySelector(".screen.active");
+      if (current?.dataset.back) return showScreen(current.dataset.back);
+      historyStack.pop();
+      showScreen(historyStack[historyStack.length - 1] || "dashboard", false);
+    });
+
+    document.querySelectorAll("[data-planner]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-planner]").forEach(b => b.classList.remove("active"));
+        button.classList.add("active");
+        document.querySelectorAll(".planner-view").forEach(view => view.classList.add("hidden"));
+        document.getElementById(`planner-${button.dataset.planner}`).classList.remove("hidden");
+      });
+    });
+
+    const modal = document.getElementById("milestoneModal");
+    document.getElementById("openMilestone").addEventListener("click", () => modal.classList.add("open"));
+    document.getElementById("closeMilestone").addEventListener("click", () => modal.classList.remove("open"));
+    modal.addEventListener("click", event => {
+      if (event.target === modal) modal.classList.remove("open");
+    });
+  </script>
+</body>
+</html>

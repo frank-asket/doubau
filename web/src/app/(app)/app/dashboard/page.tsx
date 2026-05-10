@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
 import { DashboardResumePanel } from "@/components/resume/DashboardResumePanel";
 import { AppApprovalCard } from "@/components/ui/approval-card";
 import { AppBadge } from "@/components/ui/badge";
@@ -50,12 +52,76 @@ function goalLabel(id: string): string {
   }
 }
 
+type ApplicationOut = {
+  id: string;
+  company: string;
+  job_title: string;
+  status: string;
+  source_url?: string | null;
+};
+
+type DraftOut = {
+  id: string;
+  application_id: string;
+  channel: string;
+  content: string;
+};
+
 export default async function DashboardPage() {
-  const profile = await fetch("/api/me/profile", { cache: "no-store" })
-    .then((r) => (r.ok ? (r.json() as Promise<Profile>) : ({} as Profile)))
-    .catch(() => ({} as Profile));
+  const base = getApiBaseUrl();
+  const headers = await getBackendAuthHeaders();
+  const profileRes = await fetch(`${base}/me/profile`, {
+    headers,
+    cache: "no-store",
+  });
+
+  const profile: Profile = profileRes.ok
+    ? ((await profileRes.json().catch(() => ({}))) as Profile)
+    : {};
 
   const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
+
+  let pendingCard: {
+    title: string;
+    subtitle: string;
+    snippet: string;
+  } | null = null;
+
+  try {
+    const [appsRes, draftsRes] = await Promise.all([
+      fetch(`${base}/applications`, { headers, cache: "no-store" }),
+      fetch(`${base}/applications/drafts`, { headers, cache: "no-store" }),
+    ]);
+    if (appsRes.ok && draftsRes.ok) {
+      const apps = (await appsRes.json()) as ApplicationOut[];
+      const drafts = (await draftsRes.json()) as DraftOut[];
+      const appById = new Map(apps.map((a) => [a.id, a]));
+      const hit = drafts.find((d) => appById.get(d.application_id)?.status === "PENDING_APPROVAL");
+      if (hit) {
+        const app = appById.get(hit.application_id);
+        if (app) {
+          const ch = hit.channel ? hit.channel.charAt(0).toUpperCase() + hit.channel.slice(1) : "Draft";
+          let subtitle = `${ch} · ${app.company}`;
+          if (app.source_url) {
+            try {
+              subtitle = `${ch} · ${new URL(app.source_url).hostname}`;
+            } catch {
+              /* ignore */
+            }
+          }
+          const raw = hit.content.trim();
+          const snippet = raw.length > 320 ? `${raw.slice(0, 320)}…` : raw;
+          pendingCard = {
+            title: `${app.job_title} — ${app.company}`,
+            subtitle,
+            snippet,
+          };
+        }
+      }
+    }
+  } catch {
+    pendingCard = null;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
@@ -95,13 +161,31 @@ export default async function DashboardPage() {
         </div>
 
         <div className="lg:col-span-2">
-          <AppApprovalCard
-            badgeLabel="Pending"
-            badgeVariant="amber"
-            snippet="Hi Sarah, I came across the Senior PM role at Google and was immediately drawn to the focus on cross-functional delivery…"
-            subtitle="LinkedIn · 2 mins ago"
-            title="Senior PM — Google"
-          />
+          {pendingCard ? (
+            <AppApprovalCard
+              actionsSlot={
+                <Link
+                  href="/app/approvals"
+                  className="inline-flex cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-3 py-1 text-[12px] font-medium leading-5 text-white transition-colors hover:bg-[var(--app-accent-hover)]"
+                >
+                  Open approval dashboard
+                </Link>
+              }
+              badgeLabel="Pending"
+              badgeVariant="amber"
+              snippet={pendingCard.snippet}
+              subtitle={pendingCard.subtitle}
+              title={pendingCard.title}
+            />
+          ) : (
+            <AppApprovalCard
+              badgeLabel="Queue"
+              badgeVariant="gray"
+              snippet="When a draft is awaiting HITL review, the full text surfaces here. Create a demo from the approval dashboard to see the live card."
+              subtitle="Tip"
+              title="No pending outreach in queue"
+            />
+          )}
         </div>
       </div>
 
@@ -135,8 +219,11 @@ export default async function DashboardPage() {
               Go to <span className="font-semibold text-[var(--app-text-primary)]">Job Discovery</span> and save 10 roles.
             </li>
             <li>
-              Generate an outreach draft and approve it in{" "}
-              <span className="font-semibold text-[var(--app-text-primary)]">Approvals</span>.
+              Generate an outreach draft and approve it in the{" "}
+              <Link className="font-semibold text-[var(--app-accent)] hover:underline" href="/app/approvals">
+                approval dashboard
+              </Link>
+              .
             </li>
             <li>Ask Copilot for a 7-day sprint plan tailored to your persona.</li>
           </ul>

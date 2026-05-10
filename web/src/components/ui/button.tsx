@@ -20,7 +20,7 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
       type={type}
       className={cn(
         "inline-flex cursor-pointer items-center justify-center font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(26,92,255,0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
         "disabled:pointer-events-none disabled:opacity-50",
         variant !== "ghost" &&
           size === "sm" &&

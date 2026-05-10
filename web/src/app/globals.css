@@ -7,9 +7,17 @@
   --foreground: #0f1117;
   --muted: #667085;
   --border: rgba(15, 17, 23, 0.12);
-  --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: Newsreader, Georgia, "Times New Roman", ui-serif, serif;
-  --font-app-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-app-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-app-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+
+  /* App focus rings — mirror `.theme-app` (usable outside shell with fallback) */
+  --app-focus-ring: rgba(79, 142, 247, 0.35);
+  --app-focus-border: rgba(79, 142, 247, 0.45);
 
   /* brand */
   --accent: #88e03f;
@@ -56,8 +64,8 @@
   --color-app-text-tertiary: var(--app-text-tertiary, #9ca3af);
   --color-app-border: var(--app-border, #e5e8ef);
   --color-app-border-strong: var(--app-border-strong, #d1d5db);
-  --color-app-accent: var(--app-accent, #1a5cff);
-  --color-app-accent-hover: var(--app-accent-hover, #0f44d4);
+  --color-app-accent: var(--app-accent, #4f8ef7);
+  --color-app-accent-hover: var(--app-accent-hover, #3d7eed);
   --color-app-sidebar: var(--app-sidebar, #0f1117);
   --color-app-sidebar-muted: var(--app-sidebar-muted, rgba(255, 255, 255, 0.5));
   --color-app-success: var(--app-success, #22c55e);
@@ -99,6 +107,11 @@ body {
   text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/** JetBrains Mono via `--font-jetbrains-mono` (see root layout). */
+.font-app-mono {
+  font-family: var(--font-app-mono);
 }
 
 .grain {

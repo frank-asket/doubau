@@ -230,10 +230,10 @@ export function MatchAnalyticsClient() {
                 <th className="pb-2 pr-3 font-medium">When</th>
                 <th className="pb-2 pr-3 font-medium">Event</th>
                 <th className="pb-2 pr-3 font-medium">Reason</th>
-                <th className="pb-2 font-mono text-[11px] font-medium">Job</th>
+                <th className="pb-2 font-medium font-[family-name:var(--font-app-mono)] text-[11px]">Job</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="font-[family-name:var(--font-app-mono)] text-[11px]">
               {events.length === 0 && !loading ? (
                 <tr>
                   <td colSpan={4} className="py-6 text-[var(--app-text-tertiary)]">
@@ -255,9 +255,7 @@ export function MatchAnalyticsClient() {
                     {eventLabel(ev.event_type)}
                   </td>
                   <td className="py-2 pr-3 align-top text-[var(--app-text-secondary)]">{ev.reason ?? "—"}</td>
-                  <td className="py-2 align-top font-mono text-[11px] text-[var(--app-text-tertiary)]">
-                    {ev.job_id.slice(0, 8)}…
-                  </td>
+                  <td className="py-2 align-top text-[var(--app-text-tertiary)]">{ev.job_id.slice(0, 8)}…</td>
                 </tr>
               ))}
             </tbody>

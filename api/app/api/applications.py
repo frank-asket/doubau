@@ -1,8 +1,9 @@
+import asyncio
 import json
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -14,16 +15,34 @@ from app.agents.outreach import (
     latest_resume_excerpt_for_user,
     latest_resume_full_text,
 )
-from app.api.deps import CurrentUserDep, DbDep
+from app.api.deps import CurrentUserDep, DbDep, user_from_token_payload
+from app.db import SessionLocal
 from app.llm.logging import record_llm_interaction
 from app.models.application import Application, ApplicationStatus
 from app.models.outreach_draft import DraftStatus, OutreachDraft
+from app.security import decode_any_access_token
 from app.state_machine import InvalidTransition, assert_transition
 from app.tasks import dispatch_application_outbound
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+
+def _pipeline_signature(db, user_id: UUID) -> str:
+    """Stable string over applications + drafts so WS clients detect approve/edit/reject/patch."""
+    apps = db.scalars(
+        select(Application).where(Application.user_id == user_id).order_by(Application.id)
+    ).all()
+    drafts = db.scalars(
+        select(OutreachDraft)
+        .join(Application, OutreachDraft.application_id == Application.id)
+        .where(Application.user_id == user_id)
+        .order_by(OutreachDraft.id)
+    ).all()
+    parts: list[str] = [f"a:{a.id}:{a.status.value}:{a.updated_at.isoformat()}" for a in apps]
+    parts.extend(f"d:{d.id}:{d.status.value}:{len(d.content)}" for d in drafts)
+    return "|".join(parts)
 
 
 class ApplicationCreate(BaseModel):
@@ -349,3 +368,50 @@ def submit(
         source_url=app.source_url,
         status=app.status,
     )
+
+
+@router.websocket("/ws")
+async def applications_ws(websocket: WebSocket) -> None:
+    """Push notifications when pipeline state changes (approve, reject, draft edit, generate).
+
+    Clients subscribe with the same Clerk JWT as REST (`token` or `access_token` query param).
+    Server compares a snapshot signature every ~2s and emits ``applications_changed`` when it differs.
+    """
+    await websocket.accept()
+    token = websocket.query_params.get("token") or websocket.query_params.get("access_token")
+    if not token:
+        await websocket.close(code=4401)
+        return
+    try:
+        payload = await decode_any_access_token(token)
+    except Exception:
+        await websocket.close(code=4401)
+        return
+
+    with SessionLocal() as db:
+        try:
+            user = user_from_token_payload(db, payload)
+        except HTTPException:
+            await websocket.close(code=4401)
+            return
+        uid = user.id
+        initial = _pipeline_signature(db, uid)
+
+    await websocket.send_json({"type": "connected", "version": initial})
+    last_sig = initial
+
+    try:
+        while True:
+            await asyncio.sleep(2.0)
+            with SessionLocal() as db:
+                try:
+                    user_from_token_payload(db, payload)
+                except HTTPException:
+                    await websocket.close(code=4401)
+                    return
+                sig = _pipeline_signature(db, uid)
+            if sig != last_sig:
+                last_sig = sig
+                await websocket.send_json({"type": "applications_changed", "version": sig})
+    except WebSocketDisconnect:
+        log.debug("applications_ws disconnected")

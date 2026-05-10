@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CareerHero — Complete Design System v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+/* ═══════════════════════════════════════════
+   RESET & ROOT TOKENS
+═══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Brand */
+  --sb:#1a1f2e;
+  --sb-act:#2d3a5c;
+  --sb-txt:rgba(255,255,255,.5);
+  --sb-txt-act:#ffffff;
+  /* Primary blue */
+  --acc:#3b82f6;
+  --acc-h:#2563eb;
+  --acc-d:#1d4ed8;
+  --acc-50:#eff6ff;
+  --acc-100:#dbeafe;
+  --acc-200:#bfdbfe;
+  /* Green */
+  --grn:#16a34a;--grn-h:#15803d;
+  --grn-50:#f0fdf4;--grn-100:#dcfce7;
+  /* Red */
+  --red:#dc2626;--red-h:#b91c1c;
+  --red-50:#fef2f2;--red-100:#fee2e2;
+  /* Amber */
+  --amb:#d97706;--amb-h:#b45309;
+  --amb-50:#fffbeb;--amb-100:#fef3c7;
+  /* Purple */
+  --pur:#7c3aed;--pur-50:#f5f3ff;--pur-100:#ede9fe;
+  /* Pink */
+  --pink:#db2777;--pink-50:#fdf2f8;
+  /* Neutrals */
+  --bg:#ffffff;
+  --bg2:#f8fafc;
+  --bg3:#f1f5f9;
+  --bdr:#e2e8f0;
+  --bdr2:#cbd5e1;
+  --t:#0f172a;
+  --t2:#475569;
+  --t3:#94a3b8;
+  /* Shape */
+  --r:8px;--rl:12px;--rxl:16px;--r-full:9999px;
+  /* Shadow */
+  --sh-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 12px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
+  --sh-lg:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+  /* Gradients */
+  --grad-blue:linear-gradient(135deg,#60a5fa,#3b82f6);
+  --grad-onboard:linear-gradient(135deg,#dbeafe 0%,#e0e7ff 100%);
+  --grad-hero:linear-gradient(135deg,#bfdbfe 0%,#c7d2fe 100%);
+}
+html{font-family:'Inter',system-ui,sans-serif;font-size:14px;color:var(--t);background:var(--bg2);line-height:1.5}
+body{min-height:100vh}
+code,pre{font-family:'JetBrains Mono',monospace;font-size:11px}
+button{font-family:'Inter',system-ui,sans-serif;cursor:pointer}
+
+/* ═══════════════════════════════════════════
+   DESIGN SYSTEM NAV
+═══════════════════════════════════════════ */
+.ds-nav{position:sticky;top:0;z-index:300;background:#0f172a;display:flex;align-items:center;padding:0 20px;height:48px;gap:0;border-bottom:1px solid rgba(255,255,255,.08)}
+.ds-brand{display:flex;align-items:center;gap:8px;margin-right:20px;flex-shrink:0}
+.ds-mark{width:26px;height:26px;border-radius:7px;background:#1e40af;display:flex;align-items:center;justify-content:center}
+.ds-mark i{font-size:13px;color:#93c5fd}
+.ds-name{font-size:14px;font-weight:700;color:#fff}
+.ds-ver{font-size:10px;font-weight:500;background:rgba(59,130,246,.25);color:#93c5fd;padding:2px 7px;border-radius:20px}
+.ds-tabs{display:flex;gap:1px;overflow-x:auto;flex:1;-webkit-overflow-scrolling:touch}
+.ds-tabs::-webkit-scrollbar{display:none}
+.tab{padding:0 12px;height:48px;border:none;background:transparent;color:rgba(255,255,255,.45);font-size:11.5px;font-weight:500;white-space:nowrap;cursor:pointer;transition:all .15s;font-family:'Inter',system-ui,sans-serif}
+.tab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.04)}
+.tab.on{color:#fff;background:rgba(59,130,246,.2);border-bottom:2px solid #3b82f6}
+
+/* ═══════════════════════════════════════════
+   PAGE LAYOUT
+═══════════════════════════════════════════ */
+.page{display:none;max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+.page.on{display:block}
+.pg-title{font-size:24px;font-weight:700;color:var(--t);margin-bottom:6px}
+.pg-sub{font-size:14px;color:var(--t2);margin-bottom:32px;line-height:1.65;max-width:680px}
+
+/* Section heading */
+.sh{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin:28px 0 14px;display:flex;align-items:center;gap:8px}
+.sh:first-child{margin-top:0}
+.sh::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* Grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;align-items:start}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+
+/* ═══════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════ */
+.card{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rl);padding:18px;box-shadow:var(--sh-sm)}
+.card-sm{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);padding:14px}
+.card-flat{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r);padding:12px}
+.card-accent{background:var(--acc-50);border:1px solid var(--acc-100);border-radius:var(--rl);padding:18px}
+
+/* Annotation rows */
+.ar{display:flex;align-items:flex-start;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;gap:12px}
+.ar:last-child{border-bottom:none}
+.ak{color:var(--t2);font-weight:500;flex-shrink:0;min-width:150px}
+.av{color:var(--t);font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right;word-break:break-all}
+
+/* Divider */
+.div{height:1px;background:var(--bdr);margin:14px 0}
+
+/* ═══════════════════════════════════════════
+   MOCK SHELL COMPONENT
+═══════════════════════════════════════════ */
+.mock-wrap{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rl);padding:10px;margin-bottom:20px}
+.mock-shell{display:flex;border-radius:var(--r);overflow:hidden;border:1px solid var(--bdr);min-height:220px;background:var(--bg)}
+/* Sidebar */
+.sb{width:108px;background:var(--sb);padding:0;display:flex;flex-direction:column;flex-shrink:0}
+.sb-logo{display:flex;align-items:center;gap:6px;padding:10px 10px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-icon{width:20px;height:20px;border-radius:5px;background:#1e40af;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-icon i{font-size:10px;color:#93c5fd}
+.sb-brand{font-size:10px;font-weight:700;color:#fff}
+.sb-item{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:9.5px;color:rgba(255,255,255,.45);transition:all .1s}
+.sb-item.on{background:var(--sb-act);color:#fff;font-weight:500}
+.sb-item i{font-size:11px;flex-shrink:0}
+.sb-sub{padding:4px 10px 4px 26px;font-size:9px;color:rgba(255,255,255,.3)}
+.sb-sub.on{color:#60a5fa}
+.sb-bottom{margin-top:auto;border-top:1px solid rgba(255,255,255,.06)}
+/* Main area */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:36px;border-bottom:1px solid var(--bdr);background:#fff;display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+.topbar-title{font-size:11px;font-weight:600;color:var(--t);flex:1}
+.topbar-search{background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:3px 8px;font-size:9px;color:var(--t3);display:flex;align-items:center;gap:3px}
+.topbar-kbd{background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:0 3px;font-size:8px;color:var(--t3)}
+.topbar-avatar{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:600}
+.content{flex:1;background:var(--bg2);padding:10px;overflow:hidden}
+
+/* Layout placeholder boxes */
+.lb{background:var(--bg);border:1px dashed var(--bdr2);border-radius:5px;padding:8px;font-size:9.5px;color:var(--t3);text-align:center;display:flex;align-items:center;justify-content:center}
+.lb.blue{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:500}
+.lb.green{background:var(--grn-50);color:var(--grn);border-color:var(--grn-100)}
+.lb.dark{background:var(--t);color:#fff;border-color:var(--t)}
+.lb.tinted{background:var(--bg3);border-style:solid}
+
+/* ═══════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════ */
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:12px;font-weight:500;line-height:1.4}
+.p-blue{background:var(--acc-50);color:#1d4ed8}
+.p-green{background:var(--grn-50);color:var(--grn-h)}
+.p-red{background:var(--red-50);color:var(--red-h)}
+.p-amber{background:var(--amb-50);color:var(--amb-h)}
+.p-purple{background:var(--pur-50);color:var(--pur)}
+.p-gray{background:var(--bg3);color:var(--t2);border:1px solid var(--bdr)}
+.p-dark{background:var(--t);color:#fff}
+.p-sm{padding:2px 8px;font-size:11px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:var(--r-full);font-size:13px;font-weight:500;border:none;cursor:pointer;transition:all .15s;font-family:'Inter',system-ui,sans-serif;line-height:1}
+.b-pri{background:var(--acc);color:#fff}
+.b-pri:hover{background:var(--acc-h)}
+.b-dark{background:var(--t);color:#fff}
+.b-dark:hover{background:#1e293b}
+.b-grad{background:var(--grad-blue);color:#fff;border-radius:var(--r)}
+.b-out{background:transparent;border:1px solid var(--bdr2);color:var(--t)}
+.b-grn{background:var(--grn-50);color:var(--grn-h)}
+.b-red{background:var(--red-50);color:var(--red-h)}
+.b-ghost{background:transparent;color:var(--acc);padding:6px 12px}
+.b-sm{padding:6px 14px;font-size:12px}
+.b-xs{padding:4px 10px;font-size:11px}
+.b-full{width:100%}
+.b-rad{border-radius:var(--r)}
+
+/* Progress */
+.prog{background:var(--bg3);border-radius:var(--r-full);overflow:hidden}
+.prog-h4{height:4px}
+.prog-h5{height:5px}
+.prog-h8{height:8px}
+.prog-f{height:100%;border-radius:var(--r-full)}
+.pf-blue{background:var(--acc)}
+.pf-green{background:var(--grn)}
+.pf-amber{background:var(--amb)}
+.pf-red{background:var(--red)}
+.pf-pink{background:#ec4899}
+
+/* Stepper */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:8px}
+.step-node{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.step-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.sc-done{background:var(--acc);color:#fff}
+.sc-active{background:var(--acc);color:#fff;border:2px solid var(--acc-200)}
+.sc-idle{background:var(--bg3);color:var(--t2);border:1px solid var(--bdr)}
+.step-line{flex:1;height:1.5px;background:var(--bdr);margin:0 6px;min-width:20px}
+.step-line.done{background:var(--acc)}
+.step-label{color:var(--t2);font-size:11px}
+.step-label.active{color:var(--acc);font-weight:600}
+.step-label.done{color:var(--t2)}
+
+/* Skeleton */
+@keyframes shimmer{0%{opacity:.3}50%{opacity:.7}100%{opacity:.3}}
+.sk{border-radius:4px;background:var(--bg3);animation:shimmer 1.4s ease infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Sparkline bars */
+.spark{display:flex;align-items:flex-end;gap:2px;height:28px}
+.sbar{width:5px;border-radius:2px 2px 0 0}
+
+/* Color swatch */
+.sw{display:flex;gap:3px;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px}
+.sw div{flex:1}
+
+/* Score ring preview */
+.ring-wrap{display:flex;align-items:center;justify-content:center;padding:12px}
+
+/* Tooltip-style info box */
+.info-box{background:var(--acc-50);border:1px solid var(--acc-100);border-radius:var(--r);padding:10px 12px;font-size:12px;color:#1d4ed8;line-height:1.6}
+.warn-box{background:var(--amb-50);border:1px solid var(--amb-100);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--amb-h);line-height:1.6}
+
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r-full);padding:3px 10px;font-size:11px;color:var(--t2)}
+.tag-sel{background:var(--acc-50);border-color:var(--acc);color:var(--acc-d)}
+
+/* Onboarding form */
+.onb-wrap{background:#fff;border:1px solid var(--bdr);border-radius:var(--rxl);padding:28px;max-width:400px;box-shadow:var(--sh-md);margin:0 auto}
+.onb-icon{width:40px;height:40px;background:var(--acc-50);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.onb-icon i{font-size:20px;color:var(--acc)}
+.onb-h{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}
+.onb-sub{font-size:13px;color:var(--t2);text-align:center;margin-bottom:20px}
+.onb-input{width:100%;border:1px solid var(--bdr);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--t);font-family:'Inter',system-ui,sans-serif;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.onb-input i{font-size:15px;color:var(--t3)}
+
+/* App shell mock (onboarding split) */
+.split-wrap{display:grid;grid-template-columns:500px 1fr;gap:0;border-radius:var(--rl);overflow:hidden;border:1px solid var(--bdr);background:var(--bg2)}
+.split-left{background:#fff;padding:32px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.split-right{background:var(--grad-hero);padding:24px;position:relative;overflow:hidden}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     DESIGN SYSTEM NAV
+═══════════════════════════════════════════ -->
+<nav class="ds-nav">
+  <div class="ds-brand">
+    <div class="ds-mark"><i class="ti ti-diamonds"></i></div>
+    <span class="ds-name">CareerHero</span>
+    <span class="ds-ver">DS v2</span>
+  </div>
+  <div class="ds-tabs">
+    <button class="tab on" onclick="go('tokens')">Tokens</button>
+    <button class="tab" onclick="go('shell')">App Shell</button>
+    <button class="tab" onclick="go('onboarding')">Onboarding</button>
+    <button class="tab" onclick="go('dashboard')">Dashboard</button>
+    <button class="tab" onclick="go('profile')">Career Profile</button>
+    <button class="tab" onclick="go('pathfinder')">Pathfinder</button>
+    <button class="tab" onclick="go('discovery')">Job Discovery</button>
+    <button class="tab" onclick="go('jobdetail')">Job Detail</button>
+    <button class="tab" onclick="go('tracker')">Job Tracker</button>
+    <button class="tab" onclick="go('sponsorship')">Sponsorship Hub</button>
+    <button class="tab" onclick="go('salary')">Salary Benchmark</button>
+    <button class="tab" onclick="go('copilot')">Copilot</button>
+    <button class="tab" onclick="go('ats')">ATS Optimizer</button>
+    <button class="tab" onclick="go('linkedin')">LinkedIn Analysis</button>
+    <button class="tab" onclick="go('health')">Career Health</button>
+    <button class="tab" onclick="go('planner')">Career Planner</button>
+    <button class="tab" onclick="go('success')">Career Success</button>
+    <button class="tab" onclick="go('discussion')">Discussion</button>
+    <button class="tab" onclick="go('settings')">Settings</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     01 · TOKENS
+═══════════════════════════════════════════ -->
+<div class="page on" id="p-tokens">
+  <h1 class="pg-title">Design tokens</h1>
+  <p class="pg-sub">Global CSS custom properties, type scale, spacing, shadows, and shape tokens. Every screen pulls from this single source of truth.</p>
+
+  <div class="sh">Color palette</div>
+  <div class="g3">
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">Primary — Blue</div>
+      <div class="sw"><div style="background:#eff6ff"></div><div style="background:#dbeafe"></div><div style="background:#bfdbfe"></div><div style="background:#93c5fd"></div><div style="background:#3b82f6"></div><div style="background:#2563eb"></div><div style="background:#1d4ed8"></div></div>
+      <div class="ar"><span class="ak">--acc</span><span class="av">#3b82f6 — CTA, links, active states</span></div>
+      <div class="ar"><span class="ak">--acc-50</span><span class="av">#eff6ff — tint bg, promo banners</span></div>
+      <div class="ar"><span class="ak">--acc-100</span><span class="av">#dbeafe — copilot card bg</span></div>
+      <div class="ar"><span class="ak">Progress bar fill</span><span class="av">--acc (wizard, skill bars)</span></div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">Success — Green</div>
+      <div class="sw"><div style="background:#f0fdf4"></div><div style="background:#dcfce7"></div><div style="background:#86efac"></div><div style="background:#4ade80"></div><div style="background:#22c55e"></div><div style="background:#16a34a"></div><div style="background:#15803d"></div></div>
+      <div class="ar"><span class="ak">--grn</span><span class="av">#16a34a — confirmed, positive Δ, goals</span></div>
+      <div class="ar"><span class="ak">--grn-50</span><span class="av">#f0fdf4 — approve btn, success bg</span></div>
+      <div class="ar"><span class="ak">Pathfinder bar</span><span class="av">--grn (match ≥70%), wizard progress</span></div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">Danger — Red</div>
+      <div class="sw"><div style="background:#fef2f2"></div><div style="background:#fee2e2"></div><div style="background:#fca5a5"></div><div style="background:#f87171"></div><div style="background:#ef4444"></div><div style="background:#dc2626"></div><div style="background:#b91c1c"></div></div>
+      <div class="ar"><span class="ak">--red</span><span class="av">#dc2626 — rejected, negative Δ</span></div>
+      <div class="ar"><span class="ak">--red-50</span><span class="av">#fef2f2 — reject btn, critique card bg</span></div>
+      <div class="ar"><span class="ak">Sparkline down</span><span class="av">#ef4444 bars</span></div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">Warning — Amber</div>
+      <div class="sw"><div style="background:#fffbeb"></div><div style="background:#fef3c7"></div><div style="background:#fde68a"></div><div style="background:#fcd34d"></div><div style="background:#f59e0b"></div><div style="background:#d97706"></div><div style="background:#b45309"></div></div>
+      <div class="ar"><span class="ak">--amb</span><span class="av">#d97706 — pending, salary range labels</span></div>
+      <div class="ar"><span class="ak">--amb-50</span><span class="av">#fffbeb — warning box, disclaimer</span></div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">AI / Copilot — Purple</div>
+      <div class="sw"><div style="background:#f5f3ff"></div><div style="background:#ede9fe"></div><div style="background:#ddd6fe"></div><div style="background:#c4b5fd"></div><div style="background:#8b5cf6"></div><div style="background:#7c3aed"></div><div style="background:#6d28d9"></div></div>
+      <div class="ar"><span class="ak">--pur</span><span class="av">#7c3aed — AI assistant accents</span></div>
+      <div class="ar"><span class="ak">Copilot chip</span><span class="av">--pur-50 bg + --pur text</span></div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;font-weight:600;margin-bottom:8px">Sidebar & neutrals</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+        <div style="display:flex;gap:7px;align-items:center"><div style="width:30px;height:16px;background:#0f172a;border-radius:3px"></div><code>#0f172a body text / --t</code></div>
+        <div style="display:flex;gap:7px;align-items:center"><div style="width:30px;height:16px;background:#1a1f2e;border-radius:3px"></div><code>#1a1f2e sidebar bg / --sb</code></div>
+        <div style="display:flex;gap:7px;align-items:center"><div style="width:30px;height:16px;background:#2d3a5c;border-radius:3px"></div><code>#2d3a5c sidebar active / --sb-act</code></div>
+        <div style="display:flex;gap:7px;align-items:center"><div style="width:30px;height:16px;background:#f8fafc;border-radius:3px;border:1px solid #e2e8f0"></div><code>#f8fafc page bg / --bg2</code></div>
+        <div style="display:flex;gap:7px;align-items:center"><div style="width:30px;height:16px;background:#f1f5f9;border-radius:3px;border:1px solid #e2e8f0"></div><code>#f1f5f9 secondary / --bg3</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sh">Typography scale</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">32px / 700 / onboarding H1</code><span style="font-size:32px;font-weight:700">What's your Top Priority?</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">24px / 700 / page hero</code><span style="font-size:24px;font-weight:700">Your Personalized Career Paths</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">18px / 600 / page title</code><span style="font-size:18px;font-weight:600">Career Pathfinder</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">28px / 700 / metric hero</code><span style="font-size:28px;font-weight:700">£65,000</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">22px / 700 / metric large</code><span style="font-size:22px;font-weight:700">85 <span style="font-size:13px;color:var(--t3);font-weight:400">(points)</span></span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">15px / 600 / section title</code><span style="font-size:15px;font-weight:600">Technical Skills</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">14px / 400 / body</code><span style="font-size:14px;color:var(--t2)">Full-stack development role focusing on web applications</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">13px / 400 / secondary</code><span style="font-size:13px;color:var(--t2)">02 May 2025 · Already have an account?</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bdr)"><code style="color:var(--t3)">12px / 500 / badge / label</code><span class="pill p-blue">Applied</span></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;align-items:baseline;padding:10px 0"><code style="color:var(--t3)">10px / 700 / eyebrow</code><span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3)">Question 1 of 5</span></div>
+    </div>
+  </div>
+
+  <div class="sh">Spacing, shape & shadow</div>
+  <div class="g2">
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Spacing scale</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:4px;height:14px;background:var(--acc);border-radius:2px"></div><code>4px — xs: icon-label gap, chip inner</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:8px;height:14px;background:var(--acc);border-radius:2px"></div><code>8px — sm: badge padding, list gap</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:12px;height:14px;background:var(--acc);border-radius:2px"></div><code>12px — md: card section gap</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:16px;height:14px;background:var(--acc);border-radius:2px"></div><code>16px — lg: grid gap, card pad</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:14px;background:var(--acc);border-radius:2px"></div><code>24px — xl: page padding, topbar</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:14px;background:var(--acc);border-radius:2px"></div><code>32px — 2xl: section top margin</code></div>
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Border radius</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:24px;background:var(--acc-50);border:1px solid var(--acc-100);border-radius:4px"></div><code>4px — inline highlights, tooltips</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:24px;background:var(--acc-50);border:1px solid var(--acc-100);border-radius:8px"></div><code>8px — inputs, cards-sm, modals</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:24px;background:var(--acc-50);border:1px solid var(--acc-100);border-radius:12px"></div><code>12px — main cards</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:24px;background:var(--acc-50);border:1px solid var(--acc-100);border-radius:16px"></div><code>16px — modals, onboarding cards</code></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:24px;background:var(--acc-50);border:1px solid var(--acc-100);border-radius:9999px"></div><code>9999px — pills, buttons, inputs</code></div>
+      </div>
+      <div class="ar"><span class="ak">Shadow sm</span><span class="av">0 1px 3px rgba(0,0,0,.08)</span></div>
+      <div class="ar"><span class="ak">Shadow md</span><span class="av">0 4px 12px rgba(0,0,0,.10)</span></div>
+      <div class="ar"><span class="ak">Shadow lg</span><span class="av">0 8px 24px rgba(0,0,0,.12) — modals</span></div>
+    </div>
+  </div>
+
+  <div class="sh">Component library</div>
+  <div class="g2">
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Status pills & tags</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="pill p-blue">Applied</span>
+        <span class="pill p-green"><i class="ti ti-check" style="font-size:11px"></i> Approved</span>
+        <span class="pill p-red">Rejected</span>
+        <span class="pill p-amber">Pending</span>
+        <span class="pill p-purple"><i class="ti ti-sparkles" style="font-size:11px"></i> AI</span>
+        <span class="pill p-gray">Phone Screen</span>
+        <span class="pill p-dark">Current plan</span>
+        <span class="pill p-green p-sm">+13% ↑</span>
+        <span class="pill p-red p-sm">-8% ↓</span>
+      </div>
+      <div class="div"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tag">Remote</span>
+        <span class="tag tag-sel">Collaborative</span>
+        <span class="tag">Full-time</span>
+        <span class="tag tag-sel">Innovative</span>
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Buttons</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <button class="btn b-pri">Analyse CV</button>
+        <button class="btn b-dark">Select Plan</button>
+        <button class="btn b-grad">Next: Skills &rsaquo;</button>
+        <button class="btn b-out">Cancel</button>
+        <button class="btn b-grn"><i class="ti ti-check" style="font-size:12px"></i> Approve</button>
+        <button class="btn b-red"><i class="ti ti-x" style="font-size:12px"></i> Reject</button>
+        <button class="btn b-ghost b-sm">+ Add Skill</button>
+        <button class="btn b-pri b-sm">Run</button>
+      </div>
+      <div class="ar"><span class="ak">Primary hover</span><span class="av">#2563eb</span></div>
+      <div class="ar"><span class="ak">Gradient (grad)</span><span class="av">blue → blue-600, border-radius 8px</span></div>
+      <div class="ar"><span class="ak">Disabled</span><span class="av">opacity .4, cursor not-allowed</span></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Progress bars</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>In progress</span><span>33%</span></div><div class="prog prog-h5"><div class="prog-f pf-blue" style="width:33%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>Completed</span><span>100%</span></div><div class="prog prog-h5"><div class="prog-f pf-green" style="width:100%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>At risk / stalled</span><span>12%</span></div><div class="prog prog-h5"><div class="prog-f pf-amber" style="width:12%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>Match score (thick)</span><span>90%</span></div><div class="prog prog-h8"><div class="prog-f pf-green" style="width:90%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>Satisfaction (pink)</span><span>37%</span></div><div class="prog prog-h8"><div class="prog-f pf-pink" style="width:37%"></div></div></div>
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Sparkline bars (metric cards)</div>
+      <div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:12px">
+        <div><div style="font-size:10px;color:var(--t3);margin-bottom:5px">Up trend</div>
+        <div class="spark"><div class="sbar" style="height:35%;background:#4ade80;opacity:.5"></div><div class="sbar" style="height:50%;background:#4ade80;opacity:.6"></div><div class="sbar" style="height:70%;background:#22c55e;opacity:.7"></div><div class="sbar" style="height:85%;background:#22c55e;opacity:.85"></div><div class="sbar" style="height:100%;background:#16a34a"></div></div></div>
+        <div><div style="font-size:10px;color:var(--t3);margin-bottom:5px">Down trend</div>
+        <div class="spark"><div class="sbar" style="height:100%;background:#ef4444"></div><div class="sbar" style="height:80%;background:#ef4444;opacity:.85"></div><div class="sbar" style="height:55%;background:#ef4444;opacity:.7"></div><div class="sbar" style="height:35%;background:#ef4444;opacity:.55"></div><div class="sbar" style="height:20%;background:#ef4444;opacity:.4"></div></div></div>
+        <div><div style="font-size:10px;color:var(--t3);margin-bottom:5px">Mixed</div>
+        <div class="spark"><div class="sbar" style="height:60%;background:#16a34a"></div><div class="sbar" style="height:40%;background:#ef4444;opacity:.7"></div><div class="sbar" style="height:80%;background:#16a34a"></div><div class="sbar" style="height:55%;background:#16a34a;opacity:.7"></div><div class="sbar" style="height:90%;background:#16a34a"></div></div></div>
+      </div>
+      <div class="ar"><span class="ak">Bar size</span><span class="av">5px wide, 2px gap, border-radius 2px top</span></div>
+      <div class="ar"><span class="ak">Container h</span><span class="av">28–32px</span></div>
+      <div class="ar"><span class="ak">Up bars</span><span class="av">#16a34a → #4ade80 opacity gradient</span></div>
+      <div class="ar"><span class="ak">Down bars</span><span class="av">#ef4444, opacity fades</span></div>
+    </div>
+  </div>
+
+  <div class="sh">4-step stepper (Career Profile wizard)</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Step 1 active — 25% progress</div>
+        <div class="stepper">
+          <div class="step-node"><div class="step-circle sc-active">1</div><span class="step-label active">Personal Info</span></div>
+          <div class="step-line"></div>
+          <div class="step-node"><div class="step-circle sc-idle">2</div><span class="step-label">Skills & Expertise</span></div>
+          <div class="step-line"></div>
+          <div class="step-node"><div class="step-circle sc-idle">3</div><span class="step-label">Career Goals</span></div>
+          <div class="step-line"></div>
+          <div class="step-node"><div class="step-circle sc-idle">4</div><span class="step-label">Work Style</span></div>
+        </div>
+        <div class="prog prog-h4" style="margin-top:8px"><div class="prog-f pf-green" style="width:25%"></div></div>
+      </div>
+      <div class="div"></div>
+      <div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">All complete — 100% progress</div>
+        <div class="stepper">
+          <div class="step-node"><div class="step-circle sc-done"><i class="ti ti-check" style="font-size:10px"></i></div><span class="step-label done" style="color:var(--acc)">Personal Info</span></div>
+          <div class="step-line done"></div>
+          <div class="step-node"><div class="step-circle sc-done"><i class="ti ti-check" style="font-size:10px"></i></div><span class="step-label done" style="color:var(--acc)">Skills & Expertise</span></div>
+          <div class="step-line done"></div>
+          <div class="step-node"><div class="step-circle sc-done"><i class="ti ti-check" style="font-size:10px"></i></div><span class="step-label done" style="color:var(--acc)">Career Goals</span></div>
+          <div class="step-line done"></div>
+          <div class="step-node"><div class="step-circle sc-done"><i class="ti ti-check" style="font-size:10px"></i></div><span class="step-label done" style="color:var(--acc)">Work Style</span></div>
+        </div>
+        <div class="prog prog-h4" style="margin-top:8px"><div class="prog-f pf-green" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="div"></div>
+    <div class="ar"><span class="ak">Step node size</span><span class="av">22×22px circle</span></div>
+    <div class="ar"><span class="ak">Active / done</span><span class="av">--acc fill, white text/icon</span></div>
+    <div class="ar"><span class="ak">Idle</span><span class="av">--bg3 fill, --t2 text, 1px border</span></div>
+    <div class="ar"><span class="ak">Connector line</span><span class="av">1.5px, --bdr default, --acc when done</span></div>
+    <div class="ar"><span class="ak">Progress bar</span><span class="av">4–5px height, green fill</span></div>
+    <div class="ar"><span class="ak">% label</span><span class="av">12px --t3, far right of bar</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     02 · APP SHELL
+═══════════════════════════════════════════ -->
+<div class="page" id="p-shell">
+  <h1 class="pg-title">App shell</h1>
+  <p class="pg-sub">Persistent sidebar + topbar layout. Sidebar is always dark (#1a1f2e). Topbar is always white. Content area is #f8fafc.</p>
+
+  <div class="sh">Live shell demo</div>
+  <div class="mock-wrap">
+    <div class="mock-shell" style="min-height:300px">
+      <div class="sb">
+        <div class="sb-logo"><div class="sb-icon"><i class="ti ti-diamonds"></i></div><span class="sb-brand">CareerHero</span></div>
+        <div class="sb-item on"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+        <div class="sb-item"><i class="ti ti-trending-up"></i> Career Growth <i class="ti ti-chevron-down" style="margin-left:auto;font-size:9px;opacity:.5"></i></div>
+        <div class="sb-sub on">Career Profile</div>
+        <div class="sb-sub">Career Pathfinder</div>
+        <div class="sb-sub">Career Steps</div>
+        <div class="sb-sub">Career Planner</div>
+        <div class="sb-sub">Career Success</div>
+        <div class="sb-item"><i class="ti ti-search"></i> Job Search <i class="ti ti-chevron-down" style="margin-left:auto;font-size:9px;opacity:.5"></i></div>
+        <div class="sb-item"><i class="ti ti-tool"></i> Tools <i class="ti ti-chevron-down" style="margin-left:auto;font-size:9px;opacity:.5"></i></div>
+        <div class="sb-item"><i class="ti ti-message-circle"></i> Discussion</div>
+        <div class="sb-item"><i class="ti ti-school"></i> Skill Gap</div>
+        <div class="sb-bottom">
+          <div class="sb-item"><i class="ti ti-settings"></i> Settings</div>
+          <div class="sb-item"><i class="ti ti-logout"></i> Log Out</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="topbar">
+          <span class="topbar-title">Dashboard</span>
+          <div class="topbar-search"><i class="ti ti-search" style="font-size:10px"></i> Search… <span class="topbar-kbd">⌘K</span></div>
+          <i class="ti ti-bell" style="font-size:14px;color:var(--t2)"></i>
+          <div class="topbar-avatar">RK</div>
+          <i class="ti ti-chevron-down" style="font-size:12px;color:var(--t2)"></i>
+        </div>
+        <div class="content">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
+            <div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px"><div style="font-size:8px;color:var(--t3)">Career Score</div><div style="font-size:14px;font-weight:700">85</div><div style="font-size:8px;color:var(--grn)">+13% ↑</div></div>
+            <div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px"><div style="font-size:8px;color:var(--t3)">Skills Growth</div><div style="font-size:14px;font-weight:700">12</div><div style="font-size:8px;color:var(--red)">-15% ↓</div></div>
+            <div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px"><div style="font-size:8px;color:var(--t3)">LinkedIn Health</div><div style="font-size:14px;font-weight:700">82</div><div style="font-size:8px;color:var(--red)">-8% ↓</div></div>
+            <div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px"><div style="font-size:8px;color:var(--t3)">CV Score</div><div style="font-size:14px;font-weight:700">75</div><div style="font-size:8px;color:var(--grn)">+10% ↑</div></div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px;font-size:9px;color:var(--t3);text-align:center;min-height:60px;display:flex;align-items:center;justify-content:center">Application Trends chart + Career Goals panel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Sidebar specs</div>
+      <div class="ar"><span class="ak">Width expanded</span><span class="av">220px</span></div>
+      <div class="ar"><span class="ak">Width collapsed</span><span class="av">60px (icon-only mode)</span></div>
+      <div class="ar"><span class="ak">Background</span><span class="av">#1a1f2e (always dark)</span></div>
+      <div class="ar"><span class="ak">Logo area height</span><span class="av">52px, border-bottom rgba(255,255,255,.06)</span></div>
+      <div class="ar"><span class="ak">Logo icon</span><span class="av">20×20px, #1e40af bg, #93c5fd ti-diamonds</span></div>
+      <div class="ar"><span class="ak">Nav item height</span><span class="av">34px, padding 0 10px, 10px font</span></div>
+      <div class="ar"><span class="ak">Default text</span><span class="av">rgba(255,255,255,.50)</span></div>
+      <div class="ar"><span class="ak">Active item bg</span><span class="av">#2d3a5c, white text, weight 500</span></div>
+      <div class="ar"><span class="ak">Sub-items indent</span><span class="av">padding-left 26px, 9px, .35 alpha</span></div>
+      <div class="ar"><span class="ak">Active sub-item</span><span class="av">#60a5fa color, weight 500</span></div>
+      <div class="ar"><span class="ak">Collapse icon</span><span class="av">ti-chevrons-left, topbar right</span></div>
+      <div class="ar"><span class="ak">Bottom section</span><span class="av">Settings + Log Out, border-top .06</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Topbar specs</div>
+      <div class="ar"><span class="ak">Height</span><span class="av">56px, position fixed</span></div>
+      <div class="ar"><span class="ak">Background</span><span class="av">#ffffff, border-bottom 1px #e2e8f0</span></div>
+      <div class="ar"><span class="ak">Page title</span><span class="av">18px weight 600, --t</span></div>
+      <div class="ar"><span class="ak">Back button</span><span class="av">ti-chevron-left + page title pattern</span></div>
+      <div class="ar"><span class="ak">Search bar</span><span class="av">200px pill, #f8fafc bg, ⌘K badge</span></div>
+      <div class="ar"><span class="ak">Bell icon</span><span class="av">ti-bell 18px + 8px red dot badge</span></div>
+      <div class="ar"><span class="ak">Avatar</span><span class="av">32px circle, blue→purple gradient, 8px font</span></div>
+      <div class="ar"><span class="ak">Chevron-down</span><span class="av">ti-chevron-down 12px, right of avatar</span></div>
+      <div class="ar"><span class="ak">Content area</span><span class="av">padding 24px, background #f8fafc</span></div>
+      <div class="ar"><span class="ak">Floating copilot</span><span class="av">56px dark circle, bottom-right, ti-sparkles, z-index 100</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     03 · ONBOARDING
+═══════════════════════════════════════════ -->
+<div class="page" id="p-onboarding">
+  <h1 class="pg-title">Onboarding flow</h1>
+  <p class="pg-sub">5-step split-screen. Left = white form card. Right = light blue-purple gradient with app preview. Steps: Account → Career → Contact → Goals → Plan.</p>
+
+  <div class="sh">Split-screen layout</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:380px 1fr;gap:0;border-radius:12px;overflow:hidden;border:1px solid var(--bdr);min-height:280px">
+      <div style="background:#fff;padding:28px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="width:32px;height:32px;background:var(--acc-50);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><i class="ti ti-diamonds" style="font-size:16px;color:var(--acc)"></i></div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;text-align:center">Tell Us About Your Career</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Already have an account? <span style="color:var(--acc)">Sign in</span></div>
+        <!-- Stepper -->
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:16px;width:100%">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-check" style="font-size:9px;color:#fff"></i></div>
+          <div style="flex:1;height:1.5px;background:var(--acc)"></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);border:2px solid var(--acc-200);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0">2</div>
+          <div style="flex:1;height:1.5px;background:var(--bdr)"></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t2);border:1px solid var(--bdr);flex-shrink:0">3</div>
+          <div style="flex:1;height:1.5px;background:var(--bdr)"></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t2);border:1px solid var(--bdr);flex-shrink:0">4</div>
+          <div style="flex:1;height:1.5px;background:var(--bdr)"></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t2);border:1px solid var(--bdr);flex-shrink:0">5</div>
+        </div>
+        <!-- Situation chips -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;width:100%">
+          <div style="background:var(--acc-50);border:1px solid var(--acc);border-radius:9999px;padding:5px 12px;font-size:11px;color:var(--acc-d);font-weight:500;display:flex;align-items:center;gap:5px"><span>🧑‍💼</span> Currently Employed</div>
+          <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:9999px;padding:5px 12px;font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px"><i class="ti ti-search" style="font-size:11px"></i> Looking for work</div>
+        </div>
+        <button class="btn b-grad b-full">Next: Contact &rsaquo;</button>
+        <div style="font-size:11px;color:var(--acc);margin-top:8px;cursor:pointer">‹ Back: Account</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#bfdbfe,#c7d2fe);padding:16px;display:flex;align-items:center;justify-content:center">
+        <div style="font-size:11px;color:#1e3a8a;font-weight:600;text-align:center;line-height:1.7"><span style="color:var(--acc);font-weight:700">CareerHero</span> is an AI-powered platform<br>that helps candidates build successful careers.<br><br><span style="font-size:10px;color:#3730a3">Loved by 57,122 heroes ✦</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout tokens</div>
+      <div class="ar"><span class="ak">Left panel</span><span class="av">~460px, white, centered column</span></div>
+      <div class="ar"><span class="ak">Right panel</span><span class="av">flex:1, gradient #bfdbfe → #c7d2fe</span></div>
+      <div class="ar"><span class="ak">Outer radius</span><span class="av">16px, overflow hidden</span></div>
+      <div class="ar"><span class="ak">Logo mark</span><span class="av">32px, --acc-50 bg, --acc icon</span></div>
+      <div class="ar"><span class="ak">H1 size</span><span class="av">26–32px weight 700, centered</span></div>
+      <div class="ar"><span class="ak">Sign-in link</span><span class="av">13px --acc</span></div>
+      <div class="ar"><span class="ak">CTA btn</span><span class="av">blue gradient, full-width, radius 8px</span></div>
+      <div class="ar"><span class="ak">Back link</span><span class="av">11px --acc, centered below CTA</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Step 4 — Goals (focus chips)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <div style="background:var(--acc-50);border:1px solid var(--acc);border-radius:9999px;padding:6px 14px;font-size:12px;color:var(--acc-d);font-weight:500;display:flex;align-items:center;gap:5px"><span>✏️</span> Improve your CV</div>
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:9999px;padding:6px 14px;font-size:12px;color:var(--t2);display:flex;align-items:center;gap:5px"><i class="ti ti-search" style="font-size:12px"></i> Find new jobs</div>
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:9999px;padding:6px 14px;font-size:12px;color:var(--t2);display:flex;align-items:center;gap:5px"><span>🎯</span> Interview prep</div>
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:9999px;padding:6px 14px;font-size:12px;color:var(--t2);display:flex;align-items:center;gap:5px"><span>🏆</span> Get promoted</div>
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:9999px;padding:6px 14px;font-size:12px;color:var(--t2);display:flex;align-items:center;gap:5px"><span>🚀</span> Boost LinkedIn</div>
+      </div>
+      <div class="ar"><span class="ak">Chip default</span><span class="av">--bg3 bg, --bdr border, --t2 text</span></div>
+      <div class="ar"><span class="ak">Chip selected</span><span class="av">--acc-50 bg, --acc border, --acc-d text, weight 500</span></div>
+      <div class="ar"><span class="ak">Chip shape</span><span class="av">9999px radius, emoji + label</span></div>
+      <div class="ar"><span class="ak">Right panel content</span><span class="av">Dashboard preview screenshot + floating AI chips</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     04 · DASHBOARD
+═══════════════════════════════════════════ -->
+<div class="page" id="p-dashboard">
+  <h1 class="pg-title">Dashboard</h1>
+  <p class="pg-sub">Home screen. "Welcome back, [Name] 👋" + promo banner + 2×2 metric cards + Application Trends chart + right sidebar (Career Goals timeline + Top Picks).</p>
+
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout grid</div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:6px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="lb" style="padding:5px">👋 Welcome back, Robert! — 22px/700</div>
+          <div class="lb tinted" style="padding:8px">Promo banner — 💎 icon + text + "Upgrade now →" + ✕</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            <div class="lb" style="padding:18px">Career Score 85</div>
+            <div class="lb" style="padding:18px">Skills Growth 12</div>
+            <div class="lb" style="padding:18px">LinkedIn Health 82</div>
+            <div class="lb" style="padding:18px">CV Score 75</div>
+          </div>
+          <div class="lb" style="padding:28px">Application Trends — stacked bar chart + legend + total 250</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="lb" style="padding:20px">Career Goals timeline — dot → dot → dot</div>
+          <div class="lb" style="padding:30px">Top Picks for next role — job cards list</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Main/sidebar split</span><span class="av">1fr + ~320px</span></div>
+      <div class="ar"><span class="ak">Metric grid</span><span class="av">2×2 equal inside main col</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Component tokens</div>
+      <div class="ar"><span class="ak">Promo banner bg</span><span class="av">--acc-50, --acc-100 border, white ✕ dismiss</span></div>
+      <div class="ar"><span class="ak">Promo icon</span><span class="av">💎 emoji or SVG illustration, left</span></div>
+      <div class="ar"><span class="ak">Upgrade link</span><span class="av">13px --acc + ti-chevron-right</span></div>
+      <div class="ar"><span class="ak">Metric icon</span><span class="av">28px circle --acc-50 + colored icon</span></div>
+      <div class="ar"><span class="ak">Metric number</span><span class="av">22px weight 700</span></div>
+      <div class="ar"><span class="ak">Metric "(unit)"</span><span class="av">13px --t3 suffix inline</span></div>
+      <div class="ar"><span class="ak">Improve link</span><span class="av">13px --acc + ti-chevron-right, top-right of card</span></div>
+      <div class="ar"><span class="ak">Chart: awaiting</span><span class="av">#3b82f6 (blue) bars</span></div>
+      <div class="ar"><span class="ak">Chart: response</span><span class="av">#22c55e (green) bars</span></div>
+      <div class="ar"><span class="ak">Chart: rejected</span><span class="av">#ec4899 (pink) bars</span></div>
+      <div class="ar"><span class="ak">Chart total</span><span class="av">22px/700 + "(applications)" 13px --t3</span></div>
+      <div class="ar"><span class="ak">Goals: current dot</span><span class="av">green filled circle + "You are here!"</span></div>
+      <div class="ar"><span class="ak">Goals: next dot</span><span class="av">blue ring, salary in --acc</span></div>
+      <div class="ar"><span class="ak">Goals: future dot</span><span class="av">lighter blue ring</span></div>
+      <div class="ar"><span class="ak">Top Picks bookmark</span><span class="av">ti-bookmark outline → filled</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     05 · CAREER PROFILE
+═══════════════════════════════════════════ -->
+<div class="page" id="p-profile">
+  <h1 class="pg-title">Career Profile</h1>
+  <p class="pg-sub">4-step linear wizard (Personal Info → Skills & Expertise → Career Goals → Work Style) with green progress bar. Results screen shows MBTI personality type + career paths.</p>
+
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Wizard structure</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
+        <div class="lb tinted" style="padding:6px">4-step stepper (see Tokens tab) + green progress bar + %</div>
+        <div class="lb tinted" style="padding:5px">Sub-tab bar: Basic Info / Work Preferences / Skills & Expertise / Career Motivations</div>
+        <div class="lb" style="padding:26px">Form fields — 2-col grid of dropdowns + sliders + chip selectors</div>
+        <div style="display:flex;gap:5px">
+          <div class="lb" style="flex:1;padding:6px">⬆ Upload CV &nbsp;&nbsp; + Create new CV</div>
+          <div class="lb blue" style="flex:1;padding:6px">Next: Skills & Expertise ›</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Sub-tabs</span><span class="av">icon + label, 14px, border-bottom 2px --acc active</span></div>
+      <div class="ar"><span class="ak">Form grid</span><span class="av">2-col equal, 24px gap</span></div>
+      <div class="ar"><span class="ak">Dropdown</span><span class="av">icon prefix, full-width, --r border-radius, ▼ chevron</span></div>
+      <div class="ar"><span class="ak">Salary row</span><span class="av">currency dropdown + Min input + Max input</span></div>
+      <div class="ar"><span class="ak">Slider track</span><span class="av">--acc fill, % label right in --acc</span></div>
+      <div class="ar"><span class="ak">Work style chips</span><span class="av">emoji + label, default gray, selected --acc-50 + border</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Skills & Expertise step (step 2)</div>
+      <div class="ar"><span class="ak">Skill card bg</span><span class="av">white, 1px border, --rl radius</span></div>
+      <div class="ar"><span class="ak">Skill logo</span><span class="av">36px circle, black bg, white icon</span></div>
+      <div class="ar"><span class="ak">Exp + level chips</span><span class="av">gray pills, 11px, icon prefix</span></div>
+      <div class="ar"><span class="ak">Current Proficiency</span><span class="av">green bar 5px, % right</span></div>
+      <div class="ar"><span class="ak">Target Level bar</span><span class="av">green bar 5px (always higher), % right</span></div>
+      <div class="ar"><span class="ak">Learning Goals</span><span class="av">13px bullet list, 15px section heading</span></div>
+      <div class="ar"><span class="ak">✕ remove btn</span><span class="av">gray circle 18px, top-right of skill card</span></div>
+      <div class="ar"><span class="ak">+ Add Skill btn</span><span class="av">ghost blue, top-right of section</span></div>
+      <div class="div"></div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Results screen — personality type</div>
+      <div class="ar"><span class="ak">Type heading</span><span class="av">"Your Personality Type: INTJ" + gray badge</span></div>
+      <div class="ar"><span class="ak">3 trait cards</span><span class="av">Key Strengths / Work Style / Communication, colored icon per card</span></div>
+      <div class="ar"><span class="ak">Bullet color</span><span class="av">blue ● Strengths, green ● Work Style, pink ● Comms</span></div>
+      <div class="ar"><span class="ak">Rec. Paths grid</span><span class="av">3-col, title + desc + role chips</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     06 · CAREER PATHFINDER
+═══════════════════════════════════════════ -->
+<div class="page" id="p-pathfinder">
+  <h1 class="pg-title">Career Pathfinder</h1>
+  <p class="pg-sub">5-question wizard with green progress bar (20%/step). Results: 3-col path cards with expandable sections, match bars, AI Assistant popover.</p>
+
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Wizard pages</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <div style="background:var(--bg3);border-radius:var(--r);padding:10px">
+          <div style="font-size:11px;font-weight:600;margin-bottom:4px">Q1: Industry (20%) — chip grid + search + role list</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <span class="tag tag-sel">🎨 Creative &amp; Design</span>
+            <span class="tag">💻 Technology</span>
+            <span class="tag">🏦 Finance</span>
+            <span class="tag">🏥 Healthcare</span>
+          </div>
+          <div style="margin-top:8px;background:var(--acc-50);border-radius:4px;padding:5px 10px;font-size:11px;color:var(--acc-d)">Selected row: UX/UI Designer — --acc-50 bg highlight</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:10px">
+          <div style="font-size:11px;font-weight:600;margin-bottom:6px">Q4: Salary + Relocation (80%)</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--t2)">
+            <div>Entry Level: <span style="color:var(--acc)">£25,000 – £35,000</span></div>
+            <div>Mid Level: <span style="color:var(--acc)">£35,000 – £50,000</span></div>
+            <div style="background:var(--acc-50);border-radius:4px;padding:3px 8px">Custom Range: <span style="color:var(--acc)">Specify your own</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Progress bar</span><span class="av">green fill, 4px height, full-width, % label right</span></div>
+      <div class="ar"><span class="ak">Question label</span><span class="av">"Question N of 5" 11px --acc, top-right</span></div>
+      <div class="ar"><span class="ak">Q heading</span><span class="av">18px weight 600</span></div>
+      <div class="ar"><span class="ak">Q subtext</span><span class="av">13px --t2</span></div>
+      <div class="ar"><span class="ak">Industry chip grid</span><span class="av">5-col flex-wrap, emoji prefix</span></div>
+      <div class="ar"><span class="ak">Role list row hover</span><span class="av">--acc-50 bg, --acc text</span></div>
+      <div class="ar"><span class="ak">Salary row</span><span class="av">currency dropdown + Min + Max + Apply btn</span></div>
+      <div class="ar"><span class="ak">Relocation opts</span><span class="av">Yes / Maybe / No — radio list style</span></div>
+      <div class="ar"><span class="ak">Nav row</span><span class="av">‹ Previous (left) + Next → (right, --acc)</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Results — path cards</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+        <div style="border:1px solid var(--bdr);border-radius:var(--rl);padding:12px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:14px;font-weight:600">Senior UX Designer</div>
+            <i class="ti ti-dots-vertical" style="font-size:14px;color:var(--t3)"></i>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+            <span class="tag" style="font-size:10px"><i class="ti ti-clock" style="font-size:10px"></i> 0–6 months</span>
+            <span class="tag" style="font-size:10px"><i class="ti ti-currency-pound" style="font-size:10px"></i> £45k–£65k</span>
+            <span class="tag" style="font-size:10px;background:var(--amb-50);border-color:var(--amb-100);color:var(--amb-h)">Moderate to High</span>
+          </div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:8px">A Senior UX Designer is responsible for leading the design of digital products.</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div class="prog prog-h5" style="flex:1"><div class="prog-f pf-green" style="width:90%"></div></div>
+            <span style="font-size:12px;font-weight:600;color:var(--grn)">90% match</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--acc);border-top:1px solid var(--bdr);padding-top:8px">
+            <span>Skills <i class="ti ti-chevron-down" style="font-size:11px"></i></span>
+            <span>Learning Path <i class="ti ti-chevron-down" style="font-size:11px"></i></span>
+            <span>Market Insights <i class="ti ti-chevron-up" style="font-size:11px"></i></span>
+          </div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Results grid</span><span class="av">3-col equal, 16px gap</span></div>
+      <div class="ar"><span class="ak">Results page title</span><span class="av">"Your Personalized Career Paths" 24px/700</span></div>
+      <div class="ar"><span class="ak">AI / Stories chips</span><span class="av">AI-Powered Matching + Real Success Stories + Live Opportunities — gray pills, top of results</span></div>
+      <div class="ar"><span class="ak">Match bar color</span><span class="av">green (≥70%), amber (50–69%)</span></div>
+      <div class="ar"><span class="ak">Accordion rows</span><span class="av">Skills / Learning Path / Market Insights / Target Companies + ▼/▲</span></div>
+      <div class="ar"><span class="ak">Transferable chips</span><span class="av">green filled + white check mark</span></div>
+      <div class="ar"><span class="ak">Required chips</span><span class="av">gray + + add icon</span></div>
+      <div class="ar"><span class="ak">CTA btn</span><span class="av">blue, full-width, "Create Transition Plan"</span></div>
+      <div class="ar"><span class="ak">Bottom links</span><span class="av">3-col: Create Career Roadmap / Analyze Skill Gaps / Get AI Guidance + ›</span></div>
+      <div class="ar"><span class="ak">AI Assistant popover</span><span class="av">white card 280px, shadow-lg, dark "Get Career Suggestions" btn</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     07 · JOB DISCOVERY
+═══════════════════════════════════════════ -->
+<div class="page" id="p-discovery">
+  <h1 class="pg-title">Job Discovery</h1>
+  <p class="pg-sub">3-col card grid. Filter bar with All Jobs / Favorites tabs + sort + search + "Open to Work" + "+ Add Job" CTAs.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+        <div class="lb tinted" style="padding:6px">Tab bar: All Jobs (108) | Favorites (12) + filter icons + CTAs</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
+          <div class="lb" style="padding:32px">Card</div><div class="lb" style="padding:32px">Card</div><div class="lb" style="padding:32px">Card</div>
+          <div class="lb" style="padding:32px">Card</div><div class="lb" style="padding:32px">Card</div><div class="lb" style="padding:32px">Card</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Grid</span><span class="av">3-col equal, 16px gap</span></div>
+      <div class="ar"><span class="ak">CTA buttons</span><span class="av">"Open to Work" + "+ Add Job" — both blue filled, top-right</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Job card anatomy</div>
+      <div style="border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#4285f4;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">G</div>
+            <div><div style="font-size:13px;font-weight:600">Project Manager</div><div style="font-size:12px;color:var(--acc)">Google LLC</div></div>
+          </div>
+          <i class="ti ti-star-filled" style="font-size:16px;color:var(--acc)"></i>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="tag" style="font-size:10px"><i class="ti ti-school" style="font-size:10px"></i> 8yr exp</span>
+          <span class="tag" style="font-size:10px"><i class="ti ti-clock" style="font-size:10px"></i> Full time</span>
+          <span class="tag" style="font-size:10px"><i class="ti ti-building" style="font-size:10px"></i> Remote</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:8px;line-height:1.5">Google continues to transform the way billions of people search…</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:14px;font-weight:700;color:var(--acc)">£50,000 <span style="font-size:11px;font-weight:400;color:var(--t3)">/year</span></div>
+          <i class="ti ti-external-link" style="font-size:14px;color:var(--t3)"></i>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Logo</span><span class="av">36px circle or rounded-8 square</span></div>
+      <div class="ar"><span class="ak">Company name</span><span class="av">12px --acc (clickable)</span></div>
+      <div class="ar"><span class="ak">Salary</span><span class="av">14px weight 700 --acc</span></div>
+      <div class="ar"><span class="ak">Star unfav</span><span class="av">ti-star outline --t3</span></div>
+      <div class="ar"><span class="ak">Star fav</span><span class="av">ti-star-filled --acc</span></div>
+      <div class="ar"><span class="ak">External link</span><span class="av">ti-external-link, bottom-right corner</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     08 · JOB DETAIL
+═══════════════════════════════════════════ -->
+<div class="page" id="p-jobdetail">
+  <h1 class="pg-title">Job Detail</h1>
+  <p class="pg-sub">Full-width JD + sticky right metadata sidebar. "← Job Details" back pattern in topbar.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:grid;grid-template-columns:1fr 240px;gap:6px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:6px">Logo + Title + Company + Apply Now + ☆ + share</div>
+          <div class="lb" style="padding:36px">Job Description — sections + bullet lists</div>
+          <div class="lb" style="padding:5px">Skills chips (book icon) + Benefits chips</div>
+          <div class="lb" style="padding:5px">👁 690 views · 👤 231 applicants</div>
+        </div>
+        <div class="lb" style="padding:12px">Metadata: Date / Type / Salary / Exp / Arrangement + Company card</div>
+      </div>
+      <div class="ar" style="margin-top:8px"><span class="ak">Apply Now</span><span class="av">blue filled pill, top-right of header</span></div>
+      <div class="ar"><span class="ak">Sidebar sticky</span><span class="av">position sticky, top 80px</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Component tokens</div>
+      <div class="ar"><span class="ak">Section heading</span><span class="av">15px weight 600, margin-top 20px</span></div>
+      <div class="ar"><span class="ak">Bullet prefix</span><span class="av">· (middle dot), 14px body</span></div>
+      <div class="ar"><span class="ak">Metadata label</span><span class="av">13px --t3, Tabler icon 16px left</span></div>
+      <div class="ar"><span class="ak">Metadata value</span><span class="av">14px weight 600</span></div>
+      <div class="ar"><span class="ak">Salary (Estimated)</span><span class="av">14px/600 + "(Estimated)" 12px --t3</span></div>
+      <div class="ar"><span class="ak">Skills chips</span><span class="av">gray pill + ti-book icon prefix</span></div>
+      <div class="ar"><span class="ak">Company link</span><span class="av">13px --acc, in sidebar</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     09 · JOB TRACKER
+═══════════════════════════════════════════ -->
+<div class="page" id="p-tracker">
+  <h1 class="pg-title">Job Tracker</h1>
+  <p class="pg-sub">3 metric cards + sortable data table with inline status dropdown. Favorites star + delete icon per row. Pagination bottom-right.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px">
+        <div class="lb" style="padding:20px">Total: 86 +13%</div>
+        <div class="lb" style="padding:20px">Active: 64 -8%</div>
+        <div class="lb" style="padding:20px">Interviews: 18 +10%</div>
+      </div>
+      <div class="lb tinted" style="padding:6px;margin-bottom:5px">Tab bar + filter + sort + search icons</div>
+      <div class="lb" style="padding:28px">Data table — sortable columns</div>
+      <div class="lb tinted" style="padding:6px;margin-top:5px">Rows per page: 5 ▼ &nbsp; 1–5 of 86 ‹ ›</div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Table tokens</div>
+      <div class="ar"><span class="ak">Row height</span><span class="av">~56px</span></div>
+      <div class="ar"><span class="ak">Company logo</span><span class="av">40px circle, real brand logo</span></div>
+      <div class="ar"><span class="ak">Title</span><span class="av">14px weight 600</span></div>
+      <div class="ar"><span class="ak">Company name</span><span class="av">13px --acc clickable</span></div>
+      <div class="ar"><span class="ak">Status dropdown</span><span class="av">pill button + ▼ inline, options: Applied / Phone Screen / Interview / Offer / Rejected</span></div>
+      <div class="ar"><span class="ak">Active option</span><span class="av">--acc text + ✓ checkmark right</span></div>
+      <div class="ar"><span class="ak">Timeline col</span><span class="av">dashed dots progress line</span></div>
+      <div class="ar"><span class="ak">☆ star</span><span class="av">ti-star outline → ti-star-filled --acc</span></div>
+      <div class="ar"><span class="ak">Delete icon</span><span class="av">ti-trash --red, far right</span></div>
+      <div class="ar"><span class="ak">Col sort icon</span><span class="av">ti-arrows-sort 12px, right of col header</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     10 · SPONSORSHIP HUB
+═══════════════════════════════════════════ -->
+<div class="page" id="p-sponsorship">
+  <h1 class="pg-title">Sponsorship Hub</h1>
+  <p class="pg-sub">4-tab nav (Overview / Point Calculator / Graduate Visa / Find Sponsors) + "Get Guidance" CTA button. Right sidebar shows live point score + regulatory changes.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Overview layout</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+        <div class="lb tinted" style="padding:6px">Sub-tab bar + "Get Guidance" blue btn (right)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px"><div class="lb" style="padding:12px">Eligibility Check</div><div class="lb" style="padding:12px">Visa Calculator</div><div class="lb" style="padding:12px">Visa Guide</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><div class="lb" style="padding:20px">April 2024 Changes list</div><div class="lb" style="padding:20px">Points System list</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px"><div class="lb" style="padding:8px">Official Guide ›</div><div class="lb" style="padding:8px">Shortage List ›</div><div class="lb" style="padding:8px">Find Job ›</div></div>
+      </div>
+      <div class="ar"><span class="ak">Quick action cards</span><span class="av">3-col, icon + label + "Start/Calculate/View" link</span></div>
+      <div class="ar"><span class="ak">Resource links</span><span class="av">13px --acc + ti-chevron-right</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Point Calculator layout</div>
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:5px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb tinted" style="padding:6px">Accordion: 📝 Mandatory Requirements (expanded)</div>
+          <div class="lb" style="padding:12px">Select dropdowns + ⓘ info icons</div>
+          <div class="lb tinted" style="padding:5px">💰 Salary Requirements (collapsed)</div>
+          <div class="lb tinted" style="padding:5px">+ Additional Points (collapsed)</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:12px;background:var(--red-50);border-color:var(--red-100)">❗ Total: 50 pts — red if below</div>
+          <div class="lb" style="padding:10px">Recommendation bullets</div>
+          <div class="lb" style="padding:10px">Important Changes cards</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Sub-tab active</span><span class="av">--acc-50 bg + --acc text + border</span></div>
+      <div class="ar"><span class="ak">Accordion expand</span><span class="av">▼ icon, section title 15px/600</span></div>
+      <div class="ar"><span class="ak">Total pts: met</span><span class="av">--acc color</span></div>
+      <div class="ar"><span class="ak">Total pts: below</span><span class="av">--red color, ❗ prefix</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     11 · SALARY BENCHMARK
+═══════════════════════════════════════════ -->
+<div class="page" id="p-salary">
+  <h1 class="pg-title">Salary Benchmark</h1>
+  <p class="pg-sub">Line chart + top companies on left; Salary Predictor form + Top Picks on right.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:grid;grid-template-columns:1fr 240px;gap:5px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="lb tinted" style="padding:6px">£65,000 hero + +5.2% YoY pill</div>
+          <div class="lb" style="padding:44px">Line chart — 12-month x-axis, tooltip on hover</div>
+          <div class="lb" style="padding:14px">Top Companies — logo + name + median salary + benefit chips</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="lb" style="padding:14px">Salary Predictor form (Job Title / Location / Yrs Exp / Skills)</div>
+          <div class="lb blue" style="padding:6px">Predict Salary</div>
+          <div class="lb" style="padding:20px">Top Picks — job card mini</div>
+        </div>
+      </div>
+      <div class="ar" style="margin-top:8px"><span class="ak">Chart line</span><span class="av">--acc stroke 2px, filled circles on points</span></div>
+      <div class="ar"><span class="ak">Average line</span><span class="av">1px dashed --bdr2</span></div>
+      <div class="ar"><span class="ak">Hover tooltip</span><span class="av">white card shadow, Date + Salary</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Company row & predictor tokens</div>
+      <div class="ar"><span class="ak">Company logo</span><span class="av">20×20px inline</span></div>
+      <div class="ar"><span class="ak">Median salary</span><span class="av">14px/700 --acc, "Median Salary" 11px --t3 below</span></div>
+      <div class="ar"><span class="ak">Benefit chips</span><span class="av">gray pills, flex-wrap, 11px</span></div>
+      <div class="ar"><span class="ak">Predictor inputs</span><span class="av">icon prefix, 8px radius, full-width</span></div>
+      <div class="ar"><span class="ak">Predict btn</span><span class="av">blue gradient, full-width, radius 8px</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     12 · COPILOT
+═══════════════════════════════════════════ -->
+<div class="page" id="p-copilot">
+  <h1 class="pg-title">Career Copilot</h1>
+  <p class="pg-sub">Full-height chat. Empty: centered logo + 2×2 gradient cards. Active: message thread + Quick Actions + Popular Topics + pill input + dark Send button.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout structure</div>
+      <div style="display:flex;flex-direction:column;gap:5px;min-height:200px">
+        <div class="lb" style="padding:48px;background:linear-gradient(135deg,var(--acc-100),var(--pur-100))">Empty: "Hi! I'm your Career Copilot 👋" + 2×2 cards</div>
+        <div class="lb" style="flex:1;padding:20px">Thread — scroll-y, flex:1</div>
+        <div class="lb tinted" style="padding:6px">⚡ Quick Actions ▲ &nbsp;&nbsp; 📋 Popular Topics ▼ &nbsp;&nbsp; 🕐 &nbsp;&nbsp; ↺</div>
+        <div style="display:flex;gap:5px"><div class="lb" style="flex:1;padding:7px">🔄 Type a message…</div><div class="lb dark" style="padding:7px 14px;width:60px">Send</div></div>
+      </div>
+      <div class="ar" style="margin-top:8px"><span class="ak">Empty card bg</span><span class="av">gradient --acc-100 → pur-100</span></div>
+      <div class="ar"><span class="ak">Card icon circle</span><span class="av">40px --acc-50 bg + 20px --acc icon</span></div>
+      <div class="ar"><span class="ak">Input</span><span class="av">100px radius pill, 🔄 icon prefix</span></div>
+      <div class="ar"><span class="ak">Send btn</span><span class="av">#0f172a dark, 80px wide, 100px radius</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Message bubbles</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">User → right-aligned</div>
+        <div style="text-align:right;margin-bottom:4px"><span style="font-size:11px;color:var(--t3)">You · 11:32AM 🧑</span></div>
+        <div style="display:flex;justify-content:flex-end"><div style="background:var(--acc);color:#fff;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:13px;max-width:75%">I'd like help developing my career strategy</div></div>
+        <div class="ar" style="margin-top:8px"><span class="ak">Bg</span><span class="av">--acc</span></div>
+        <div class="ar"><span class="ak">Radius</span><span class="av">18px 18px 4px 18px</span></div>
+      </div>
+      <div class="div"></div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">AI → left-aligned</div>
+        <div style="margin-bottom:4px"><span style="font-size:11px;color:var(--t3)">AI assistant · 11:32AM</span></div>
+        <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:#1e293b;flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-sparkles" style="font-size:12px;color:#60a5fa"></i></div><div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:4px 18px 18px 18px;padding:10px 14px;font-size:13px;color:var(--t);max-width:80%">Here are 3 ways to improve…</div></div>
+        <div class="ar" style="margin-top:8px"><span class="ak">Bg</span><span class="av">--bg2 + 1px border</span></div>
+        <div class="ar"><span class="ak">Radius</span><span class="av">4px 18px 18px 18px</span></div>
+        <div class="ar"><span class="ak">AI avatar</span><span class="av">26px circle #1e293b + ti-sparkles #60a5fa</span></div>
+        <div class="ar"><span class="ak">Action row</span><span class="av">copy / 👍 / 👎 / refresh — below AI msg</span></div>
+        <div class="ar"><span class="ak">Quick Actions dropdown</span><span class="av">Career Strategy / Resume Review / Interview Prep / Skill Analysis</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     13 · ATS OPTIMIZER
+═══════════════════════════════════════════ -->
+<div class="page" id="p-ats">
+  <h1 class="pg-title">ATS Optimizer</h1>
+  <p class="pg-sub">Upload state: 2-col (CV + JD / tips sidebar). Result state: score ring + keywords left, improvement suggestions + annotated resume right.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Upload state</div>
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:5px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:32px;border-style:dashed;border-width:2px">📄 Drop or select file — "browse" --acc link</div>
+          <div class="lb" style="padding:10px">Extracted Content — scrollable + ✕ dismiss</div>
+          <div class="lb" style="padding:20px">Job Description textarea</div>
+          <div class="lb blue b-rad" style="padding:7px">Analyse CV</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:10px">ATS Tips — emoji icon + title + desc</div>
+          <div class="lb" style="padding:8px">Common ATS Terms — gray chips</div>
+          <div class="lb" style="padding:8px">Quick Actions — blue links</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Drop zone</span><span class="av">2px dashed --bdr2, radius 12px</span></div>
+      <div class="ar"><span class="ak">Drop zone hover</span><span class="av">border → --acc</span></div>
+      <div class="ar"><span class="ak">PDF file pill</span><span class="av">red PDF icon + filename + ✕</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Result state</div>
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:5px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:44px">75% score ring — SVG, green</div>
+          <div class="lb" style="padding:10px">Keywords — 2-col ✓ grid, blue checkmarks</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:10px">Improvement Suggestions — ❗ prefix</div>
+          <div class="lb" style="padding:28px">Resume View — highlighted text</div>
+          <div style="display:flex;gap:4px"><div class="lb blue b-rad" style="flex:1;padding:6px">Optimize Resume</div><div class="lb" style="flex:1;padding:6px">⬇ Download PDF</div></div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Ring: ≥75%</span><span class="av">green stroke</span></div>
+      <div class="ar"><span class="ak">Ring: 50–74%</span><span class="av">amber stroke</span></div>
+      <div class="ar"><span class="ak">Ring: &lt;50%</span><span class="av">red stroke</span></div>
+      <div class="ar"><span class="ak">Matched keyword</span><span class="av">blue ✓ + dark text</span></div>
+      <div class="ar"><span class="ak">Resume match text</span><span class="av">--acc colored inline</span></div>
+      <div class="ar"><span class="ak">Resume gap text</span><span class="av">--amb colored inline</span></div>
+      <div class="ar"><span class="ak">Gap tooltip</span><span class="av">amber card, "Missing term — consider…"</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     14 · LINKEDIN ANALYSIS
+═══════════════════════════════════════════ -->
+<div class="page" id="p-linkedin">
+  <h1 class="pg-title">LinkedIn Analysis</h1>
+  <p class="pg-sub">Input: URL field + PDF upload instructions + preview. Results: score ring + section score list (left), critique / tips / examples (right).</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Input state</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <div class="lb" style="padding:8px">🌐 LinkedIn URL input + Run btn (--acc)</div>
+        <div class="lb" style="padding:10px;background:var(--acc-50);border-color:var(--acc-100)">How to export guide — blue-50 bg, ✦ bullets</div>
+        <div class="lb" style="padding:5px">📄 Tom.A_CV.pdf pill + ✕ + rendered preview below</div>
+      </div>
+      <div class="ar"><span class="ak">URL input</span><span class="av">globe icon prefix, full-width, border-radius 8px</span></div>
+      <div class="ar"><span class="ak">Run btn</span><span class="av">--acc filled, 80px, right of input</span></div>
+      <div class="ar"><span class="ak">Instructions bg</span><span class="av">--acc-50, bullet char ✦</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Results state</div>
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:5px;margin-bottom:10px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb" style="padding:36px">Score ring 80×80px</div>
+          <div style="border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden">
+            <div style="padding:7px 10px;font-size:12px;display:flex;justify-content:space-between;background:var(--acc);color:#fff;font-weight:500">Headline <span>7/10</span></div>
+            <div style="padding:7px 10px;font-size:12px;display:flex;justify-content:space-between">Summary <span style="color:var(--red)">2/10</span></div>
+            <div style="padding:7px 10px;font-size:12px;display:flex;justify-content:space-between;border-top:1px solid var(--bdr)">Experience <span style="color:var(--amb)">5/10</span></div>
+            <div style="padding:7px 10px;font-size:12px;display:flex;justify-content:space-between;border-top:1px solid var(--bdr)">Education <span style="color:var(--grn)">10/10</span></div>
+          </div>
+          <button class="btn b-pri" style="width:100%;font-size:12px;padding:7px">Analyze Profile</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="background:var(--red-50);border:1px solid var(--red-100);border-radius:var(--r);padding:10px"><div style="font-size:12px;font-weight:600;margin-bottom:5px">🚩 Critique</div><div style="font-size:11px;color:var(--t2)">· Lacks specifics<br>· No measurable impact</div></div>
+          <div style="background:var(--amb-50);border:1px solid var(--amb-100);border-radius:var(--r);padding:10px"><div style="font-size:12px;font-weight:600;margin-bottom:5px">💡 Suggestions & Tips</div></div>
+          <div style="background:var(--acc-50);border:1px solid var(--acc-100);border-radius:var(--r);padding:10px"><div style="font-size:12px;font-weight:600;margin-bottom:5px">✏️ Example Headlines</div></div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Score ring</span><span class="av">SVG 80px, green &gt;60, amber 40–60, red &lt;40</span></div>
+      <div class="ar"><span class="ak">Active row</span><span class="av">--acc bg, white text + score</span></div>
+      <div class="ar"><span class="ak">Critique card</span><span class="av">red-50 bg, 🚩 header</span></div>
+      <div class="ar"><span class="ak">Tips card</span><span class="av">amber-50 bg, 💡 header</span></div>
+      <div class="ar"><span class="ak">Examples card</span><span class="av">blue-50 bg, ✏️ header</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     15 · CAREER HEALTH
+═══════════════════════════════════════════ -->
+<div class="page" id="p-health">
+  <h1 class="pg-title">Career Health</h1>
+  <p class="pg-sub">2×2 metric cards + health metrics chart. Daily Check-in panel on right with emoji mood selector, sliders, tags, and save button.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:5px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            <div class="lb" style="padding:18px">☀️ Good Days 12 +25%</div>
+            <div class="lb" style="padding:18px">⚡ Energy 70% -18%</div>
+            <div class="lb" style="padding:18px">😊 Mood Avg 7.5 -0.5</div>
+            <div class="lb" style="padding:18px">⚖️ Workload 65% +10%</div>
+          </div>
+          <div class="lb" style="padding:22px">Career Health Metrics — period filter + Job Satisfaction / WLB charts + insights + recommendations</div>
+        </div>
+        <div class="lb" style="padding:10px">Daily Check-in sticky panel</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Check-in panel tokens</div>
+      <div class="ar"><span class="ak">Mood chips</span><span class="av">emoji + label, 2-row 5-option grid</span></div>
+      <div class="ar"><span class="ak">Mood selected</span><span class="av">--acc-50 bg + 1px --acc border</span></div>
+      <div class="ar"><span class="ak">Sliders</span><span class="av">full-width, --acc fill, % label top-right in --acc</span></div>
+      <div class="ar"><span class="ak">Slider labels</span><span class="av">"Exhausted" / "Highly energized" — 11px --t3</span></div>
+      <div class="ar"><span class="ak">Tag chips</span><span class="av">gray outline, toggle → --acc-50 + --acc border</span></div>
+      <div class="ar"><span class="ak">Save btn</span><span class="av">blue gradient, full-width, radius 8px</span></div>
+      <div class="ar"><span class="ak">Disclaimer</span><span class="av">amber-50 card, always shown below form</span></div>
+      <div class="ar"><span class="ak">Job Satisfaction bar</span><span class="av">pink (#ec4899) fill, "Warning" amber pill</span></div>
+      <div class="ar"><span class="ak">WLB bar</span><span class="av">green fill, "Good" green pill</span></div>
+      <div class="ar"><span class="ak">Key Insights</span><span class="av">💡 heading + bullet list, 13px</span></div>
+      <div class="ar"><span class="ak">Recommendations</span><span class="av">📝 heading + bullet list</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     16 · CAREER PLANNER
+═══════════════════════════════════════════ -->
+<div class="page" id="p-planner">
+  <h1 class="pg-title">Career Planner</h1>
+  <p class="pg-sub">3 metric cards + view toggle (List / Kanban / Calendar) + "+ Add Milestone" btn. Add Milestone = 3-step modal. Floating Copilot circle bottom-right.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">3 view modes side by side</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:10px">
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">List view</div>
+          <div style="border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden">
+            <div style="padding:8px 12px;font-size:12px;color:var(--t2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:6px"><i class="ti ti-chevron-down" style="font-size:12px"></i><b>In Progress</b><span class="pill p-gray p-sm" style="padding:1px 6px">5</span></div>
+            <div style="padding:10px 12px;border-bottom:1px solid var(--bdr)">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px"><span style="color:#ef4444">▲</span> Software Engineer</div><div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--t3)"><i class="ti ti-calendar" style="font-size:11px"></i> Due: 30/06/2025</div></div>
+              <div class="prog prog-h4"><div class="prog-f pf-green" style="width:33%"></div></div>
+              <div style="font-size:11px;color:var(--t3);margin-top:3px">33%</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Kanban view</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
+            <div class="lb" style="padding:20px">Planned (10)</div>
+            <div class="lb" style="padding:20px">In Progress (5)</div>
+            <div class="lb" style="padding:20px">Completed (10)</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Calendar view</div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:9px">
+            <div class="lb tinted" style="padding:3px">Mon</div><div class="lb tinted" style="padding:3px">Tue</div><div class="lb tinted" style="padding:3px">Wed</div><div class="lb tinted" style="padding:3px">Thu</div><div class="lb tinted" style="padding:3px">Fri</div><div class="lb tinted" style="padding:3px">Sat</div><div class="lb tinted" style="padding:3px">Sun</div>
+            <div class="lb" style="padding:5px;height:28px"></div><div style="background:var(--acc-50);border:1px solid var(--acc-100);border-radius:4px;padding:3px 4px;font-size:8px;color:var(--acc-d)">▲ Upskill</div><div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:4px;padding:3px 4px;font-size:8px;color:var(--t2)">▼ AWS</div><div class="lb" style="padding:5px;height:28px"></div><div class="lb" style="padding:5px;height:28px"></div><div class="lb" style="padding:5px;height:28px"></div><div class="lb" style="padding:5px;height:28px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Add Milestone modal</div>
+      <div style="border:1px solid var(--bdr);border-radius:var(--rxl);padding:16px;max-width:380px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:14px;font-weight:600">Add New Milestone</div><i class="ti ti-x" style="font-size:15px;color:var(--t2)"></i></div>
+        <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
+          <div style="padding:5px 12px;font-size:11px;color:var(--acc);font-weight:600;border-bottom:2px solid var(--acc)">① Basic Info</div>
+          <div style="padding:5px 12px;font-size:11px;color:var(--t3)">② Details</div>
+          <div style="padding:5px 12px;font-size:11px;color:var(--t3)">③ Requirements</div>
+        </div>
+        <div style="font-size:11px;font-weight:500;margin-bottom:6px">Category</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+          <span class="tag" style="font-size:10px">🎯 Goal</span><span class="tag" style="font-size:10px">💼 Role</span><span class="tag" style="font-size:10px">📚 Education</span><span class="tag" style="font-size:10px">🏅 Certification</span><span class="tag" style="font-size:10px">🧠 Skill</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px 10px;font-size:11px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-target" style="font-size:12px"></i> e.g. Become Senior Software Engineer</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:var(--bg3);border-radius:var(--r);padding:7px 10px;font-size:11px;color:var(--t3)">⏳ Planned ▼</div>
+          <div style="background:var(--bg3);border-radius:var(--r);padding:7px 10px;font-size:11px;color:var(--t3)">🚩 Priority ▼</div>
+        </div>
+        <button class="btn b-grad b-full" style="border-radius:8px;font-size:12px;padding:8px">Next: Details ›</button>
+      </div>
+      <div class="ar" style="margin-top:10px"><span class="ak">Modal overlay</span><span class="av">rgba(0,0,0,.4) backdrop</span></div>
+      <div class="ar"><span class="ak">Modal card</span><span class="av">white, 540px max, --rxl radius, --sh-lg shadow</span></div>
+      <div class="ar"><span class="ak">3-tab stepper</span><span class="av">numbered, active = --acc border-bottom 2px</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     17 · CAREER SUCCESS
+═══════════════════════════════════════════ -->
+<div class="page" id="p-success">
+  <h1 class="pg-title">Career Success</h1>
+  <p class="pg-sub">4 metric cards (2-row 2-col) + Skills Grows horizontal bars (right column). Career Goals list + Recent Achievements list below.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout grid</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:5px">
+        <div class="lb" style="padding:18px">Skills Mastery 35% +15%</div>
+        <div class="lb" style="padding:18px">Career Progress 65% -8%</div>
+        <div class="lb" style="padding:28px;grid-row:span 2">Skills Grows — horizontal bars</div>
+        <div class="lb" style="padding:18px">Interview Success 5 -20%</div>
+        <div class="lb" style="padding:18px">Market Value £40k +16%</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        <div class="lb" style="padding:20px">Career Goals + progress bars + category chip + date</div>
+        <div class="lb" style="padding:20px">Recent Achievements — emoji + title + desc + tags</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Component tokens</div>
+      <div class="ar"><span class="ak">Metric icon circle</span><span class="av">28px --acc-50 bg + colored Tabler icon</span></div>
+      <div class="ar"><span class="ak">Skills Grows bar</span><span class="av">green fill, % label right, "+N% value" --acc label</span></div>
+      <div class="ar"><span class="ak">Goal bar ≥75%</span><span class="av">--grn fill</span></div>
+      <div class="ar"><span class="ak">Goal bar &lt;75%</span><span class="av">--amb fill</span></div>
+      <div class="ar"><span class="ak">Goal meta</span><span class="av">category chip + due date, 12px --t3</span></div>
+      <div class="ar"><span class="ak">Achievement emoji</span><span class="av">18px left of title (🚀 🏅 ✅)</span></div>
+      <div class="ar"><span class="ak">+ Add Goals</span><span class="av">blue + circle + text, top-right of section</span></div>
+      <div class="ar"><span class="ak">Floating copilot</span><span class="av">56px dark circle, bottom-right, ti-sparkles, fixed z-100</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     18 · DISCUSSION BOARD
+═══════════════════════════════════════════ -->
+<div class="page" id="p-discussion">
+  <h1 class="pg-title">Discussion Board</h1>
+  <p class="pg-sub">Thread view: scrollable thread left (original post + nested replies). "Similar Topics for Discussion" panel right.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Layout</div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:5px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="lb tinted" style="padding:5px">← Thread View (back in topbar)</div>
+          <div class="lb" style="padding:32px">Original post — avatar + name + timestamp + body + 2-col images + hashtags</div>
+          <div class="lb tinted" style="padding:5px">👍 12 &nbsp; 💬 7 replies ↑ &nbsp; Reply</div>
+          <div class="lb" style="padding:16px">Comment row — L1</div>
+          <div class="lb" style="padding:12px;margin-left:20px">Nested reply — L2, indent 24px</div>
+        </div>
+        <div class="lb" style="padding:10px">Similar Topics — card list</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Token specs</div>
+      <div class="ar"><span class="ak">Post avatar</span><span class="av">36px circle</span></div>
+      <div class="ar"><span class="ak">Author name</span><span class="av">14px weight 600</span></div>
+      <div class="ar"><span class="ak">Timestamp</span><span class="av">12px --t3, top-right</span></div>
+      <div class="ar"><span class="ak">Post headline</span><span class="av">15px weight 600, margin-bottom 8px</span></div>
+      <div class="ar"><span class="ak">Body text</span><span class="av">14px --t, line-height 1.6</span></div>
+      <div class="ar"><span class="ak">Image grid</span><span class="av">2-col equal, border-radius 12px, overflow hidden</span></div>
+      <div class="ar"><span class="ak">Hashtag chips</span><span class="av">gray pills 12px, flex-wrap</span></div>
+      <div class="ar"><span class="ak">👍 icon</span><span class="av">ti-thumb-up, count inline 12px --t2</span></div>
+      <div class="ar"><span class="ak">Reply link</span><span class="av">12px --acc weight 500</span></div>
+      <div class="ar"><span class="ak">⋮ menu</span><span class="av">ti-dots-vertical 14px --t3, top-right each post</span></div>
+      <div class="ar"><span class="ak">Nested indent</span><span class="av">margin-left 24px, avatar 28px</span></div>
+      <div class="ar"><span class="ak">Similar topic card</span><span class="av">32px avatar + name + time + snippet + hashtags + 👍 count + 💬 count</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     19 · SETTINGS
+═══════════════════════════════════════════ -->
+<div class="page" id="p-settings">
+  <h1 class="pg-title">Settings</h1>
+  <p class="pg-sub">4-tab nav (General / Change Password / Subscription / Notifications). Subscription = 3-col pricing cards. "Manage on Stripe" footer + "Open Customer Portal" btn.</p>
+  <div class="g2">
+    <div class="card">
+      <div class="sh" style="margin-top:0">Tab navigation</div>
+      <div style="display:flex;border-bottom:1px solid var(--bdr);margin-bottom:12px">
+        <div style="padding:10px 18px;font-size:13px;color:var(--t2);display:flex;align-items:center;gap:5px"><i class="ti ti-user" style="font-size:14px"></i> General</div>
+        <div style="padding:10px 18px;font-size:13px;color:var(--t2);display:flex;align-items:center;gap:5px"><i class="ti ti-lock" style="font-size:14px"></i> Change Password</div>
+        <div style="padding:10px 18px;font-size:13px;color:var(--acc);font-weight:600;border-bottom:2px solid var(--acc);display:flex;align-items:center;gap:5px"><i class="ti ti-credit-card" style="font-size:14px"></i> Subscription</div>
+        <div style="padding:10px 18px;font-size:13px;color:var(--t2);display:flex;align-items:center;gap:5px"><i class="ti ti-bell" style="font-size:14px"></i> Notifications</div>
+      </div>
+      <div class="ar"><span class="ak">Tab height</span><span class="av">44px, padding 0 18px</span></div>
+      <div class="ar"><span class="ak">Active tab</span><span class="av">--acc text, weight 600, 2px --acc border-bottom</span></div>
+      <div class="ar"><span class="ak">Inactive</span><span class="av">--t2, no underline</span></div>
+    </div>
+    <div class="card">
+      <div class="sh" style="margin-top:0">Pricing cards</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="border:1px solid var(--bdr);border-radius:var(--rl);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><span style="font-size:16px;font-weight:700">Standard</span><span class="pill p-green p-sm">Current plan</span></div>
+          <div style="font-size:22px;font-weight:700;color:var(--acc);margin-bottom:10px">$15 <span style="font-size:11px;font-weight:400;color:var(--t3)">/month</span></div>
+          <button class="btn b-out b-sm b-full" style="border-radius:var(--r-full);margin-bottom:8px">Cancel Plan</button>
+          <div style="font-size:11px;color:var(--acc);font-weight:500">✓ AI Career Copilot</div>
+        </div>
+        <div style="border:1px solid var(--bdr);border-radius:var(--rl);padding:14px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px">Pro</div>
+          <div style="font-size:22px;font-weight:700;color:var(--acc);margin-bottom:10px">$25 <span style="font-size:11px;font-weight:400;color:var(--t3)">/month</span></div>
+          <button class="btn b-dark b-sm b-full" style="border-radius:var(--r-full);margin-bottom:8px">Select</button>
+          <div style="font-size:11px;color:var(--acc);font-weight:500">✓ AI Career Copilot</div>
+        </div>
+        <div style="border:1px solid var(--bdr);border-radius:var(--rl);padding:14px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px">Ultimate</div>
+          <div style="font-size:22px;font-weight:700;color:var(--acc);margin-bottom:10px">$50 <span style="font-size:11px;font-weight:400;color:var(--t3)">/month</span></div>
+          <button class="btn b-dark b-sm b-full" style="border-radius:var(--r-full);margin-bottom:8px">Select</button>
+          <div style="font-size:11px;color:var(--acc);font-weight:500">✓ AI Career Copilot</div>
+        </div>
+      </div>
+      <div class="ar"><span class="ak">Price size</span><span class="av">24px weight 700, --acc</span></div>
+      <div class="ar"><span class="ak">Current plan badge</span><span class="av">green-50 + green-700 text pill</span></div>
+      <div class="ar"><span class="ak">Cancel Plan</span><span class="av">outline, full-width, radius 9999px</span></div>
+      <div class="ar"><span class="ak">Select btn</span><span class="av">dark fill #0f172a, full-width, radius 9999px</span></div>
+      <div class="ar"><span class="ak">Feature list</span><span class="av">--acc ✓ + bold title + 12px gray desc</span></div>
+      <div class="ar"><span class="ak">View All Features</span><span class="av">13px --acc link, card bottom</span></div>
+      <div class="ar"><span class="ak">Stripe footer</span><span class="av">13px --t2 left + "Open Customer Portal" blue btn right</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  event.currentTarget.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

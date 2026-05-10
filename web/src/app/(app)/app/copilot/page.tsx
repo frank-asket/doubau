@@ -4,12 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppButton } from "@/components/ui/button";
-
-function wsBaseFromHttp(httpUrl: string): string {
-  if (httpUrl.startsWith("https://")) return `wss://${httpUrl.slice("https://".length)}`;
-  if (httpUrl.startsWith("http://")) return `ws://${httpUrl.slice("http://".length)}`;
-  return httpUrl;
-}
+import { wsBaseFromHttp } from "@/lib/ws-base";
 
 export default function CopilotPage() {
   const { getToken } = useAuth();
@@ -124,7 +119,7 @@ export default function CopilotPage() {
       ) : null}
 
       <div className="flex min-h-[320px] flex-col gap-3 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-4">
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto text-[14px] leading-6">
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto text-[13px] leading-6">
           {messages.length === 0 ? (
             <p className="text-[var(--app-text-secondary)]">
               Ask anything about your pipeline — for example: “List my applications” or “Search jobs for product
@@ -143,7 +138,9 @@ export default function CopilotPage() {
               <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
                 {m.role === "user" ? "You" : "Copilot"}
               </div>
-              <div className="mt-1 whitespace-pre-wrap">{m.text}</div>
+              <div className="mt-1 whitespace-pre-wrap font-[family-name:var(--font-app-mono)] text-[12.5px] leading-relaxed">
+                {m.text}
+              </div>
             </div>
           ))}
           <div ref={bottomRef} />
@@ -151,7 +148,7 @@ export default function CopilotPage() {
 
         <div className="flex flex-col gap-2 border-t-[0.5px] border-solid border-[var(--app-border)] pt-3 sm:flex-row">
           <textarea
-            className="min-h-[44px] flex-1 resize-none rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-primary)] px-3 py-2 text-[14px] text-[var(--app-text-primary)] outline-none placeholder:text-[var(--app-text-tertiary)]"
+            className="min-h-[44px] flex-1 resize-none rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 font-[family-name:var(--font-app-mono)] text-[13px] leading-relaxed text-[var(--app-text-primary)] outline-none placeholder:text-[var(--app-text-tertiary)]"
             placeholder="Message Career Copilot…"
             rows={2}
             value={input}

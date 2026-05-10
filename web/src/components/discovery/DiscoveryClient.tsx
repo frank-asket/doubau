@@ -205,7 +205,7 @@ function JobCard({
                 href={job.source_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block text-[12px] font-medium text-[color:rgba(26,92,255,0.95)] underline-offset-4 hover:underline"
+                className="inline-block text-[12px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
                 onClick={() => {
                   onClickOut(job.id, {
                     tab,
@@ -282,7 +282,7 @@ function JobCard({
             <select
               value={downvoteReason}
               onChange={(e) => onChangeDownvoteReason(e.target.value)}
-              className="w-full max-w-xl rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus:border-[color:rgba(26,92,255,0.45)]"
+              className="w-full max-w-xl rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus:border-[color:var(--app-focus-border)]"
             >
               <option value="">Select a reason…</option>
               <option value="irrelevant_role">Role is irrelevant</option>
@@ -591,6 +591,8 @@ export function DiscoveryClient({
 
   const list = tab === "feed" ? feedRows : tab === "hidden" ? hiddenRows : allRows;
 
+  const apiBaseHint = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div>
@@ -605,8 +607,11 @@ export function DiscoveryClient({
       </div>
 
       {loadError ? (
-        <div className="rounded-[var(--app-radius-lg)] border border-[color:rgba(220,38,38,0.35)] bg-[color:rgba(220,38,38,0.08)] px-4 py-3 text-[13px] text-[var(--app-text-primary)]">
-          Could not load jobs from the API. Check you are signed in and the backend is running.
+        <div className="rounded-[var(--app-radius-lg)] border border-[color:rgba(220,38,38,0.35)] bg-[color:rgba(220,38,38,0.08)] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-primary)]">
+          Could not load jobs from the API. Start FastAPI at{" "}
+          <span className="font-app-mono text-[12px]">{apiBaseHint}</span>, verify{" "}
+          <span className="font-app-mono text-[12px]">NEXT_PUBLIC_API_BASE_URL</span>, sign in, and ensure the Clerk JWT
+          template <span className="font-app-mono text-[12px]">doubow-api</span> matches the backend audience.
         </div>
       ) : null}
 
@@ -624,7 +629,7 @@ export function DiscoveryClient({
               value={scrapeUrl}
               onChange={(e) => setScrapeUrl(e.target.value)}
               placeholder="https://…"
-              className="w-full rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none ring-[color:rgba(26,92,255,0.35)] placeholder:text-[var(--app-text-tertiary)] focus:border-[color:rgba(26,92,255,0.45)] focus:ring-2"
+              className="w-full rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none ring-[color:var(--app-focus-ring)] placeholder:text-[var(--app-text-tertiary)] focus:border-[color:var(--app-focus-border)] focus:ring-2"
             />
           </div>
           <div className="flex gap-2 lg:shrink-0">
@@ -635,7 +640,7 @@ export function DiscoveryClient({
                 className={cn(
                   "rounded-[var(--app-radius-pill)] px-4 py-2 text-[12px] font-medium transition-colors",
                   scrapeKind === k
-                    ? "bg-[color:rgba(26,92,255,0.18)] text-[var(--app-text-primary)]"
+                    ? "bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[var(--app-text-primary)]"
                     : "bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-sidebar-hover-bg)]",
                 )}
                 onClick={() => setScrapeKind(k)}

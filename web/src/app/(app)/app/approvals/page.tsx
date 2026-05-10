@@ -1,29 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
+import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
 import { AppApprovalCard } from "@/components/ui/approval-card";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   PIPELINE_LEGEND,
   applicationStatusBadge,
 } from "@/lib/application-status";
+import { fetchApplications, fetchDrafts, type ApplicationRow, type DraftRow } from "@/lib/applications-fetch";
+import { queryKeys } from "@/lib/query-keys";
 
-type Application = {
-  id: string;
-  company: string;
-  job_title: string;
-  status: string;
-  source_url?: string | null;
-};
+/** Safety-net polling when WS is unavailable; pipeline WS drives most updates. */
+const APPROVALS_POLL_MS = 60_000;
 
-type Draft = {
-  id: string;
-  application_id: string;
-  channel: string;
-  content: string;
-};
+type Application = ApplicationRow;
+type Draft = DraftRow;
+
+const EMPTY_APP_MAP: Map<string, Application> = new Map();
 
 function snippetPreview(text: string, max = 280): string {
   const t = text.trim();
@@ -45,115 +43,144 @@ function draftSubtitle(draft: Draft, app: Application | undefined): string {
 }
 
 export default function ApprovalsPage() {
-  const [apps, setApps] = useState<Application[]>([]);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [loading, setLoading] = useState(false);
+  useApplicationsPipelineWs(true);
+
+  const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
 
-  const appById = useMemo(() => new Map(apps.map((a) => [a.id, a])), [apps]);
+  const applicationsQuery = useQuery({
+    queryKey: queryKeys.applications,
+    queryFn: fetchApplications,
+    refetchInterval: APPROVALS_POLL_MS,
+  });
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const [appsResp, draftsResp] = await Promise.all([
-        fetch("/api/applications", { cache: "no-store" }),
-        fetch("/api/applications/drafts", { cache: "no-store" }),
-      ]);
-      if (!appsResp.ok || !draftsResp.ok) {
-        setError("Failed to load approvals data.");
-        return;
-      }
-      setApps(await appsResp.json());
-      setDrafts(await draftsResp.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const draftsQuery = useQuery({
+    queryKey: queryKeys.applicationDrafts,
+    queryFn: fetchDrafts,
+    refetchInterval: APPROVALS_POLL_MS,
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const invalidateApprovalQueries = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: queryKeys.applications }),
+      qc.invalidateQueries({ queryKey: queryKeys.applicationDrafts }),
+    ]);
+  };
 
-  const createDemo = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
+  const createDemoM = useMutation({
+    mutationFn: async () => {
       const created = await fetch("/api/applications", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ company: "Acme", job_title: "Product Manager" }),
       });
-      if (!created.ok) {
-        setError("Failed to create demo application.");
-        return;
-      }
+      if (!created.ok) throw new Error("create_app");
       const app = (await created.json()) as Application;
-      await fetch(`/api/applications/${app.id}/generate_draft`, { method: "POST" });
-      await refresh();
-    } finally {
-      setLoading(false);
-    }
-  }, [refresh]);
+      const gen = await fetch(`/api/applications/${app.id}/generate_draft`, { method: "POST" });
+      if (!gen.ok) throw new Error("generate_draft");
+    },
+    onMutate: () => setMutationError(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: () => setMutationError("Failed to create demo application."),
+  });
 
-  const approve = useCallback(
-    async (appId: string) => {
-      setError(null);
-      setBusyId(appId);
-      try {
-        const resp = await fetch(`/api/applications/${appId}/approve`, { method: "POST" });
-        if (!resp.ok) {
-          setError("Approve failed.");
-          return;
-        }
-        await refresh();
-      } finally {
-        setBusyId(null);
+  const patchDraftM = useMutation({
+    mutationFn: async ({ draftId, content }: { draftId: string; content: string }) => {
+      const resp = await fetch(`/api/applications/drafts/${draftId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!resp.ok) {
+        const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(typeof data.detail === "string" ? data.detail : "Could not save draft.");
       }
     },
-    [refresh],
-  );
+    onMutate: () => setMutationError(null),
+    onSuccess: async () => {
+      setEditingDraftId(null);
+      await invalidateApprovalQueries();
+    },
+    onError: (err) => {
+      setMutationError(err instanceof Error ? err.message : "Could not save draft.");
+    },
+  });
 
-  const reject = useCallback(
-    async (appId: string) => {
-      setError(null);
+  const approveM = useMutation({
+    mutationFn: async (appId: string) => {
+      const resp = await fetch(`/api/applications/${appId}/approve`, { method: "POST" });
+      if (!resp.ok) throw new Error("approve");
+    },
+    onMutate: (appId) => {
       setBusyId(appId);
-      try {
-        const resp = await fetch(`/api/applications/${appId}/reject`, { method: "POST" });
-        if (!resp.ok) {
-          const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-          setError(typeof data.detail === "string" ? data.detail : "Reject failed.");
-          return;
-        }
-        await refresh();
-      } finally {
-        setBusyId(null);
+      setMutationError(null);
+    },
+    onSettled: () => setBusyId(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: () => setMutationError("Approve failed."),
+  });
+
+  const rejectM = useMutation({
+    mutationFn: async (appId: string) => {
+      const resp = await fetch(`/api/applications/${appId}/reject`, { method: "POST" });
+      if (!resp.ok) {
+        const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(typeof data.detail === "string" ? data.detail : "Reject failed.");
       }
     },
-    [refresh],
-  );
-
-  const submit = useCallback(
-    async (appId: string) => {
-      setError(null);
+    onMutate: (appId) => {
       setBusyId(appId);
-      try {
-        const resp = await fetch(`/api/applications/${appId}/submit`, { method: "POST" });
-        if (!resp.ok) {
-          const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-          setError(data.detail ?? "Submit failed (must be APPROVED first).");
-          return;
-        }
-        await refresh();
-      } finally {
-        setBusyId(null);
+      setMutationError(null);
+    },
+    onSettled: () => setBusyId(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: (err) => {
+      setMutationError(err instanceof Error ? err.message : "Reject failed.");
+    },
+  });
+
+  const submitM = useMutation({
+    mutationFn: async (appId: string) => {
+      const resp = await fetch(`/api/applications/${appId}/submit`, { method: "POST" });
+      if (!resp.ok) {
+        const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(
+          typeof data.detail === "string" ? data.detail : "Submit failed (must be APPROVED first).",
+        );
       }
     },
-    [refresh],
-  );
+    onMutate: (appId) => {
+      setBusyId(appId);
+      setMutationError(null);
+    },
+    onSettled: () => setBusyId(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: (err) => {
+      setMutationError(err instanceof Error ? err.message : "Submit failed.");
+    },
+  });
+
+  const loadError =
+    applicationsQuery.isError || draftsQuery.isError ? "Failed to load approvals data." : null;
+  const error = mutationError ?? loadError;
+
+  const loadingInitial = applicationsQuery.isLoading || draftsQuery.isLoading;
 
   const sortedDrafts = useMemo(() => {
+    const draftsList = draftsQuery.data ?? [];
+    const appsList = applicationsQuery.data ?? [];
+    const appById = new Map(appsList.map((a) => [a.id, a]));
     const order = (s: string) => {
       if (s === "PENDING_APPROVAL") return 0;
       if (s === "APPROVED") return 1;
@@ -161,32 +188,42 @@ export default function ApprovalsPage() {
       if (s === "SUBMITTED") return 3;
       return 4;
     };
-    return [...drafts].sort((a, b) => {
+    return [...draftsList].sort((a, b) => {
       const sa = appById.get(a.application_id)?.status ?? "";
       const sb = appById.get(b.application_id)?.status ?? "";
       return order(sa) - order(sb);
     });
-  }, [drafts, appById]);
+  }, [draftsQuery.data, applicationsQuery.data]);
+
+  const applicationsData = applicationsQuery.data;
+  const appById = useMemo(() => {
+    if (!applicationsData?.length) return EMPTY_APP_MAP;
+    return new Map(applicationsData.map((a) => [a.id, a]));
+  }, [applicationsData]);
+
+  const draftCount = draftsQuery.data?.length ?? 0;
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-            Approvals
+            Approval dashboard
           </h1>
           <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-            Review AI drafts before anything is sent. Approve to unlock submit; reject sends the application to a failed
-            state until you retry from the tracker.
+            Review AI drafts before anything is sent (HITL). Inline edits persist via{" "}
+            <span className="font-app-mono text-[12px]">PATCH /applications/drafts/:draft_id</span>. Status updates stream
+            over <span className="font-medium text-[var(--app-text-primary)]">WebSocket</span>{" "}
+            <span className="font-app-mono text-[12px]">/applications/ws</span> with a 60s query fallback.
           </p>
         </div>
 
         <AppButton
-          disabled={loading}
+          disabled={loadingInitial || createDemoM.isPending}
           size="md"
           variant="outline"
           type="button"
-          onClick={() => void createDemo()}
+          onClick={() => createDemoM.mutate()}
         >
           Create demo draft
         </AppButton>
@@ -212,13 +249,13 @@ export default function ApprovalsPage() {
       ) : null}
 
       <div className="flex flex-col gap-[var(--app-space-md)]">
-        {loading && drafts.length === 0 ? (
+        {loadingInitial && draftCount === 0 ? (
           <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6 text-[13px] text-[var(--app-text-secondary)]">
             Loading…
           </div>
         ) : null}
 
-        {!loading && sortedDrafts.length === 0 ? (
+        {!loadingInitial && sortedDrafts.length === 0 ? (
           <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
             <p className="text-[13px] leading-6 text-[var(--app-text-secondary)]">
               No drafts awaiting review. Create a demo draft to run through approve → submit.
@@ -233,6 +270,7 @@ export default function ApprovalsPage() {
           const title = app ? `${app.job_title} — ${app.company}` : d.application_id;
           const subtitle = draftSubtitle(d, app);
           const busy = busyId === d.application_id;
+          const isEditing = editingDraftId === d.id;
 
           if (!app) {
             return (
@@ -259,7 +297,7 @@ export default function ApprovalsPage() {
                       size="sm"
                       variant="primary"
                       type="button"
-                      onClick={() => void submit(app.id)}
+                      onClick={() => submitM.mutate(app.id)}
                     >
                       Submit outreach
                     </AppButton>
@@ -291,21 +329,54 @@ export default function ApprovalsPage() {
             );
           }
 
-          /* PENDING_APPROVAL and other editable states */
+          const snippetNode = isEditing ? (
+            <div className="flex flex-col gap-2">
+              <Textarea
+                rows={10}
+                value={editBody}
+                disabled={patchDraftM.isPending}
+                onChange={(e) => setEditBody(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <AppButton
+                  disabled={patchDraftM.isPending || !editBody.trim()}
+                  size="sm"
+                  variant="primary"
+                  type="button"
+                  onClick={() => patchDraftM.mutate({ draftId: d.id, content: editBody.trim() })}
+                >
+                  Save draft
+                </AppButton>
+                <AppButton
+                  disabled={patchDraftM.isPending}
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => setEditingDraftId(null)}
+                >
+                  Cancel
+                </AppButton>
+              </div>
+            </div>
+          ) : (
+            snippetPreview(d.content)
+          );
+
           return (
             <AppApprovalCard
               key={d.id}
-              actionsDisabled={busy}
+              actionsDisabled={busy || isEditing || patchDraftM.isPending}
               badgeLabel={label}
               badgeVariant={variant}
-              snippet={snippetPreview(d.content)}
+              snippet={snippetNode}
               subtitle={subtitle}
               title={title}
-              onApprove={() => void approve(app.id)}
+              onApprove={() => approveM.mutate(app.id)}
               onEdit={() => {
-                window.alert("Composer editing will open here — draft text is read-only for now.");
+                setEditingDraftId(d.id);
+                setEditBody(d.content);
               }}
-              onReject={() => void reject(app.id)}
+              onReject={() => rejectM.mutate(app.id)}
             />
           );
         })}
