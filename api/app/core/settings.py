@@ -60,6 +60,21 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
     embedding_max_input_chars: int = 30_000
 
+    # Phase 3 — outbound email (SMTP). When unset, dispatch logs intent without sending mail.
+    # Amazon SES: host ``email-smtp.<region>.amazonaws.com``; use IAM SMTP credentials from SES console.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str | None = None
+    # STARTTLS after connect (typical for SES port 587).
+    smtp_use_tls: bool = True
+    # Implicit TLS (typical for SES port 465). If true, ``smtp_use_tls`` is ignored.
+    smtp_use_ssl: bool = False
+
+    # Optional webhook for LinkedIn-adjacent automation (no official API here).
+    linkedin_dispatch_webhook_url: str | None = None
+
     # Scraper: max HTTP GETs per host per minute (token bucket via Redis).
     scrape_max_requests_per_host_per_minute: int = 30
     # RSS ingest: max item links enqueued per feed (each becomes a scrape_job child task).
@@ -111,6 +126,13 @@ class Settings(BaseSettings):
             return None
         return v
 
+    @field_validator("smtp_host", "smtp_user", "smtp_password", "smtp_from", "linkedin_dispatch_webhook_url", mode="before")
+    @classmethod
+    def empty_smtp_optional_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     @field_validator("s3_resume_object_prefix", mode="before")
     @classmethod
     def normalize_resume_prefix(cls, v: object) -> object:
@@ -120,4 +142,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

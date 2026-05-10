@@ -13,9 +13,10 @@ import httpx
 import redis
 from celery.signals import task_failure
 from sqlalchemy import func, select, update
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.agents.outreach import generate_email_draft_content
+from app.agents.outreach import generate_email_draft_content, generate_linkedin_draft_content
 from app.celery_app import celery_app
 from app.core.settings import settings
 from app.db import SessionLocal
@@ -26,9 +27,10 @@ from app.jobs.providers.remoteok import fetch_remoteok_canonical
 from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.llm.logging import record_llm_interaction
-from app.models.application import Application
+from app.models.application import Application, ApplicationStatus
 from app.models.job import Job
-from app.models.outreach_draft import OutreachDraft
+from app.models.outreach_draft import DraftStatus, OutreachDraft
+from app.models.user import User
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.resume.claude_structure import claude_structure_resume_text
 from app.resume.embeddings import EmbeddingError, embed_resume_text
@@ -430,7 +432,7 @@ def score_job(job_id: str) -> dict[str, Any]:
 
 @celery_app.task(name="app.tasks.generate_outreach_draft")
 def generate_outreach_draft(application_id: str) -> dict[str, Any]:
-    """Enqueue-able regeneration of email outreach (writes draft + ``llm_logs`` row)."""
+    """Enqueue-able regeneration of email + LinkedIn drafts (writes ``llm_logs`` rows)."""
     with SessionLocal() as db:
         try:
             aid = UUID(application_id)
@@ -439,22 +441,34 @@ def generate_outreach_draft(application_id: str) -> dict[str, Any]:
         app_obj = db.get(Application, aid)
         if app_obj is None:
             return {"application_id": application_id, "status": "missing"}
-        content, meta = generate_email_draft_content(db, app_obj)
-        draft = OutreachDraft(application_id=app_obj.id, channel="email", content=content)
-        db.add(draft)
+        content, meta_e = generate_email_draft_content(db, app_obj)
+        li, meta_l = generate_linkedin_draft_content(db, app_obj)
+        d1 = OutreachDraft(
+            application_id=app_obj.id, channel="email", content=content, status=DraftStatus.DRAFT
+        )
+        d2 = OutreachDraft(
+            application_id=app_obj.id,
+            channel="linkedin",
+            content=li,
+            status=DraftStatus.DRAFT,
+        )
+        db.add(d1)
+        db.add(d2)
         db.commit()
-        db.refresh(draft)
+        db.refresh(d1)
+        db.refresh(d2)
         return {
             "application_id": application_id,
             "status": "ok",
-            "draft_id": str(draft.id),
-            "meta": meta,
+            "email_draft_id": str(d1.id),
+            "linkedin_draft_id": str(d2.id),
+            "meta": {"email": meta_e, "linkedin": meta_l},
         }
 
 
 @celery_app.task(name="app.tasks.send_notification")
 def send_notification(user_id: str, message: str) -> dict[str, Any]:
-    """Phase 3 stub: log intent (no SMTP). Approved-submit triggers this for audit."""
+    """Legacy audit hook (optional). Prefer ``dispatch_application_outbound`` for outreach sends."""
     with SessionLocal() as db:
         try:
             uid = UUID(user_id)
@@ -464,12 +478,229 @@ def send_notification(user_id: str, message: str) -> dict[str, Any]:
             db,
             user_id=uid,
             agent_name="sender_notification",
-            prompt_parts=(message, "phase3_stub_no_smtp"),
+            prompt_parts=(message, "legacy_stub"),
             raw_output=json.dumps({"message": message, "sent": False, "channel": "stub"}),
             latency_ms=0,
         )
         db.commit()
     return {"user_id": user_id, "sent": False, "message": message, "status": "logged"}
+
+
+def _smtp_send_text(*, to_addr: str, subject: str, body: str) -> None:
+    """Send plain-text mail via SMTP (Amazon SES: use regional ``email-smtp.<region>.amazonaws.com``)."""
+    import smtplib
+    from email.message import EmailMessage
+
+    if not (settings.smtp_host and settings.smtp_from):
+        raise RuntimeError("smtp_not_configured")
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = settings.smtp_from
+    msg["To"] = to_addr
+    msg.set_content(body, subtype="plain", charset="utf-8")
+    payload = msg.as_string()
+
+    if settings.smtp_use_ssl:
+        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+            if settings.smtp_user and settings.smtp_password:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.sendmail(settings.smtp_from, [to_addr], payload)
+        return
+
+    # Port 587 / STARTTLS (SES and most providers expect EHLO before and after TLS).
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+        smtp.ehlo()
+        if settings.smtp_use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        if settings.smtp_user and settings.smtp_password:
+            smtp.login(settings.smtp_user, settings.smtp_password)
+        smtp.sendmail(settings.smtp_from, [to_addr], payload)
+
+
+def _mark_drafts_failed(db: Session, application_id: UUID) -> None:
+    drafts = db.scalars(
+        select(OutreachDraft).where(
+            OutreachDraft.application_id == application_id,
+            OutreachDraft.status == DraftStatus.DRAFT,
+        )
+    ).all()
+    for d in drafts:
+        d.status = DraftStatus.FAILED
+    db.commit()
+
+
+@celery_app.task(
+    bind=True,
+    name="app.tasks.dispatch_application_outbound",
+    max_retries=3,
+)
+def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
+    """
+    Sender agent: runs after submit (SUBMITTED). Requires human APPROVAL via state machine
+    before submit enqueues this task. Dispatches email (SMTP) and LinkedIn (optional webhook),
+    with exponential backoff retries (max 3) on recoverable failures.
+
+    SMTP and webhooks run outside a DB session so connections are not held across slow I/O.
+    """
+    try:
+        aid = UUID(application_id)
+    except Exception:
+        return {"application_id": application_id, "status": "invalid_id"}
+
+    try:
+        # --- Load plan (short DB session; no network I/O) ---
+        with SessionLocal() as db:
+            app = db.get(Application, aid)
+            if app is None:
+                return {"application_id": application_id, "status": "missing"}
+            if app.status != ApplicationStatus.SUBMITTED:
+                return {
+                    "application_id": application_id,
+                    "status": "skipped_not_submitted",
+                    "detail": "Sender only runs for SUBMITTED applications (after APPROVED submit).",
+                }
+
+            user = db.get(User, app.user_id)
+            if user is None:
+                return {"application_id": application_id, "status": "missing_user"}
+
+            drafts = db.scalars(
+                select(OutreachDraft)
+                .where(
+                    OutreachDraft.application_id == aid,
+                    OutreachDraft.status == DraftStatus.DRAFT,
+                )
+                .order_by(OutreachDraft.created_at.asc())
+            ).all()
+
+            subject = f"Outreach draft — {app.company} ({app.job_title})"
+            user_id = user.id
+            user_email = user.email
+
+            steps: list[tuple[str, UUID, str | None, str]] = []
+            for d in drafts:
+                if d.channel == "email":
+                    steps.append(("email", d.id, subject, d.content))
+                elif d.channel == "linkedin":
+                    steps.append(("linkedin", d.id, None, d.content))
+                else:
+                    steps.append(("unknown", d.id, d.channel, ""))
+
+        results: list[dict[str, Any]] = []
+
+        def _persist_email_success(draft_id: UUID, subj: str, ms: int) -> None:
+            with SessionLocal() as db:
+                row = db.get(OutreachDraft, draft_id)
+                if row is None or row.status != DraftStatus.DRAFT:
+                    return
+                record_llm_interaction(
+                    db,
+                    user_id=user_id,
+                    agent_name="sender_email",
+                    prompt_parts=(str(aid), str(draft_id), subj),
+                    raw_output=json.dumps({"channel": "email", "to": user_email, "sent": True}),
+                    latency_ms=ms,
+                )
+                row.status = DraftStatus.SENT
+                db.commit()
+
+        def _persist_email_no_smtp(draft_id: UUID) -> None:
+            with SessionLocal() as db:
+                row = db.get(OutreachDraft, draft_id)
+                if row is None:
+                    return
+                record_llm_interaction(
+                    db,
+                    user_id=user_id,
+                    agent_name="sender_email",
+                    prompt_parts=(str(aid), str(draft_id), "no_smtp"),
+                    raw_output=json.dumps({"channel": "email", "to": user_email, "sent": False}),
+                    latency_ms=0,
+                )
+                db.commit()
+
+        def _persist_li_success(draft_id: UUID, status_code: int, ms: int) -> None:
+            with SessionLocal() as db:
+                row = db.get(OutreachDraft, draft_id)
+                if row is None or row.status != DraftStatus.DRAFT:
+                    return
+                record_llm_interaction(
+                    db,
+                    user_id=user_id,
+                    agent_name="sender_linkedin",
+                    prompt_parts=(str(aid), str(draft_id), "webhook"),
+                    raw_output=json.dumps({"sent": True, "status_code": status_code}),
+                    latency_ms=ms,
+                )
+                row.status = DraftStatus.SENT
+                db.commit()
+
+        def _persist_li_no_webhook(draft_id: UUID) -> None:
+            with SessionLocal() as db:
+                row = db.get(OutreachDraft, draft_id)
+                if row is None:
+                    return
+                record_llm_interaction(
+                    db,
+                    user_id=user_id,
+                    agent_name="sender_linkedin",
+                    prompt_parts=(str(aid), str(draft_id), "no_webhook"),
+                    raw_output=json.dumps({"sent": False, "note": "configure_webhook"}),
+                    latency_ms=0,
+                )
+                db.commit()
+
+        for kind, draft_id, meta, body in steps:
+            if kind == "unknown":
+                ch = meta or "?"
+                results.append({"channel": ch, "sent": False, "reason": "unknown_channel"})
+                continue
+
+            if kind == "email":
+                subj = meta or subject
+                if settings.smtp_host and settings.smtp_from:
+                    t0 = time.perf_counter()
+                    _smtp_send_text(to_addr=user_email, subject=subj, body=body)
+                    ms = int((time.perf_counter() - t0) * 1000)
+                    _persist_email_success(draft_id, subj, ms)
+                    results.append({"channel": "email", "sent": True})
+                else:
+                    _persist_email_no_smtp(draft_id)
+                    results.append({"channel": "email", "sent": False, "reason": "no_smtp"})
+                continue
+
+            # linkedin
+            payload = {
+                "application_id": str(aid),
+                "draft_id": str(draft_id),
+                "user_id": str(user_id),
+                "content": body,
+            }
+            if settings.linkedin_dispatch_webhook_url:
+                t0 = time.perf_counter()
+                r = httpx.post(
+                    settings.linkedin_dispatch_webhook_url,
+                    json=payload,
+                    timeout=30.0,
+                )
+                r.raise_for_status()
+                ms = int((time.perf_counter() - t0) * 1000)
+                _persist_li_success(draft_id, r.status_code, ms)
+                results.append({"channel": "linkedin", "sent": True})
+            else:
+                _persist_li_no_webhook(draft_id)
+                results.append({"channel": "linkedin", "sent": False, "reason": "no_webhook"})
+
+        return {"application_id": application_id, "status": "ok", "results": results}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("dispatch_application_outbound attempt failed: %s", exc)
+        if self.request.retries >= self.max_retries:
+            with SessionLocal() as db:
+                _mark_drafts_failed(db, aid)
+            raise
+        raise self.retry(exc=exc, countdown=min(300, 10 * (2 ** self.request.retries)))
 
 
 @celery_app.task(name="app.tasks.process_resume_document")

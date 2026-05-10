@@ -21,6 +21,31 @@ from app.models.application import Application
 from app.models.resume_document import ResumeDocument, ResumeStatus
 
 
+def latest_resume_full_text(db: Session, user_id: UUID, max_chars: int = 60_000) -> str | None:
+    """Latest résumé body for RAG chunking (prefer embedded, then parsed)."""
+    row = db.execute(
+        select(ResumeDocument)
+        .where(ResumeDocument.user_id == user_id)
+        .where(ResumeDocument.status == ResumeStatus.EMBEDDED)
+        .order_by(ResumeDocument.updated_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if row is None:
+        row = db.execute(
+            select(ResumeDocument)
+            .where(ResumeDocument.user_id == user_id)
+            .where(ResumeDocument.status == ResumeStatus.PARSED)
+            .order_by(ResumeDocument.updated_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+    if row is None or not row.extracted_text:
+        return None
+    t = row.extracted_text.strip()
+    if len(t) <= max_chars:
+        return t
+    return t[:max_chars] + "\n…"
+
+
 def latest_resume_excerpt_for_user(db: Session, user_id: UUID, max_chars: int = 2500) -> str | None:
     row = db.execute(
         select(ResumeDocument)
@@ -146,6 +171,101 @@ def generate_email_draft_content(
         return body, meta
 
 
+def _fallback_linkedin(app: Application) -> str:
+    url = f" ({app.source_url})" if app.source_url else ""
+    return (
+        f"Hi — I'm interested in the {app.job_title} role at {app.company}.{url} "
+        "I'd value connecting and sharing a quick note on how my background fits."
+    )
+
+
+def generate_linkedin_draft_content(
+    db: Session,
+    application: Application,
+) -> tuple[str, dict[str, Any]]:
+    """Short LinkedIn connection-style note (plain text), logged as ``outreach_linkedin``."""
+    excerpt = latest_resume_excerpt_for_user(db, application.user_id)
+    parts = (
+        application.company,
+        application.job_title,
+        application.source_url or "",
+        excerpt or "",
+    )
+    prompt_user = (
+        f"Company: {application.company}\n"
+        f"Role: {application.job_title}\n"
+        f"Listing URL: {application.source_url or '(none)'}\n\n"
+        "Résumé excerpt (may be empty):\n"
+        f"{excerpt or '(none)'}\n\n"
+        "Write a short LinkedIn DM or connection note (under 1200 characters). "
+        "Warm, specific, no placeholders. Plain text only."
+    )
+
+    meta: dict[str, Any] = {"agent": "outreach_linkedin"}
+
+    if not settings.openai_api_key:
+        body = _fallback_linkedin(application)
+        record_llm_interaction(
+            db,
+            user_id=application.user_id,
+            agent_name="outreach_linkedin",
+            prompt_parts=parts + ("fallback_template",),
+            raw_output=body,
+            latency_ms=None,
+        )
+        meta["mode"] = "fallback_no_openai"
+        return body, meta
+
+    t0 = time.perf_counter()
+    try:
+        client = OpenAI(api_key=settings.openai_api_key)
+        resp = client.chat.completions.create(
+            model=settings.openai_chat_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You write tight LinkedIn outreach for job seekers. "
+                        "Output only the message plain text, no subject."
+                    ),
+                },
+                {"role": "user", "content": prompt_user},
+            ],
+            temperature=0.55,
+            max_tokens=400,
+        )
+        ms = int((time.perf_counter() - t0) * 1000)
+        raw = (resp.choices[0].message.content or "").strip()
+        if not raw:
+            raise ValueError("empty completion")
+        record_llm_interaction(
+            db,
+            user_id=application.user_id,
+            agent_name="outreach_linkedin",
+            prompt_parts=parts + ("openai_chat",),
+            raw_output=raw,
+            latency_ms=ms,
+        )
+        meta["mode"] = "openai"
+        meta["latency_ms"] = ms
+        return raw, meta
+    except Exception as e:  # noqa: BLE001
+        ms = int((time.perf_counter() - t0) * 1000)
+        body = _fallback_linkedin(application)
+        record_llm_interaction(
+            db,
+            user_id=application.user_id,
+            agent_name="outreach_linkedin",
+            prompt_parts=parts + (f"error:{e!s}",),
+            raw_output=f"[fallback after error] {body}",
+            latency_ms=ms,
+        )
+        meta["mode"] = "fallback_error"
+        meta["error"] = str(e)
+        meta["latency_ms"] = ms
+        return body, meta
+
+
 def generate_interview_prep_content(
     db: Session,
     *,
@@ -153,12 +273,19 @@ def generate_interview_prep_content(
     company: str,
     job_title: str,
     description_excerpt: str | None,
-    resume_excerpt: str | None,
+    grounded_resume_context: str | None,
+    rag_meta_json: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Returns (parsed_json_dict, meta). Dict has themes, suggested_questions, talking_points (lists).
     """
-    parts = (company, job_title, description_excerpt or "", resume_excerpt or "")
+    parts = (
+        company,
+        job_title,
+        description_excerpt or "",
+        grounded_resume_context or "",
+        rag_meta_json or "",
+    )
     empty_out: dict[str, Any] = {
         "themes": ["Role fit", "Impact", "Culture"],
         "suggested_questions": [
@@ -187,7 +314,8 @@ def generate_interview_prep_content(
     prompt = (
         f"Company: {company}\nRole: {job_title}\n\n"
         f"Job description excerpt:\n{description_excerpt or '(none)'}\n\n"
-        f"Candidate résumé excerpt:\n{resume_excerpt or '(none)'}\n\n"
+        "Candidate résumé context (RAG-selected snippets + excerpt; may overlap):\n"
+        f"{grounded_resume_context or '(none)'}\n\n"
         "Respond with a single JSON object only, matching: "
         f"{schema_hint}. Keep arrays short (max 5 items each)."
     )

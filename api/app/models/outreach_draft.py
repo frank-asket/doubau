@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 class DraftStatus(StrEnum):
     DRAFT = "DRAFT"
     SENT = "SENT"
+    FAILED = "FAILED"
 
 
 class OutreachDraft(Base):

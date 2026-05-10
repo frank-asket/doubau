@@ -10,6 +10,7 @@ from app.models.outreach_draft import OutreachDraft
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument
 from app.models.user import User
+from app.models.copilot_session import CopilotMessage, CopilotSession
 
 __all__ = [
     "User",
@@ -24,5 +25,7 @@ __all__ = [
     "CheckIn",
     "Milestone",
     "ResumeDocument",
+    "CopilotSession",
+    "CopilotMessage",
 ]
 

@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (not committed) and adjust.
+aws_region   = "eu-west-3"
+domain_name  = "doubow.com"
+
+# IAM user + access key for SMTP require iam:CreateUser / iam:CreateAccessKey. If your profile
+# cannot create IAM users (common for engineer roles), set false and create SMTP credentials in
+# the SES console for an admin-created IAM user, or have an admin run apply with this true.
+create_smtp_iam_user = true
+# smtp_iam_user_name   = "doubow-ses-smtp"

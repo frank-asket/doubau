@@ -34,6 +34,7 @@ def make_celery() -> Celery:
             "app.tasks.score_job": {"queue": "score", "routing_key": "score"},
             "app.tasks.generate_outreach_draft": {"queue": "draft", "routing_key": "draft"},
             "app.tasks.send_notification": {"queue": "notify", "routing_key": "notify"},
+            "app.tasks.dispatch_application_outbound": {"queue": "notify", "routing_key": "notify"},
         },
         task_track_started=True,
         worker_prefetch_multiplier=1,
