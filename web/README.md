@@ -49,7 +49,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 **Demo / `*.vercel.app` (e.g. demo day on `doubau.vercel.app`):** Use Clerk’s **Development** instance keys — **`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`** (`pk_test_…`) and **`CLERK_SECRET_KEY`** (`sk_test_…`). Add `https://doubau.vercel.app` under Clerk → **Development** → **Domains** (allowed origins / redirects). The browser may warn about “development keys”; that is expected for this setup and fine for a demo.
 
-**Backend:** Set **`NEXT_PUBLIC_API_BASE_URL`** to your public API URL (e.g. Railway). If unset, server-side calls default to `http://localhost:8000` and will fail on Vercel. Optional: **`NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`**.
+**Backend:** Set **`NEXT_PUBLIC_API_BASE_URL`** to your public Railway API origin exactly as shown in Railway (HTTPS, no trailing slash), e.g. `https://doubau-production.up.railway.app`. If unset, server-side calls default to `http://localhost:8000` and will fail on Vercel. Optional: **`NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`**.
+
+**Troubleshooting `/api/me/*` or analytics:** From your machine run `curl -sS -o /dev/null -w "%{http_code}" https://<your-api-host>/health` — expect **200**. **502** means Railway has no healthy container (crash on boot, bad env, DB unreachable); fix in Railway **Deployments → Logs**. **401** on `/me/*` means Clerk JWT template **`doubow-api`** audience must match API **`DOUBOW_CLERK_AUDIENCE`** / JWKS.
 
 **Canonical URL:** On Vercel, metadata/sitemap use **`https://${VERCEL_URL}`** automatically (e.g. `https://doubau.vercel.app`). Set **`NEXT_PUBLIC_SITE_URL`** only if you want a fixed origin (e.g. later `https://doubow.com`).
 

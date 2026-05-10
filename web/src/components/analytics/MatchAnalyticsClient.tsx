@@ -62,10 +62,12 @@ export function MatchAnalyticsClient() {
         fetch(`/api/me/match/events?limit=40`, { cache: "no-store" }),
       ]);
       if (!mRes.ok) {
+        const errBody = (await mRes.json().catch(() => ({}))) as { detail?: string; hint?: string };
+        const msg = [errBody.detail, errBody.hint].filter(Boolean).join(" ");
         if (mRes.status === 401) {
           setError(isLoaded && isSignedIn ? API_401_SIGNED_IN : "Sign in to view match analytics.");
         } else {
-          setError("Could not load metrics.");
+          setError(msg || `Could not load metrics (${mRes.status}).`);
         }
         setMetrics(null);
       } else {
