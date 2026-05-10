@@ -1,14 +1,38 @@
+import json
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _parse_cors_allow_origins(raw: str) -> list[str]:
+    """Env-friendly CORS: JSON array, comma-separated URLs, or bare hostnames (https added)."""
+    s = (raw or "").strip()
+    if not s:
+        return ["http://localhost:3000"]
+    if s.startswith("["):
+        parsed = json.loads(s)
+        if not isinstance(parsed, list):
+            raise ValueError("DOUBOW_CORS_ALLOW_ORIGINS JSON must be an array of strings")
+        return [str(x).strip() for x in parsed if str(x).strip()]
+    parts = [p.strip() for p in s.split(",") if p.strip()]
+    out: list[str] = []
+    for p in parts:
+        if "://" in p:
+            out.append(p)
+        elif p.startswith("localhost") or p.startswith("127."):
+            out.append(f"http://{p}")
+        else:
+            out.append(f"https://{p}")
+    return out
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="DOUBOW_", extra="ignore")
 
     environment: str = "local"
-    cors_allow_origins: list[str] = ["http://localhost:3000"]
+    # Comma-separated or JSON array — NOT a bare hostname without scheme unless you use comma form (we add https).
+    cors_allow_origins: str = "http://localhost:3000"
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/doubow"
     jwt_secret: str = "dev_only_change_me"
@@ -105,6 +129,26 @@ class Settings(BaseSettings):
     # auto: OpenRouter first, then direct Anthropic, then OpenAI (when respective keys are set).
     resume_structuring_provider: Literal["auto", "claude", "openai", "openrouter"] = "auto"
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url_for_psycopg3(cls, v: object) -> object:
+        """Railway/Heroku often set DATABASE_URL as postgres:// or postgresql:// without a driver.
+
+        SQLAlchemy then selects the psycopg2 dialect, but this project depends on psycopg v3 only.
+        Rewrite bare Postgres URLs to postgresql+psycopg:// so create_engine uses psycopg3.
+        """
+        if not isinstance(v, str):
+            return v
+        s = v.strip()
+        head = s.split("://", 1)[0]
+        if "+" in head:
+            return s
+        if s.startswith("postgres://"):
+            return "postgresql+psycopg://" + s[len("postgres://") :]
+        if s.startswith("postgresql://"):
+            return "postgresql+psycopg://" + s[len("postgresql://") :]
+        return s
+
     @field_validator("openai_api_key", "anthropic_api_key", "openrouter_api_key", mode="before")
     @classmethod
     def empty_llm_keys_to_none(cls, v: object) -> object:
@@ -139,6 +183,10 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v.strip().strip("/") or "resumes"
         return v
+
+    @computed_field
+    def cors_allow_origins_list(self) -> list[str]:
+        return _parse_cors_allow_origins(self.cors_allow_origins)
 
 
 settings = Settings()
