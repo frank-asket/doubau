@@ -59,7 +59,10 @@ class Settings(BaseSettings):
     # Comma-separated or JSON array — NOT a bare hostname without scheme unless you use comma form (we add https).
     cors_allow_origins: str = "http://localhost:3000"
 
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/doubow"
+    # Leave blank by default so hosting platforms that inject DATABASE_URL (e.g. Railway/Heroku)
+    # can be used without also setting DOUBOW_DATABASE_URL. Local dev can set DOUBOW_DATABASE_URL
+    # in api/.env, or we'll fall back to a safe localhost default in the validator.
+    database_url: str = ""
     jwt_secret: str = "dev_only_change_me"
     jwt_issuer: str = "doubow"
     jwt_audience: str = "doubow-web"
