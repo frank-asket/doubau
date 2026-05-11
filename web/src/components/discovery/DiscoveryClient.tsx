@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { JobPipelineHint } from "@/components/app/JobPipelineHint";
+import { DiscoveryCoverageNotice } from "@/components/discovery/DiscoveryCoverageNotice";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -156,7 +158,12 @@ function JobCard({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-pretty text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
-              {job.title}
+              <Link
+                href={`/app/discovery/${job.id}`}
+                className="hover:text-[var(--app-accent)] hover:underline"
+              >
+                {job.title}
+              </Link>
             </h2>
             {job.tags?.slice(0, 3).map((t) => (
               <AppBadge key={t} variant="gray">
@@ -228,6 +235,12 @@ function JobCard({
             />
           ) : null}
           <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/app/discovery/${job.id}`}
+              className="inline-flex h-8 items-center justify-center rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-accent)]"
+            >
+              Details
+            </Link>
             <AppButton
               size="sm"
               variant="outline"
@@ -600,11 +613,17 @@ export function DiscoveryClient({
           Job Discovery
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-          Fit ranking follows your résumé across industries and role types—not only tech. With embeddings on we rank by
-          semantic match; otherwise profile heuristics. Import any posting URL or RSS feed for your field; optional
-          Remote OK / Adzuna syncs add samples (Remote OK skews remote/tech—tune Adzuna keywords in env for your sector).
+          Open a role for the full posting, then <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>{" "}
+          to draft messages under human review. Ranking uses your résumé (embeddings when enabled, otherwise profile
+          heuristics). Import a posting URL or RSS, or use optional Remote OK / Adzuna syncs—tune Adzuna in env for your
+          sector.
         </p>
+        <div className="mt-4">
+          <JobPipelineHint variant="discovery" />
+        </div>
       </div>
+
+      <DiscoveryCoverageNotice />
 
       {loadError ? (
         <div className="rounded-[var(--app-radius-lg)] border border-[color:rgba(220,38,38,0.35)] bg-[color:rgba(220,38,38,0.08)] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-primary)]">
@@ -727,7 +746,13 @@ export function DiscoveryClient({
         <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 text-center text-[13px] leading-6 text-[var(--app-text-secondary)]">
           No personalized rows yet. Embed a résumé on the Dashboard (with OpenAI configured), add jobs via{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or switch to{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">All roles</span>.
+          <span className="font-medium text-[var(--app-text-primary)]">All roles</span>. When listings appear, use{" "}
+          <span className="font-medium text-[var(--app-text-primary)]">Details</span> →{" "}
+          <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> →{" "}
+          <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] hover:underline">
+            Approvals
+          </Link>
+          .
         </div>
       ) : tab === "hidden" && hiddenRows.length === 0 ? (
         <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 text-center text-[13px] leading-6 text-[var(--app-text-secondary)]">

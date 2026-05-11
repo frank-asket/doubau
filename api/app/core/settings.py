@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     environment: str = "local"
     # Comma-separated or JSON array — NOT a bare hostname without scheme unless you use comma form (we add https).
-    cors_allow_origins: str = "http://localhost:3000,https://doubau.vercel.app"
+    cors_allow_origins: str = "http://localhost:3000"
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/doubow"
     jwt_secret: str = "dev_only_change_me"
@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     clerk_jwks_url: str | None = None
     clerk_issuer: str | None = None
     clerk_audience: str | None = None
+
+    # Comma-separated Clerk user ids allowed for admin ingestion routes (when implemented).
+    admin_ingestion_user_ids: str = ""
 
     idempotency_window_hours: int = 24
     idempotency_max_body_bytes: int = 32_768
@@ -187,6 +190,13 @@ class Settings(BaseSettings):
     @computed_field
     def cors_allow_origins_list(self) -> list[str]:
         return _parse_cors_allow_origins(self.cors_allow_origins)
+
+    @computed_field
+    def admin_ingestion_user_ids_list(self) -> list[str]:
+        raw = (self.admin_ingestion_user_ids or "").strip()
+        if not raw:
+            return []
+        return [x.strip() for x in raw.split(",") if x.strip()]
 
 
 settings = Settings()

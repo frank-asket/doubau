@@ -7,7 +7,7 @@ const SYSTEMS = [
     id: "doubow",
     title: "DouBow design system",
     src: "/doubow_design_system.html",
-    hint: "Sidebar #0F1117, accent #4F8EF7 — matches `.theme-app` in app-theme.css (Phase 4).",
+    hint: "Sidebar #0F1117, accent #1a5cff — matches `.theme-app` in app-theme.css (Phase 4).",
   },
   {
     id: "careerhero",
@@ -30,12 +30,30 @@ export default function DesignSystemPage() {
               <h1 className="text-lg font-semibold text-[var(--app-text-primary)]">Design references</h1>
               <p className="mt-1 max-w-2xl text-sm text-[var(--app-text-secondary)]">{current.hint}</p>
             </div>
-            <a
-              href="/app/dashboard"
-              className="text-sm font-medium text-[var(--app-accent)] hover:text-[var(--app-accent-hover)]"
-            >
-              ← Back to workspace
-            </a>
+            <div className="flex flex-wrap items-center gap-4">
+              <a
+                href="/product-userflow-spec.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-accent)]"
+              >
+                Userflow spec
+              </a>
+              <a
+                href="/product-screens-part2-spec.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-accent)]"
+              >
+                Screens part 2
+              </a>
+              <a
+                href="/app/dashboard"
+                className="text-sm font-medium text-[var(--app-accent)] hover:text-[var(--app-accent-hover)]"
+              >
+                ← Back to workspace
+              </a>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {SYSTEMS.map((s, i) => (

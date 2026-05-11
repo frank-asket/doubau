@@ -2,31 +2,136 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 
-import { AppSidebarNav } from "@/components/app/AppSidebarNav";
+import {
+  AppSidebarNav,
+  type AppNavSection,
+} from "@/components/app/AppSidebarNav";
 import { AppThemeShell } from "@/components/app/AppThemeShell";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
 
-const NAV_ITEMS = [
-  { href: "/app/dashboard", label: "Dashboard" },
-  { href: "/app/analytics", label: "Match analytics" },
-  { href: "/app/discovery", label: "Job Discovery" },
-  { href: "/app/tracker", label: "Job Tracker" },
-  { href: "/app/approvals", label: "Approval dashboard" },
-  { href: "/app/copilot", label: "Copilot" },
-  { href: "/app/planner", label: "Career Planner" },
-  { href: "/app/pathfinder", label: "Career Pathfinder" },
-  { href: "/app/career-success", label: "Career Success" },
-  { href: "/app/ats-optimizer", label: "ATS Optimizer" },
-  { href: "/app/settings", label: "Settings & billing" },
-  { href: "/app/cv-builder", label: "CV Builder" },
-  { href: "/app/cover-letter", label: "Cover Letter" },
-  { href: "/app/career-health", label: "Career Health" },
-  { href: "/app/linkedin-analysis", label: "LinkedIn Analysis" },
-  { href: "/app/salary-benchmark", label: "Salary Benchmark" },
-  { href: "/app/sponsorship-hub", label: "Sponsorship Hub" },
-  { href: "/app/discussion", label: "Discussion Board" },
-] as const;
+const NAV_SECTIONS: AppNavSection[] = [
+  {
+    id: "core",
+    title: "Core product",
+    items: [
+      {
+        href: "/app/dashboard",
+        label: "Dashboard",
+        subtitle: "Overview, profile signals, and resume status",
+      },
+      {
+        href: "/app/discovery",
+        label: "Discovery",
+        subtitle: "Feed, fit, and role details",
+      },
+      {
+        href: "/app/approvals",
+        label: "Approvals",
+        subtitle: "HITL: review drafts before send",
+      },
+      {
+        href: "/app/tracker",
+        label: "Job tracker",
+        subtitle: "Pipeline from saved roles to submitted apps",
+      },
+      {
+        href: "/app/analytics",
+        label: "Match analytics",
+        subtitle: "Match quality and discovery signals",
+      },
+      {
+        href: "/app/copilot",
+        label: "Copilot",
+        subtitle: "Career answers grounded in your résumé",
+      },
+      {
+        href: "/app/billing",
+        label: "Billing",
+        subtitle: "Plans, checkout, and subscription portal",
+      },
+    ],
+  },
+  {
+    id: "roadmap-p1",
+    title: "Roadmap · P1",
+    collapsible: true,
+    items: [
+      {
+        href: "/app/planner",
+        label: "Career planner",
+        subtitle: "Priorities from live workspace signals",
+      },
+      {
+        href: "/app/pathfinder",
+        label: "Career pathfinder",
+        subtitle: "Persona + profile-grounded guidance",
+      },
+      {
+        href: "/app/career-steps",
+        label: "Career steps",
+        subtitle: "Milestone timeline synced to the API",
+      },
+      {
+        href: "/app/career-success",
+        label: "Career success",
+        subtitle: "Pipeline health + discovery engagement",
+      },
+      {
+        href: "/app/ats-optimizer",
+        label: "ATS optimizer",
+        subtitle: "Paste a JD; fit vs your résumé",
+      },
+      {
+        href: "/app/settings",
+        label: "Settings & billing",
+        subtitle: "Profile API + link to subscriptions",
+      },
+    ],
+  },
+  {
+    id: "roadmap-p2",
+    title: "Roadmap · P2",
+    collapsible: true,
+    items: [
+      {
+        href: "/app/cv-builder",
+        label: "CV builder",
+        subtitle: "Parsed résumé text from the API",
+      },
+      {
+        href: "/app/cover-letter",
+        label: "Cover letter",
+        subtitle: "Email drafts from your pipeline",
+      },
+      {
+        href: "/app/career-health",
+        label: "Career health",
+        subtitle: "Summary + discovery metrics snapshot",
+      },
+      {
+        href: "/app/linkedin-analysis",
+        label: "LinkedIn analysis",
+        subtitle: "LinkedIn drafts tied to applications",
+      },
+      {
+        href: "/app/salary-benchmark",
+        label: "Salary benchmark",
+        subtitle: "Feed snapshot (no salary fields yet)",
+      },
+      {
+        href: "/app/sponsorship-hub",
+        label: "Sponsorship hub",
+        subtitle: "Keyword filter over your job feed",
+      },
+      {
+        href: "/app/discussion",
+        label: "Discussion board",
+        subtitle: "Discovery activity timeline",
+      },
+    ],
+  },
+];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -40,7 +145,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <DouBowLogo variant="white" text="DouBow" size={26} />
         </Link>
         <div className="mt-8 min-h-0 flex-1 overflow-y-auto">
-          <AppSidebarNav items={[...NAV_ITEMS]} />
+          <AppSidebarNav sections={NAV_SECTIONS} />
         </div>
         <div className="shrink-0 pt-6">
           <Link

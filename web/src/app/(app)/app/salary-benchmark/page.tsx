@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { SalaryBenchmarkClient } from "@/components/workspace/SalaryBenchmarkClient";
 
 export const metadata: Metadata = {
-  title: "Salary Benchmark",
+  title: "Salary benchmark",
 };
 
 export default function SalaryBenchmarkPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="Salary Benchmark"
-      description="Comp bands by role, region, and seniority — fed by trusted salary datasets when integrated."
-    />
-  );
+  return <SalaryBenchmarkClient />;
 }

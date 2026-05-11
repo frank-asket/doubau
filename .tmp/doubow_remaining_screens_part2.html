@@ -1,0 +1,576 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sb:#0f1117;--acc:#1a5cff;--a50:#e8eeff;--a800:#0C447C;
+  --g50:#EAF3DE;--g600:#3B6D11;--g800:#27500A;
+  --r50:#FCEBEB;--r400:#E24B4A;--r800:#791F1F;
+  --am50:#FAEEDA;--am400:#BA7517;--am800:#633806;
+  --pu50:#EEEDFE;--pu800:#3C3489;
+  --P:var(--color-background-primary);
+  --S:var(--color-background-secondary);
+  --b:var(--color-border-tertiary);
+  --b2:var(--color-border-secondary);
+  --t:var(--color-text-primary);
+  --t2:var(--color-text-secondary);
+  --t3:var(--color-text-tertiary);
+  --rmd:var(--border-radius-md);
+  --rlg:var(--border-radius-lg);
+}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.w{padding:1rem 0}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:0.5px solid var(--b2)}
+.nb{padding:5px 12px;border-radius:var(--rmd);font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:0.5px solid var(--b);color:var(--t2);transition:all .15s}
+.nb:hover{background:var(--S);color:var(--t)}
+.nb.on{background:var(--sb);color:#fff;border-color:var(--sb)}
+.pnl{display:none}.pnl.on{display:block}
+.lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin:16px 0 8px}
+.lbl:first-child{margin-top:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.card{background:var(--P);border:0.5px solid var(--b);border-radius:var(--rlg);padding:14px}
+.sm{background:var(--P);border:0.5px solid var(--b);border-radius:var(--rmd);padding:10px}
+.row{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--b);font-size:12px;gap:8px}
+.row:last-child{border-bottom:none}
+.rk{color:var(--t2);flex-shrink:0}
+.rv{color:var(--t);font-family:var(--font-mono);font-size:11px;text-align:right}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:500}
+.pb{background:var(--a50);color:var(--a800)}
+.pg{background:var(--g50);color:var(--g800)}
+.pr{background:var(--r50);color:var(--r800)}
+.pa{background:var(--am50);color:var(--am800)}
+.pp{background:var(--pu50);color:var(--pu800)}
+.pgr{background:var(--S);color:var(--t2);border:0.5px solid var(--b)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit}
+.bp{background:var(--acc);color:#fff}
+.bo{background:transparent;color:var(--t);border:0.5px solid var(--b2)}
+.bg{background:var(--g50);color:var(--g800)}
+.br{background:var(--r50);color:var(--r800)}
+.bsm{padding:3px 10px;font-size:11px}
+.bar{background:var(--S);border-radius:99px;height:5px;overflow:hidden}
+.bf{height:100%;border-radius:99px}
+.inp{width:100%;border:0.5px solid var(--b2);border-radius:var(--rmd);padding:6px 10px;font-size:12px;font-family:inherit;color:var(--t);background:var(--P);outline:none}
+.shell{display:flex;border-radius:var(--rmd);overflow:hidden;border:0.5px solid var(--b)}
+.msb{width:92px;background:var(--sb);flex-shrink:0}
+.sl{display:flex;align-items:center;gap:5px;padding:10px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:4px}
+.sd{width:13px;height:13px;border-radius:3px;background:var(--acc);flex-shrink:0}
+.sn{color:#fff;font-size:9px;font-weight:500}
+.si{padding:5px 9px;font-size:9px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px}
+.si i{font-size:10px}
+.si.a{background:#1e2b4a;color:#fff}
+.main{flex:1;display:flex;flex-direction:column;background:var(--P)}
+.tb{height:30px;border-bottom:0.5px solid var(--b);display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
+.tt{font-size:11px;font-weight:500;flex:1;color:var(--t)}
+.av{width:18px;height:18px;border-radius:50%;background:var(--acc);font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:500;flex-shrink:0}
+.con{flex:1;padding:9px;overflow:hidden;background:var(--S)}
+.dvd{height:0.5px;background:var(--b);margin:12px 0}
+</style>
+
+<div class="w">
+<h2 class="sr-only">Doubow design system — continued screen specs: job detail, career steps, notifications, search, interview prep, career copilot empty state, and global responsive rules</h2>
+
+<div class="nav" id="nav2"></div>
+<div id="panels2"></div>
+</div>
+
+<script>
+const screens=[
+
+{id:'jobdetail',label:'Job detail',html:()=>`
+<div class="lbl">Full-page job detail: header + description + right metadata sidebar</div>
+<div class="shell" style="margin-bottom:12px">
+  <div class="msb">
+    <div class="sl"><div class="sd"></div><span class="sn">Doubow</span></div>
+    <div class="si"><i class="ti ti-search" aria-hidden="true"></i> Discovery</div>
+    <div class="si a"><i class="ti ti-file-description" aria-hidden="true"></i> Job detail</div>
+  </div>
+  <div class="main">
+    <div class="tb">
+      <button class="btn bo bsm" style="border-radius:var(--rmd);font-size:8px;padding:2px 8px"><i class="ti ti-arrow-left" style="font-size:9px" aria-hidden="true"></i> Back</button>
+      <span class="tt" style="text-align:center">Job details</span>
+      <div class="av">RK</div>
+    </div>
+    <div class="con" style="display:grid;grid-template-columns:1fr 160px;gap:8px;background:var(--S)">
+      <div style="background:var(--P);border-radius:var(--rmd);padding:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--a50);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--a800);flex-shrink:0">G</div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:500">Senior Project Manager</div>
+            <div style="font-size:10px;color:var(--acc)">Google</div>
+          </div>
+          <button class="btn bp bsm" style="border-radius:100px;font-size:8px">Apply now</button>
+          <i class="ti ti-star" style="font-size:14px;color:var(--t3);cursor:pointer" aria-hidden="true"></i>
+        </div>
+        <div style="font-size:9px;font-weight:500;margin-bottom:4px">Job description</div>
+        <div style="font-size:8px;color:var(--t2);line-height:1.6;margin-bottom:8px">We are looking for an experienced Senior Project Manager to lead strategic projects from initiation to delivery. You'll work closely with cross-functional teams and stakeholders…</div>
+        <div style="font-size:9px;font-weight:500;margin-bottom:4px">Responsibilities</div>
+        <div style="font-size:8px;color:var(--t2);line-height:1.7;margin-bottom:8px">· Own the full project lifecycle: planning, execution, monitoring, and closing<br>· Coordinate internal resources and third parties<br>· Manage risks and dependencies proactively</div>
+        <div style="font-size:9px;font-weight:500;margin-bottom:4px">Skills required</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="pill pb" style="font-size:8px">Stakeholder management</span>
+          <span class="pill pb" style="font-size:8px">Budgeting</span>
+          <span class="pill pb" style="font-size:8px">Change management</span>
+        </div>
+        <div style="display:flex;gap:4px">
+          <span class="pill pgr" style="font-size:8px"><i class="ti ti-eye" style="font-size:9px" aria-hidden="true"></i> 690 views</span>
+          <span class="pill pgr" style="font-size:8px"><i class="ti ti-users" style="font-size:9px" aria-hidden="true"></i> 231 applicants</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px">
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div><div style="font-size:7px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Date posted</div><div style="font-size:9px;font-weight:500">02 May 2025</div></div>
+            <div><div style="font-size:7px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Employment type</div><div style="font-size:9px;font-weight:500">Full-time</div></div>
+            <div><div style="font-size:7px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Offered salary</div><div style="font-size:9px;font-weight:500">£55,000 – £65,000</div></div>
+            <div><div style="font-size:7px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Experience</div><div style="font-size:9px;font-weight:500">5+ years</div></div>
+            <div><div style="font-size:7px;color:var(--t3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Work arrangement</div><div style="font-size:9px;font-weight:500">Office</div></div>
+          </div>
+        </div>
+        <button class="btn bp bsm" style="width:100%;justify-content:center;border-radius:100px;font-size:8px"><i class="ti ti-sparkles" style="font-size:9px" aria-hidden="true"></i> Generate outreach</button>
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:8px;font-weight:500;margin-bottom:4px">AI fit score</div>
+          <div style="font-size:16px;font-weight:500;color:var(--g800);margin-bottom:3px">87%</div>
+          <div class="bar" style="margin-bottom:4px"><div class="bf" style="width:87%;background:#639922"></div></div>
+          <div style="font-size:7px;color:var(--t3)">Strong match · 3 skill gaps</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Layout tokens</div>
+    <div class="row"><span class="rk">Header row</span><span class="rv">logo 40px · title · Apply btn · star</span></div>
+    <div class="row"><span class="rk">Main split</span><span class="rv">1fr description + 240px fixed sidebar</span></div>
+    <div class="row"><span class="rk">Metadata labels</span><span class="rv">11px uppercase 0.04em letter-spacing --text-tertiary</span></div>
+    <div class="row"><span class="rk">Metadata values</span><span class="rv">13px weight 500 --text-primary</span></div>
+    <div class="row"><span class="rk">Skill badges</span><span class="rv">blue-50 pill</span></div>
+    <div class="row"><span class="rk">View/applicant count</span><span class="rv">gray pill · icon + number</span></div>
+    <div class="row"><span class="rk">Benefits row</span><span class="rv">gray pills, bottom of description</span></div>
+    <div class="row"><span class="rk">Generate outreach btn</span><span class="rv">full-width primary · sparkles icon</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Fit score sidebar states</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:var(--S);border-radius:var(--rmd);padding:10px">
+        <div style="font-size:11px;font-weight:500;margin-bottom:4px">Strong match</div>
+        <div style="font-size:22px;font-weight:500;color:var(--g800);margin-bottom:4px">87%</div>
+        <div class="bar" style="margin-bottom:4px"><div class="bf" style="width:87%;background:#639922"></div></div>
+        <div style="font-size:11px;color:var(--t3)">3 skill gaps · view breakdown</div>
+      </div>
+      <div style="background:var(--S);border-radius:var(--rmd);padding:10px">
+        <div style="font-size:11px;font-weight:500;margin-bottom:4px">Moderate match</div>
+        <div style="font-size:22px;font-weight:500;color:var(--a800);margin-bottom:4px">58%</div>
+        <div class="bar" style="margin-bottom:4px"><div class="bf" style="width:58%;background:var(--acc)"></div></div>
+        <div style="font-size:11px;color:var(--t3)">7 skill gaps · view breakdown</div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="rk">≥80% score</span><span class="rv">green-800 text + green-600 bar</span></div>
+    <div class="row"><span class="rk">50–79% score</span><span class="rv">blue-800 text + --accent bar</span></div>
+    <div class="row"><span class="rk">&lt;50% score</span><span class="rv">amber-800 text + amber-400 bar</span></div>
+  </div>
+</div>
+`},
+
+{id:'careersteps',label:'Career steps',html:()=>`
+<div class="lbl">Vertical timeline roadmap generated from Career Pathfinder output</div>
+<div class="shell" style="margin-bottom:12px">
+  <div class="msb">
+    <div class="sl"><div class="sd"></div><span class="sn">Doubow</span></div>
+    <div class="si"><i class="ti ti-chart-bar" aria-hidden="true"></i> Career growth</div>
+    <div class="si a" style="padding-left:16px"><i class="ti ti-stairs" aria-hidden="true"></i> Steps</div>
+  </div>
+  <div class="main">
+    <div class="tb"><span class="tt">Career steps</span><button class="btn bp bsm" style="font-size:8px;border-radius:100px"><i class="ti ti-refresh" style="font-size:9px" aria-hidden="true"></i> Regenerate</button><div class="av">RK</div></div>
+    <div class="con">
+      <div style="font-size:9px;color:var(--t2);margin-bottom:8px">Your roadmap to Senior UX Designer — 6 month transition plan</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:20px">
+            <div style="width:16px;height:16px;border-radius:50%;background:#639922;display:flex;align-items:center;justify-content:center"><i class="ti ti-check" style="font-size:8px;color:#fff" aria-hidden="true"></i></div>
+            <div style="width:1px;height:28px;background:var(--b2);margin-top:2px"></div>
+          </div>
+          <div style="flex:1;background:var(--P);border-radius:var(--rmd);padding:7px;margin-bottom:5px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font-size:9px;font-weight:500">Complete Figma advanced course</span><span class="pill pg" style="font-size:7px;padding:1px 6px">Done</span></div>
+            <div style="font-size:8px;color:var(--t2)">Month 1 · Skill: Figma 80%+ proficiency</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:20px">
+            <div style="width:16px;height:16px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:500">2</div>
+            <div style="width:1px;height:28px;background:var(--b2);margin-top:2px"></div>
+          </div>
+          <div style="flex:1;background:var(--P);border:1px solid var(--acc);border-radius:var(--rmd);padding:7px;margin-bottom:5px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font-size:9px;font-weight:500">Build motion design portfolio piece</span><span class="pill pb" style="font-size:7px;padding:1px 6px">In progress</span></div>
+            <div style="font-size:8px;color:var(--t2)">Month 2 · Skill: Motion design</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:20px">
+            <div style="width:16px;height:16px;border-radius:50%;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--t3)">3</div>
+          </div>
+          <div style="flex:1;background:var(--P);border-radius:var(--rmd);padding:7px;opacity:.6">
+            <div style="font-size:9px;font-weight:500;margin-bottom:2px">Apply to 5 senior roles</div>
+            <div style="font-size:8px;color:var(--t2)">Month 3–4 · Target: Senior UX Designer</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Layout tokens</div>
+    <div class="row"><span class="rk">Layout</span><span class="rv">single column vertical timeline</span></div>
+    <div class="row"><span class="rk">Step connector</span><span class="rv">1px --border-secondary vertical line</span></div>
+    <div class="row"><span class="rk">Done step circle</span><span class="rv">green-600 fill + checkmark · 16px</span></div>
+    <div class="row"><span class="rk">Active step circle</span><span class="rv">--accent fill + number · 16px</span></div>
+    <div class="row"><span class="rk">Future step circle</span><span class="rv">--border-secondary ring · 16px</span></div>
+    <div class="row"><span class="rk">Active card border</span><span class="rv">1px --accent full border</span></div>
+    <div class="row"><span class="rk">Future card opacity</span><span class="rv">0.6</span></div>
+    <div class="row"><span class="rk">Regenerate btn</span><span class="rv">primary pill · refresh icon · top-right</span></div>
+    <div class="row"><span class="rk">Context note</span><span class="rv">13px --text-secondary below topbar</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Step card anatomy</div>
+    <div style="background:var(--P);border:0.5px solid var(--b);border-radius:var(--rlg);padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:500">Build motion design portfolio piece</div>
+        <span class="pill pb">In progress</span>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:8px">Month 2 of 6 · Target skill: Motion design</div>
+      <div class="bar" style="margin-bottom:3px"><div class="bf" style="width:40%;background:var(--acc)"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3)"><span>40% complete</span><span>Due: Jun 30</span></div>
+      <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">
+        <span class="pill pgr" style="font-size:11px">After Effects</span>
+        <span class="pill pgr" style="font-size:11px">Principle</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="rk">Card padding</span><span class="rv">16px</span></div>
+    <div class="row"><span class="rk">Progress bar</span><span class="rv">--accent for in-progress · green for done</span></div>
+    <div class="row"><span class="rk">Resource tags</span><span class="rv">gray pills below progress</span></div>
+  </div>
+</div>
+`},
+
+{id:'notifications',label:'Notifications',html:()=>`
+<div class="lbl">Notification centre — grouped by type, mark-all-read action</div>
+<div class="shell" style="margin-bottom:12px">
+  <div class="msb">
+    <div class="sl"><div class="sd"></div><span class="sn">Doubow</span></div>
+    <div class="si a"><i class="ti ti-bell" aria-hidden="true"></i> Alerts</div>
+  </div>
+  <div class="main">
+    <div class="tb"><span class="tt">Notifications</span><button class="btn bo bsm" style="font-size:8px;border-radius:4px">Mark all read</button><div class="av">RK</div></div>
+    <div class="con">
+      <div style="font-size:8px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Today</div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
+        <div style="background:var(--a50);border-radius:var(--rmd);padding:8px;display:flex;gap:8px;align-items:flex-start">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--acc);flex-shrink:0;margin-top:3px"></div>
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:500">New match: Senior PM at Google — 87% fit</div>
+            <div style="font-size:8px;color:var(--t2);margin-top:1px">AI found a role that matches your profile closely</div>
+          </div>
+          <span style="font-size:7px;color:var(--t3);flex-shrink:0">2m ago</span>
+        </div>
+        <div style="background:var(--am50);border-radius:var(--rmd);padding:8px;display:flex;gap:8px;align-items:flex-start">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--am400);flex-shrink:0;margin-top:3px"></div>
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:500">Approval needed: Outreach draft for Meta PM</div>
+            <div style="font-size:8px;color:var(--t2);margin-top:1px">Review and approve before it can be sent</div>
+          </div>
+          <span style="font-size:7px;color:var(--t3);flex-shrink:0">15m ago</span>
+        </div>
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px;display:flex;gap:8px;align-items:flex-start;border:0.5px solid var(--b)">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--b2);flex-shrink:0;margin-top:3px"></div>
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:500;color:var(--t2)">Interview prep ready for AWS Certification</div>
+            <div style="font-size:8px;color:var(--t3);margin-top:1px">Questions and answer frameworks prepared</div>
+          </div>
+          <span style="font-size:7px;color:var(--t3);flex-shrink:0">1h ago</span>
+        </div>
+      </div>
+      <div style="font-size:8px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Yesterday</div>
+      <div style="background:var(--P);border-radius:var(--rmd);padding:8px;display:flex;gap:8px;align-items:flex-start;border:0.5px solid var(--b)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--b2);flex-shrink:0;margin-top:3px"></div>
+        <div style="flex:1"><div style="font-size:9px;color:var(--t2)">Your CV score improved by 10% after edits</div></div>
+        <span style="font-size:7px;color:var(--t3);flex-shrink:0">Yesterday</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Layout tokens</div>
+    <div class="row"><span class="rk">Layout</span><span class="rv">single-column, grouped by date</span></div>
+    <div class="row"><span class="rk">Group label</span><span class="rv">11px uppercase letter-spacing --text-secondary</span></div>
+    <div class="row"><span class="rk">Unread — match</span><span class="rv">blue-50 bg + blue dot</span></div>
+    <div class="row"><span class="rk">Unread — approval</span><span class="rv">amber-50 bg + amber dot</span></div>
+    <div class="row"><span class="rk">Read item</span><span class="rv">--bg-primary + --border-tertiary + gray dot</span></div>
+    <div class="row"><span class="rk">Dot size</span><span class="rv">8px circle, margin-top 3px</span></div>
+    <div class="row"><span class="rk">Timestamp</span><span class="rv">11px --text-tertiary, right-aligned</span></div>
+    <div class="row"><span class="rk">Mark all read</span><span class="rv">outline btn top-right</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Notification types + colours</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--a50);border-radius:var(--rmd)"><div style="width:8px;height:8px;border-radius:50%;background:var(--acc)"></div><div><div style="font-size:12px;font-weight:500;color:var(--a800)">New job match</div><div style="font-size:11px;color:var(--a800)">blue-50 bg · --accent dot</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--am50);border-radius:var(--rmd)"><div style="width:8px;height:8px;border-radius:50%;background:var(--am400)"></div><div><div style="font-size:12px;font-weight:500;color:var(--am800)">Approval needed</div><div style="font-size:11px;color:var(--am800)">amber-50 bg · amber-400 dot</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--g50);border-radius:var(--rmd)"><div style="width:8px;height:8px;border-radius:50%;background:var(--g600)"></div><div><div style="font-size:12px;font-weight:500;color:var(--g800)">Goal achieved</div><div style="font-size:11px;color:var(--g800)">green-50 bg · green-600 dot</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--P);border:0.5px solid var(--b);border-radius:var(--rmd)"><div style="width:8px;height:8px;border-radius:50%;background:var(--b2)"></div><div><div style="font-size:12px;font-weight:500;color:var(--t2)">Read item</div><div style="font-size:11px;color:var(--t3)">white bg · gray dot</div></div></div>
+    </div>
+  </div>
+</div>
+`},
+
+{id:'search',label:'Global search',html:()=>`
+<div class="lbl">⌘K command palette — instant results grouped by category</div>
+<div style="min-height:320px;background:rgba(0,0,0,0.4);border-radius:var(--rlg);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;margin-bottom:12px">
+  <div style="background:var(--P);border-radius:var(--rlg);width:520px;border:0.5px solid var(--b2);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:0.5px solid var(--b)">
+      <i class="ti ti-search" style="font-size:16px;color:var(--t3)" aria-hidden="true"></i>
+      <input class="inp" value="Senior PM" style="border:none;font-size:14px;padding:0;background:transparent">
+      <kbd style="background:var(--S);border:0.5px solid var(--b2);border-radius:4px;padding:2px 6px;font-size:10px;color:var(--t3);white-space:nowrap">Esc</kbd>
+    </div>
+    <div style="padding:8px 0;max-height:260px;overflow:hidden">
+      <div style="padding:4px 16px 4px;font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Jobs</div>
+      <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--a50)">
+        <div style="width:24px;height:24px;border-radius:6px;background:var(--S);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--a800);flex-shrink:0">G</div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:500">Senior PM — Google</div><div style="font-size:11px;color:var(--t2)">Job discovery · £65,000/yr</div></div>
+        <span class="pill pg" style="font-size:9px">87% match</span>
+      </div>
+      <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <div style="width:24px;height:24px;border-radius:6px;background:var(--S);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--t2);flex-shrink:0">M</div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:500">Project Manager — Meta</div><div style="font-size:11px;color:var(--t2)">Job discovery · £50,000/yr</div></div>
+        <span class="pill pb" style="font-size:9px">72% match</span>
+      </div>
+      <div style="height:0.5px;background:var(--b);margin:6px 0"></div>
+      <div style="padding:4px 16px;font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Pages</div>
+      <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <i class="ti ti-chart-bar" style="font-size:16px;color:var(--t3)" aria-hidden="true"></i>
+        <div><div style="font-size:12px;font-weight:500">Career success</div><div style="font-size:11px;color:var(--t2)">Career growth → Career success</div></div>
+      </div>
+      <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <i class="ti ti-checks" style="font-size:16px;color:var(--t3)" aria-hidden="true"></i>
+        <div><div style="font-size:12px;font-weight:500">Approvals</div><div style="font-size:11px;color:var(--t2)">Job search → Approvals</div></div>
+      </div>
+    </div>
+    <div style="padding:8px 16px;border-top:0.5px solid var(--b);display:flex;gap:12px">
+      <span style="font-size:10px;color:var(--t3);display:flex;align-items:center;gap:4px"><kbd style="background:var(--S);border:0.5px solid var(--b2);border-radius:3px;padding:1px 5px;font-size:9px">↑↓</kbd> navigate</span>
+      <span style="font-size:10px;color:var(--t3);display:flex;align-items:center;gap:4px"><kbd style="background:var(--S);border:0.5px solid var(--b2);border-radius:3px;padding:1px 5px;font-size:9px">↵</kbd> open</span>
+      <span style="font-size:10px;color:var(--t3);display:flex;align-items:center;gap:4px"><kbd style="background:var(--S);border:0.5px solid var(--b2);border-radius:3px;padding:1px 5px;font-size:9px">Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Layout tokens</div>
+    <div class="row"><span class="rk">Trigger</span><span class="rv">⌘K or search bar click</span></div>
+    <div class="row"><span class="rk">Backdrop</span><span class="rv">rgba black .4</span></div>
+    <div class="row"><span class="rk">Panel width</span><span class="rv">560px max · centered · top 20% of viewport</span></div>
+    <div class="row"><span class="rk">Input height</span><span class="rv">48px · 16px font · no border inside panel</span></div>
+    <div class="row"><span class="rk">Group label</span><span class="rv">10px uppercase · --text-tertiary</span></div>
+    <div class="row"><span class="rk">Active result</span><span class="rv">blue-50 bg (keyboard or hover)</span></div>
+    <div class="row"><span class="rk">Result row</span><span class="rv">40px · 16px padding · flex align-center</span></div>
+    <div class="row"><span class="rk">Keyboard hints</span><span class="rv">kbd tag · --bg-secondary + --border-secondary</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Result types</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--S);border-radius:var(--rmd)"><div style="width:24px;height:24px;border-radius:6px;background:var(--a50);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--a800)">G</div><div><div style="font-size:12px;font-weight:500">Job result</div><div style="font-size:11px;color:var(--t2)">company logo + title + salary + match pill</div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--S);border-radius:var(--rmd)"><i class="ti ti-layout-dashboard" style="font-size:16px;color:var(--t3)" aria-hidden="true"></i><div><div style="font-size:12px;font-weight:500">Page result</div><div style="font-size:11px;color:var(--t2)">Tabler icon + name + breadcrumb path</div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--S);border-radius:var(--rmd)"><i class="ti ti-clock" style="font-size:16px;color:var(--t3)" aria-hidden="true"></i><div><div style="font-size:12px;font-weight:500">Recent search</div><div style="font-size:11px;color:var(--t2)">clock icon + query text</div></div></div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="rk">Empty state</span><span class="rv">centered icon + "No results for…"</span></div>
+    <div class="row"><span class="rk">Match pill</span><span class="rv">green ≥80% · blue 50–79% · amber &lt;50%</span></div>
+  </div>
+</div>
+`},
+
+{id:'interviewprep',label:'Interview prep',html:()=>`
+<div class="lbl">RAG-grounded prep: questions + answer framework + company research</div>
+<div class="shell" style="margin-bottom:12px">
+  <div class="msb">
+    <div class="sl"><div class="sd"></div><span class="sn">Doubow</span></div>
+    <div class="si"><i class="ti ti-tool" aria-hidden="true"></i> Tools</div>
+    <div class="si a" style="padding-left:16px"><i class="ti ti-microphone" aria-hidden="true"></i> Interview</div>
+  </div>
+  <div class="main">
+    <div class="tb"><span class="tt">Interview prep</span><button class="btn bp bsm" style="font-size:8px;border-radius:100px"><i class="ti ti-player-play" style="font-size:9px" aria-hidden="true"></i> Mock interview</button><div class="av">RK</div></div>
+    <div class="con" style="display:grid;grid-template-columns:1fr 150px;gap:7px">
+      <div>
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <div style="width:20px;height:20px;border-radius:5px;background:var(--a50);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--a800)">G</div>
+            <div><div style="font-size:9px;font-weight:500">Senior PM — Google</div><div style="font-size:8px;color:var(--t2)">AI-generated prep · Role-specific</div></div>
+          </div>
+          <div style="font-size:8px;font-weight:500;color:var(--t2);margin-bottom:5px">Likely questions</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="background:var(--S);border-radius:4px;padding:6px;cursor:pointer">
+              <div style="font-size:8px;font-weight:500;margin-bottom:2px">Tell me about a project you delivered end-to-end.</div>
+              <div style="font-size:7px;color:var(--t3)">Behavioural · STAR format recommended</div>
+            </div>
+            <div style="background:var(--a50);border-radius:4px;padding:6px;border-left:2px solid var(--acc);cursor:pointer">
+              <div style="font-size:8px;font-weight:500;color:var(--a800);margin-bottom:2px">How do you manage stakeholder misalignment?</div>
+              <div style="font-size:7px;color:var(--a800)">Situational · Active</div>
+              <div style="background:var(--P);border-radius:3px;padding:5px;margin-top:4px">
+                <div style="font-size:7px;font-weight:500;margin-bottom:2px">Suggested answer framework</div>
+                <div style="font-size:7px;color:var(--t2);line-height:1.5"><strong>S:</strong> Describe a real misalignment scenario<br><strong>T:</strong> Your role in resolving it<br><strong>A:</strong> Steps you took (1:1s, docs, escalation)<br><strong>R:</strong> Outcome and what you learned</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:8px;font-weight:500;margin-bottom:5px">Company research</div>
+          <div style="font-size:8px;color:var(--t2);line-height:1.5;margin-bottom:4px">Google's Q1 2025 focus: AI-first product strategy, cost efficiency.</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span class="pill pgr" style="font-size:7px;padding:1px 5px;width:fit-content">500+ PMs globally</span>
+            <span class="pill pgr" style="font-size:7px;padding:1px 5px;width:fit-content">Agile + OKRs</span>
+          </div>
+        </div>
+        <div style="background:var(--P);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:8px;font-weight:500;margin-bottom:4px">Prep checklist</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:8px;color:var(--t2);display:flex;gap:3px;align-items:center"><i class="ti ti-circle-check" style="font-size:10px;color:#639922" aria-hidden="true"></i> Read JD carefully</div>
+            <div style="font-size:8px;color:var(--t2);display:flex;gap:3px;align-items:center"><i class="ti ti-circle-check" style="font-size:10px;color:#639922" aria-hidden="true"></i> Prepare 3 STAR stories</div>
+            <div style="font-size:8px;color:var(--t2);display:flex;gap:3px;align-items:center"><i class="ti ti-circle" style="font-size:10px;color:var(--b2)" aria-hidden="true"></i> Research company news</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Layout tokens</div>
+    <div class="row"><span class="rk">Main split</span><span class="rv">1fr questions + 220px sidebar</span></div>
+    <div class="row"><span class="rk">Question card default</span><span class="rv">--bg-secondary · radius-md · cursor pointer</span></div>
+    <div class="row"><span class="rk">Active question</span><span class="rv">blue-50 bg + 2px left --accent border</span></div>
+    <div class="row"><span class="rk">Answer framework</span><span class="rv">white card inside active question · padding 8px</span></div>
+    <div class="row"><span class="rk">STAR labels</span><span class="rv">S/T/A/R bolded inline</span></div>
+    <div class="row"><span class="rk">Mock interview btn</span><span class="rv">primary pill · play icon · opens chat modal</span></div>
+    <div class="row"><span class="rk">Checklist icon done</span><span class="rv">ti-circle-check green-600</span></div>
+    <div class="row"><span class="rk">Checklist icon todo</span><span class="rv">ti-circle --border-secondary</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Question category badges</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">Behavioural</span><span class="pill pb">Behavioural</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">Situational</span><span class="pill pa">Situational</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">Technical</span><span class="pill pp">Technical</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">Culture fit</span><span class="pill pg">Culture fit</span></div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="rk">Question count</span><span class="rv">8–12 per role, AI-generated</span></div>
+    <div class="row"><span class="rk">Source context</span><span class="rv">JD + résumé used as RAG context</span></div>
+  </div>
+</div>
+`},
+
+{id:'responsive',label:'Responsive rules',html:()=>`
+<div class="lbl">Breakpoint system — 4 tiers</div>
+<div class="card" style="margin-bottom:12px">
+  <div style="display:flex;flex-direction:column;gap:0">
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:0;padding:8px 0;border-bottom:0.5px solid var(--b);font-size:11px;font-weight:500;color:var(--t3)">
+      <span>Breakpoint</span><span>Sidebar</span><span>Content grid</span><span>Key changes</span>
+    </div>
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:0;padding:9px 0;border-bottom:0.5px solid var(--b);font-size:12px;align-items:start">
+      <div><span class="pill pb" style="font-size:10px">Desktop ≥1280px</span></div>
+      <span style="color:var(--t2)">220px fixed</span>
+      <span style="color:var(--t2)">3-col cards, 2-col layouts</span>
+      <span style="color:var(--t2)">Full layout, all panels visible</span>
+    </div>
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:0;padding:9px 0;border-bottom:0.5px solid var(--b);font-size:12px;align-items:start">
+      <div><span class="pill pg" style="font-size:10px">Laptop ≥1024px</span></div>
+      <span style="color:var(--t2)">220px fixed</span>
+      <span style="color:var(--t2)">2-col cards, narrow sidebars</span>
+      <span style="color:var(--t2)">Right sidebars reduce to 200px</span>
+    </div>
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:0;padding:9px 0;border-bottom:0.5px solid var(--b);font-size:12px;align-items:start">
+      <div><span class="pill pa" style="font-size:10px">Tablet ≥768px</span></div>
+      <span style="color:var(--t2)">60px icon-only</span>
+      <span style="color:var(--t2)">2-col cards, stacked layouts</span>
+      <span style="color:var(--t2)">Sidebar collapses, right panels stack below</span>
+    </div>
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:0;padding:9px 0;font-size:12px;align-items:start">
+      <div><span class="pill pr" style="font-size:10px">Mobile &lt;768px</span></div>
+      <span style="color:var(--t2)">Bottom tab bar</span>
+      <span style="color:var(--t2)">1-col, full-width cards</span>
+      <span style="color:var(--t2)">All sidebars off-canvas, modals full-screen</span>
+    </div>
+  </div>
+</div>
+<div class="lbl">Sidebar collapse states</div>
+<div style="display:flex;gap:10px;margin-bottom:12px">
+  <div style="flex:1;background:var(--P);border:0.5px solid var(--b);border-radius:var(--rlg);padding:12px">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Expanded — 220px</div>
+    <div style="width:100%;background:var(--sb);border-radius:var(--rmd);padding:8px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)"><div style="width:12px;height:12px;border-radius:3px;background:var(--acc)"></div><span style="color:#fff;font-size:9px;font-weight:500">Doubow</span><i class="ti ti-chevron-left" style="font-size:9px;color:rgba(255,255,255,.3);margin-left:auto" aria-hidden="true"></i></div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;color:rgba(255,255,255,.5)"><i class="ti ti-layout-dashboard" style="font-size:10px" aria-hidden="true"></i> Dashboard</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;color:#fff;background:#1e2b4a;margin:0 -4px;padding-left:8px;border-radius:3px"><i class="ti ti-briefcase" style="font-size:10px" aria-hidden="true"></i> Job search</div>
+    </div>
+  </div>
+  <div style="flex:1;background:var(--P);border:0.5px solid var(--b);border-radius:var(--rlg);padding:12px">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Collapsed — 60px icon-only</div>
+    <div style="width:44px;background:var(--sb);border-radius:var(--rmd);padding:6px;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div style="width:12px;height:12px;border-radius:3px;background:var(--acc);margin-bottom:2px"></div>
+      <i class="ti ti-layout-dashboard" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i>
+      <i class="ti ti-briefcase" style="font-size:14px;color:#fff;background:#1e2b4a;border-radius:4px;padding:3px" aria-hidden="true"></i>
+      <i class="ti ti-chart-bar" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i>
+    </div>
+  </div>
+  <div style="flex:1;background:var(--P);border:0.5px solid var(--b);border-radius:var(--rlg);padding:12px">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Mobile — bottom tab bar</div>
+    <div style="background:var(--sb);border-radius:var(--rmd);padding:6px 4px;display:flex;justify-content:space-around">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-layout-dashboard" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i><span style="font-size:7px;color:rgba(255,255,255,.3)">Home</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-search" style="font-size:14px;color:#fff" aria-hidden="true"></i><span style="font-size:7px;color:#fff">Jobs</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-checks" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i><span style="font-size:7px;color:rgba(255,255,255,.3)">Approve</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-tool" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i><span style="font-size:7px;color:rgba(255,255,255,.3)">Tools</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-user" style="font-size:14px;color:rgba(255,255,255,.45)" aria-hidden="true"></i><span style="font-size:7px;color:rgba(255,255,255,.3)">Profile</span></div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Grid collapse rules</div>
+    <div class="row"><span class="rk">3-col → 2-col</span><span class="rv">at &lt;1100px (job cards, metrics)</span></div>
+    <div class="row"><span class="rk">2-col → 1-col</span><span class="rv">at &lt;768px (all splits and side panels)</span></div>
+    <div class="row"><span class="rk">Right sidebars</span><span class="rv">stack below main content on mobile</span></div>
+    <div class="row"><span class="rk">Modals</span><span class="rv">full-screen sheet on mobile, bottom-anchored</span></div>
+    <div class="row"><span class="rk">Tables</span><span class="rv">horizontal scroll wrapper on &lt;768px</span></div>
+    <div class="row"><span class="rk">Topbar search</span><span class="rv">hidden on mobile, replaced by search icon</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-top:0">Touch targets and mobile overrides</div>
+    <div class="row"><span class="rk">Min tap target</span><span class="rv">44px × 44px</span></div>
+    <div class="row"><span class="rk">Bottom tab height</span><span class="rv">56px safe-area aware</span></div>
+    <div class="row"><span class="rk">Input font-size</span><span class="rv">16px minimum (prevents iOS zoom)</span></div>
+    <div class="row"><span class="rk">Card padding mobile</span><span class="rv">16px (reduced from 20px)</span></div>
+    <div class="row"><span class="rk">Approval card</span><span class="rv">full-width · actions stacked vertically</span></div>
+    <div class="row"><span class="rk">Chat input</span><span class="rv">fixed bottom · clears keyboard-safe-area</span></div>
+  </div>
+</div>
+`}
+];
+
+const nav=document.getElementById('nav2');
+const panels=document.getElementById('panels2');
+screens.forEach((s,i)=>{
+  const btn=document.createElement('button');
+  btn.className='nb'+(i===0?' on':'');
+  btn.textContent=s.label;
+  btn.onclick=()=>{
+    document.querySelectorAll('#nav2 .nb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('#panels2 .pnl').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('p2-'+s.id).classList.add('on');
+  };
+  nav.appendChild(btn);
+  const div=document.createElement('div');
+  div.className='pnl'+(i===0?' on':'');
+  div.id='p2-'+s.id;
+  div.innerHTML=s.html();
+  panels.appendChild(div);
+});
+</script>

@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { CareerSuccessPageClient } from "@/components/workspace/CareerSuccessPageClient";
 
 export const metadata: Metadata = {
-  title: "Career Success",
+  title: "Career success",
 };
 
 export default function CareerSuccessPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P1"
-      title="Career Success"
-      description="Outcome tracking: interviews secured, offers, and progression milestones."
-    />
-  );
+  return <CareerSuccessPageClient />;
 }

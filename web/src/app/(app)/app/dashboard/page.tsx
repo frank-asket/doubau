@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
+import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { DashboardResumePanel } from "@/components/resume/DashboardResumePanel";
 import { AppApprovalCard } from "@/components/ui/approval-card";
 import { AppBadge } from "@/components/ui/badge";
@@ -67,8 +68,46 @@ type DraftOut = {
   content: string;
 };
 
+type WorkspaceSummary = {
+  resume_status?: string | null;
+  applications_total?: number;
+  applications_by_status?: Record<string, number>;
+  pending_approval_count?: number;
+};
+
+function resumeReadinessPct(status: string | null | undefined): number {
+  switch (status) {
+    case "EMBEDDED":
+      return 100;
+    case "PARSED":
+      return 72;
+    case "UPLOADED":
+      return 40;
+    case "FAILED":
+      return 12;
+    default:
+      return 0;
+  }
+}
+
+function pipelineMomentumPct(by: Record<string, number> | undefined, total: number): number {
+  if (!total || !by) return 0;
+  const sub = by.SUBMITTED ?? 0;
+  return Math.min(100, Math.round((sub / total) * 100));
+}
+
+function discoveryTouchPct(by: Record<string, number> | undefined): number {
+  if (!by) return 0;
+  const imp = by.impression ?? 0;
+  const clk = by.click_out ?? 0;
+  const score = imp + clk * 2;
+  return Math.min(100, Math.round((score / 30) * 100));
+}
+
 export default async function DashboardPage() {
   let profile: Profile = {};
+  let workspaceSummary: WorkspaceSummary | null = null;
+  let matchMetrics: { by_event_type?: Record<string, number> } | null = null;
   let pendingCard: {
     title: string;
     subtitle: string;
@@ -87,10 +126,18 @@ export default async function DashboardPage() {
       ? ((await profileRes.json().catch(() => ({}))) as Profile)
       : {};
 
-    const [appsRes, draftsRes] = await Promise.all([
+    const [appsRes, draftsRes, wsRes, mmRes] = await Promise.all([
       fetch(`${base}/applications`, { headers, cache: "no-store" }),
       fetch(`${base}/applications/drafts`, { headers, cache: "no-store" }),
+      fetch(`${base}/me/workspace-summary`, { headers, cache: "no-store" }),
+      fetch(`${base}/me/match/metrics?days=14`, { headers, cache: "no-store" }),
     ]);
+    if (wsRes.ok) {
+      workspaceSummary = (await wsRes.json().catch(() => null)) as WorkspaceSummary | null;
+    }
+    if (mmRes.ok) {
+      matchMetrics = (await mmRes.json().catch(() => null)) as { by_event_type?: Record<string, number> } | null;
+    }
     if (appsRes.ok && draftsRes.ok) {
       const apps = (await appsRes.json()) as ApplicationOut[];
       const drafts = (await draftsRes.json()) as DraftOut[];
@@ -124,6 +171,13 @@ export default async function DashboardPage() {
 
   const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
 
+  const resumePct = resumeReadinessPct(workspaceSummary?.resume_status);
+  const pipePct = pipelineMomentumPct(
+    workspaceSummary?.applications_by_status,
+    workspaceSummary?.applications_total ?? 0,
+  );
+  const discPct = discoveryTouchPct(matchMetrics?.by_event_type);
+
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div>
@@ -147,17 +201,53 @@ export default async function DashboardPage() {
             "Personalizing your workspace…"
           )}
         </p>
+        <p className="mt-2 max-w-2xl text-pretty text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
+          Core MVP loop: discover roles → open a posting → generate outreach → approve before anything sends.
+        </p>
+        <div className="mt-4 max-w-2xl">
+          <JobPipelineHint variant="dashboard" />
+        </div>
       </div>
+
+      {profile.email &&
+      (!profile.plan_tier ||
+        !["ultimate", "Ultimate"].includes(String(profile.plan_tier))) ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-badge-blue-bg)] px-4 py-3 text-[13px] text-[#0C447C]">
+          <span>
+            {profile.plan_tier ? (
+              <>
+                You are on <strong>{String(profile.plan_tier)}</strong>. Compare Standard, Pro, and Ultimate when billing is
+                connected in Clerk.
+              </>
+            ) : (
+              <>Pick a plan when you are ready — Standard, Pro, or Ultimate — from billing (Clerk).</>
+            )}
+          </span>
+          <Link
+            href="/app/billing"
+            className="shrink-0 rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--app-accent-hover)]"
+          >
+            View plans
+          </Link>
+        </div>
+      ) : null}
 
       <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-3">
         <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
           <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-            Signals
+            Account signals
           </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+            Derived from your résumé status, application pipeline, and discovery events — not placeholder demo scores.
+          </p>
           <div className="mt-3 flex flex-col gap-3">
-            <AppProgress label="Skills mastery" tone="success" value={75} />
-            <AppProgress label="Interview success" tone="warning" value={42} />
-            <AppProgress label="CV score" tone="info" value={88} />
+            <AppProgress label="Résumé readiness (indexing)" tone="success" value={resumePct} />
+            <AppProgress
+              label="Pipeline momentum (% submitted)"
+              tone="warning"
+              value={pipePct}
+            />
+            <AppProgress label="Discovery activity (14d)" tone="info" value={discPct} />
           </div>
         </div>
 
@@ -182,8 +272,8 @@ export default async function DashboardPage() {
             <AppApprovalCard
               badgeLabel="Queue"
               badgeVariant="gray"
-              snippet="When a draft is awaiting HITL review, the full text surfaces here. Create a demo from the approval dashboard to see the live card."
-              subtitle="Tip"
+              snippet="When an outreach draft is waiting for your review, the excerpt appears here. Generate drafts from applications in your tracker or approval dashboard."
+              subtitle="Human-in-the-loop"
               title="No pending outreach in queue"
             />
           )}
@@ -217,12 +307,12 @@ export default async function DashboardPage() {
           </div>
           <ul className="mt-4 space-y-2 text-[13px] text-[var(--app-text-secondary)]">
             <li>
-              Go to <span className="font-semibold text-[var(--app-text-primary)]">Job Discovery</span> and save 10 roles.
+              Go to <span className="font-semibold text-[var(--app-text-primary)]">Discovery</span> and shortlist roles.
             </li>
             <li>
-              Generate an outreach draft and approve it in the{" "}
+              Generate outreach from a role, then approve in{" "}
               <Link className="font-semibold text-[var(--app-accent)] hover:underline" href="/app/approvals">
-                approval dashboard
+                Approvals
               </Link>
               .
             </li>

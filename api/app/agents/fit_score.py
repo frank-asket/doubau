@@ -25,7 +25,13 @@ class FitScoreError(Exception):
     """LLM returned invalid or non-schema JSON."""
 
 
-def compute_fit_score(*, job: Job, resume_text: str) -> FitScoreOut:
+def compute_fit_score_from_jd_text(
+    *,
+    job_title: str | None,
+    company: str | None,
+    job_description: str,
+    resume_text: str,
+) -> FitScoreOut:
     if not settings.openai_api_key:
         raise FitScoreError("DOUBOW_OPENAI_API_KEY is not set")
 
@@ -33,9 +39,9 @@ def compute_fit_score(*, job: Job, resume_text: str) -> FitScoreOut:
         filter(
             None,
             [
-                f"Title: {job.title}",
-                f"Company: {job.company}",
-                job.description or "",
+                f"Title: {job_title}" if job_title else None,
+                f"Company: {company}" if company else None,
+                job_description.strip() or None,
             ],
         )
     )
@@ -75,3 +81,12 @@ def compute_fit_score(*, job: Job, resume_text: str) -> FitScoreOut:
         return FitScoreOut.model_validate(data)
     except ValidationError as e:
         raise FitScoreError(str(e)) from e
+
+
+def compute_fit_score(*, job: Job, resume_text: str) -> FitScoreOut:
+    return compute_fit_score_from_jd_text(
+        job_title=job.title,
+        company=job.company,
+        job_description=job.description or "",
+        resume_text=resume_text,
+    )

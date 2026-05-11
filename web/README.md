@@ -51,8 +51,14 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 **Backend:** Set **`NEXT_PUBLIC_API_BASE_URL`** to your public Railway API origin exactly as shown in Railway (HTTPS, no trailing slash), e.g. `https://doubau-production.up.railway.app`. If unset, server-side calls default to `http://localhost:8000` and will fail on Vercel. Optional: **`NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`**.
 
-**Troubleshooting `/api/me/*` or analytics:** From your machine run `curl -sS -o /dev/null -w "%{http_code}" https://<your-api-host>/health` — expect **200**. **502** means Railway has no healthy container (crash on boot, bad env, DB unreachable); fix in Railway **Deployments → Logs**. **401** on `/me/*` means Clerk JWT template **`doubow-api`** audience must match API **`DOUBOW_CLERK_AUDIENCE`** / JWKS.
+**Troubleshooting `/api/me/*` or analytics:** Run `curl -sS -o /dev/null -w "%{http_code}" https://<your-api-host>/health` — expect **200**. **502** often means the Railway **HTTP target port** does not match the process (e.g. app on **8080** via `PORT`, but proxy still pointed at **8000**), or the container crashed (see **Deployments → Logs**). **401** on `/me/*` means Clerk JWT template **`doubow-api`** audience must match API **`DOUBOW_CLERK_AUDIENCE`** / JWKS.
 
 **Canonical URL:** On Vercel, metadata/sitemap use **`https://${VERCEL_URL}`** automatically (e.g. `https://doubau.vercel.app`). Set **`NEXT_PUBLIC_SITE_URL`** only if you want a fixed origin (e.g. later `https://doubow.com`).
 
 **Later (custom domain + “real” production):** Clerk **Production** (`pk_live_…` / `sk_live_…`) does **not** support `*.vercel.app`. After you buy a domain, add it in Vercel → **Domains**, then create or switch to a Clerk **Production** app and register that hostname per [Clerk deployments](https://clerk.com/docs/deployments/overview).
+
+**Clerk Billing (optional):** Enable Billing in the Clerk Dashboard and create plans. Web env (see also `/app/billing`):
+
+- **`NEXT_PUBLIC_CLERK_PLAN_STANDARD_MONTH`** / **`_YEAR`**, same for **`PRO`** and **`ULTIMATE`** — plan IDs from Clerk. Shorthand: **`NEXT_PUBLIC_CLERK_PLAN_STANDARD`**, **`_PRO`**, **`_ULTIMATE`** for monthly-only.
+- **`NEXT_PUBLIC_BILLING_CHECKOUT_URL`** — default `/app/billing/checkout`; use an absolute **https** URL for Stripe Payment Links or another PSP (query params `plan`, `interval`, `source` are appended).
+- **`NEXT_PUBLIC_BILLING_PORTAL_URL`** — default `/app/billing/portal` (Clerk subscription drawer). Success/cancel return URLs: **`/billing?checkout=success`** and **`/billing?checkout=cancel`** redirect to **`/app/billing`**.

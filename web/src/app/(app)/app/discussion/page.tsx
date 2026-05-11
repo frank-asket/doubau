@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { DiscussionActivityClient } from "@/components/workspace/DiscussionActivityClient";
 
 export const metadata: Metadata = {
-  title: "Discussion Board",
+  title: "Discussion board",
 };
 
-export default function DiscussionBoardPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="Discussion Board"
-      description="Community Q&A and cohort discussions — requires moderation and persistence layers."
-    />
-  );
+export default function DiscussionPage() {
+  return <DiscussionActivityClient />;
 }

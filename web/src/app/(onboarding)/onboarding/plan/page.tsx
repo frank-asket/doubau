@@ -89,7 +89,8 @@ export default function OnboardingPlanPage() {
     <div className="rounded-2xl border border-[var(--border)] p-6">
       <h1 className="text-balance text-2xl font-semibold tracking-tight">Choose a plan</h1>
       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        You can change this later. Billing will be handled via Stripe.
+        You can change this later. Paid billing uses Clerk Billing from{" "}
+        <span className="font-medium text-[var(--foreground)]">Billing</span> when plans are configured.
         {recommended ? (
           <span className="ml-1 text-[color-mix(in_srgb,var(--foreground)_70%,transparent)]">
             Recommended for you: <span className="font-semibold">{recommended}</span>

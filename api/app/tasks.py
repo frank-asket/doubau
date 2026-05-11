@@ -700,7 +700,7 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
             with SessionLocal() as db:
                 _mark_drafts_failed(db, aid)
             raise
-        raise self.retry(exc=exc, countdown=min(300, 10 * (2 ** self.request.retries)))
+        raise self.retry(exc=exc, countdown=min(300, 10 * (2 ** self.request.retries))) from exc
 
 
 @celery_app.task(name="app.tasks.process_resume_document")

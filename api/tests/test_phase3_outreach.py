@@ -95,6 +95,8 @@ def test_dispatch_outbound_smtp_marks_email_sent(monkeypatch: pytest.MonkeyPatch
         calls.append({"to_addr": to_addr, "subject": subject, "body": body})
 
     monkeypatch.setattr("app.tasks._smtp_send_text", fake_smtp)
+    # Avoid real httpx to LinkedIn webhook when local .env sets DOUBOW_LINKEDIN_DISPATCH_WEBHOOK_URL.
+    monkeypatch.setattr(settings, "linkedin_dispatch_webhook_url", None)
     monkeypatch.setattr(settings, "smtp_host", "email-smtp.eu-west-3.amazonaws.com")
     monkeypatch.setattr(settings, "smtp_from", "noreply@verified.example")
     monkeypatch.setattr(settings, "smtp_user", "AKIAIOSFODNN7EXAMPLE")

@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { CoverLetterClient } from "@/components/workspace/CoverLetterClient";
 
 export const metadata: Metadata = {
-  title: "Cover Letter",
+  title: "Cover letter",
 };
 
 export default function CoverLetterPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="Cover Letter"
-      description="Role-specific letters grounded in your CV and job posting context."
-    />
-  );
+  return <CoverLetterClient />;
 }

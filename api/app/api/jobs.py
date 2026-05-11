@@ -583,6 +583,15 @@ def feed(
     return reranked[offset : offset + limit]
 
 
+@router.get("/{job_id}", response_model=JobOut)
+def get_job(job_id: UUID, db: DbDep, current_user: CurrentUserDep) -> JobOut:
+    """Single job for detail view (registered after /feed and /hidden so those paths are not captured)."""
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _job_out(job)
+
+
 @router.post("/{job_id}/fit", response_model=FitScoreOut)
 def score_job_fit(
     job_id: UUID,

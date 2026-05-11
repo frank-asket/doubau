@@ -1,0 +1,835 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:var(--color-text-primary);
+  --ink2:var(--color-text-secondary);
+  --ink3:var(--color-text-tertiary);
+  --bg:var(--color-background-primary);
+  --bg2:var(--color-background-secondary);
+  --bg3:var(--color-background-tertiary);
+  --brd:var(--color-border-tertiary);
+  --brd2:var(--color-border-secondary);
+  --acc:#1a5cff;
+  --a50:#e8eeff;
+  --a800:#0C447C;
+  --g50:#EAF3DE;--g600:#3B6D11;--g800:#27500A;
+  --r50:#FCEBEB;--r400:#E24B4A;--r800:#791F1F;
+  --am50:#FAEEDA;--am600:#854F0B;--am800:#633806;
+  --pu50:#EEEDFE;--pu800:#3C3489;
+  --rmd:var(--border-radius-md);--rlg:var(--border-radius-lg);
+}
+.wrap{padding:1rem 0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.flow-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:0.5px solid var(--brd2)}
+.ftab{padding:5px 13px;border-radius:var(--rmd);font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:0.5px solid var(--brd);color:var(--ink2);transition:all .15s}
+.ftab:hover{background:var(--bg2)}
+.ftab.on{background:#0f1117;color:#fff;border-color:#0f1117}
+.fpnl{display:none}.fpnl.on{display:block}
+
+/* Screen grid */
+.screen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.screen-card{background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--rlg);overflow:hidden;cursor:pointer;transition:border-color .15s}
+.screen-card:hover{border-color:var(--acc)}
+.screen-card.highlight{border:1.5px solid var(--acc);background:var(--a50)}
+.sc-header{background:#0f1117;padding:6px 10px;display:flex;align-items:center;gap:6px}
+.sc-dots{display:flex;gap:3px}
+.sc-dot{width:5px;height:5px;border-radius:50%}
+.sc-title-bar{font-size:9px;color:rgba(255,255,255,.5);flex:1;text-align:center}
+.sc-body{padding:10px}
+.sc-label{font-size:11px;font-weight:500;color:var(--ink);margin-bottom:2px}
+.sc-desc{font-size:10px;color:var(--ink2);line-height:1.5}
+.sc-tag{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:500;margin-top:5px}
+
+/* Flow diagram */
+.flow-wrap{position:relative;padding:4px 0 20px}
+.flow-group{margin-bottom:24px}
+.group-label{font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.group-label::after{content:'';flex:1;height:0.5px;background:var(--brd)}
+.flow-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-bottom:6px}
+.flow-node{background:var(--bg);border:0.5px solid var(--brd);border-radius:var(--rmd);padding:8px 12px;font-size:12px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;flex:1;min-width:110px;max-width:200px;position:relative}
+.flow-node:hover{border-color:var(--acc);background:var(--a50);color:var(--a800)}
+.flow-node .nd{font-size:10px;color:var(--ink2);font-weight:400;margin-top:2px;line-height:1.4}
+.fn-blue{background:var(--a50);border-color:#b5d4f4;color:var(--a800)}
+.fn-green{background:var(--g50);border-color:#c0dd97;color:var(--g800)}
+.fn-amber{background:var(--am50);border-color:#fac775;color:var(--am800)}
+.fn-red{background:var(--r50);border-color:#f09595;color:var(--r800)}
+.fn-purple{background:var(--pu50);border-color:#afa9ec;color:var(--pu800)}
+.fn-dark{background:#0f1117;border-color:#0f1117;color:#fff}
+.flow-arrow{display:flex;align-items:center;justify-content:center;padding:0 2px;font-size:14px;color:var(--brd2);flex-shrink:0;align-self:center}
+.flow-connector{width:100%;height:20px;display:flex;align-items:center;justify-content:center;position:relative;margin:2px 0}
+.flow-connector::before{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);width:1px;height:100%;background:var(--brd2)}
+.flow-connector::after{content:'▼';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--brd2)}
+.flow-branch{display:flex;gap:12px;margin-top:6px;position:relative}
+.branch-item{flex:1}
+.branch-head{font-size:10px;color:var(--ink3);text-align:center;margin-bottom:4px;padding:3px 6px;background:var(--bg2);border-radius:4px}
+.decision{background:var(--bg2);border:0.5px solid var(--brd2);border-radius:var(--rmd);padding:6px 10px;font-size:11px;color:var(--ink2);text-align:center;font-style:italic;margin:4px 0}
+.pill-sm{display:inline-flex;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:500}
+.ps-blue{background:var(--a50);color:var(--a800)}
+.ps-green{background:var(--g50);color:var(--g800)}
+.ps-amber{background:var(--am50);color:var(--am800)}
+.ps-red{background:var(--r50);color:var(--r800)}
+.ps-gray{background:var(--bg2);color:var(--ink2);border:0.5px solid var(--brd)}
+.section-sep{height:1px;background:var(--brd);margin:16px 0}
+
+/* Screen preview mini */
+.mini-screen{background:#f8f9fc;border:0.5px solid var(--brd);border-radius:var(--rmd);overflow:hidden;min-height:120px}
+.mini-topbar{height:22px;background:var(--bg);border-bottom:0.5px solid var(--brd);display:flex;align-items:center;padding:0 8px;gap:4px;font-size:8px;font-weight:500;color:var(--ink2)}
+.mini-sb{width:64px;background:#0f1117;padding:6px 0;flex-shrink:0}
+.mini-si{padding:3px 7px;font-size:7px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:3px}
+.mini-si i{font-size:8px}
+.mini-si.a{background:#1e2b4a;color:#fff}
+.mini-content{flex:1;padding:6px}
+.mini-bar{height:4px;border-radius:2px;margin-bottom:3px}
+.mini-card{background:var(--bg);border:0.5px solid var(--brd);border-radius:4px;padding:5px;margin-bottom:3px;font-size:7px;color:var(--ink2)}
+.mini-grid{display:grid;gap:3px;margin-bottom:3px}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Doubow complete screen inventory and user flow — all 20 screens with navigation paths, entry points, and exit actions across authentication, onboarding, career growth, job search, and tools sections</h2>
+
+<div class="flow-tabs">
+  <button class="ftab on" onclick="sw('inventory')">Screen inventory</button>
+  <button class="ftab" onclick="sw('auth')">Auth flow</button>
+  <button class="ftab" onclick="sw('onboard')">Onboarding flow</button>
+  <button class="ftab" onclick="sw('job')">Job search flow</button>
+  <button class="ftab" onclick="sw('career')">Career growth flow</button>
+  <button class="ftab" onclick="sw('tools')">Tools flow</button>
+  <button class="ftab" onclick="sw('pipeline')">HITL pipeline</button>
+</div>
+
+<!-- ══ SCREEN INVENTORY ══ -->
+<div class="fpnl on" id="fp-inventory">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">All 20 screens across 5 navigation sections. Click any card to jump to its user flow.</div>
+
+  <div class="group-label">Authentication</div>
+  <div class="screen-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="screen-card" onclick="sw('auth')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Login</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Login / Register</div>
+        <div class="sc-desc">Email + password, Google OAuth, LinkedIn OAuth. Forgot password link.</div>
+        <span class="sc-tag ps-gray">Entry point</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('auth')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Forgot password</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Forgot password</div>
+        <div class="sc-desc">Email input → magic link sent → reset form.</div>
+        <span class="sc-tag ps-amber">Recovery</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('onboard')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Onboarding</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Onboarding wizard (5 steps)</div>
+        <div class="sc-desc">Account → Career → Contact → Goals → Plan. Split-screen with product preview.</div>
+        <span class="sc-tag ps-blue">New users only</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-label">Dashboard</div>
+  <div class="screen-grid" style="grid-template-columns:repeat(1,1fr)">
+    <div class="screen-card highlight" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Dashboard</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Dashboard (home)</div>
+        <div class="sc-desc">Career score, skills growth, LinkedIn health, CV score, application trends chart, career goal timeline, top job picks sidebar. Upgrade to PRO banner. Hub for all navigation.</div>
+        <span class="sc-tag ps-blue">Primary hub</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-label">Job search — 5 screens</div>
+  <div class="screen-grid">
+    <div class="screen-card" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Job discovery</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Job discovery</div>
+        <div class="sc-desc">3-col grid, fit score per card, search + filter + sort, favourite toggle, "Open to work" status.</div>
+        <span class="sc-tag ps-green">Browse</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Job detail</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Job detail</div>
+        <div class="sc-desc">Full JD, responsibilities, skills, metadata sidebar, fit score widget, "Generate outreach" CTA.</div>
+        <span class="sc-tag ps-blue">Deep view</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Job tracker</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Job tracker</div>
+        <div class="sc-desc">Pipeline table with status dropdowns (Applied → Interview → Offer). Stats: total, active, interviews.</div>
+        <span class="sc-tag ps-amber">Pipeline</span>
+      </div>
+    </div>
+    <div class="screen-card highlight" onclick="sw('pipeline')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Approvals</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Approvals (HITL gate)</div>
+        <div class="sc-desc">AI-drafted outreach cards. Edit → Approve → Send. Nothing sends without explicit user action.</div>
+        <span class="sc-tag ps-amber">Critical path</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Salary benchmark</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Salary benchmark</div>
+        <div class="sc-desc">12-month trend chart, salary predictor form, top companies by pay, top picks sidebar.</div>
+        <span class="sc-tag ps-gray">Research</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('job')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Sponsorship hub</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Sponsorship hub</div>
+        <div class="sc-desc">4 tabs: Overview, Point calculator, Graduate visa, Find sponsors. Live score + gap analysis.</div>
+        <span class="sc-tag ps-gray">UK visa</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-label">Career growth — 5 screens</div>
+  <div class="screen-grid">
+    <div class="screen-card" onclick="sw('onboard')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career profile</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career profile</div>
+        <div class="sc-desc">4-step wizard: personal info, skills & proficiency, career goals, work style → MBTI personality output.</div>
+        <span class="sc-tag ps-blue">Setup</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('career')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career pathfinder</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career pathfinder</div>
+        <div class="sc-desc">5Q wizard → 3 personalized career paths with match %, timeline, salary range, learning path, market insights.</div>
+        <span class="sc-tag ps-green">AI-powered</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('career')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career steps</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career steps</div>
+        <div class="sc-desc">Vertical timeline roadmap from Pathfinder. Numbered steps: done → in-progress → upcoming with progress bars.</div>
+        <span class="sc-tag ps-blue">Roadmap</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('career')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career planner</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career planner</div>
+        <div class="sc-desc">Milestone tracker in 3 views: List / Kanban / Calendar. Add Milestone modal (3-step wizard: Basic → Details → Requirements).</div>
+        <span class="sc-tag ps-amber">Tasks</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('career')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career success</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career success</div>
+        <div class="sc-desc">Skills mastery %, career progress %, market value £, skills grows chart, career goals progress, recent achievements.</div>
+        <span class="sc-tag ps-green">Analytics</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-label">Tools — 6 screens</div>
+  <div class="screen-grid">
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career copilot</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career copilot</div>
+        <div class="sc-desc">AI chat with Quick Actions (Strategy, Resume Review, Interview Prep, Skill Analysis) + Popular Topics. Grounded in profile.</div>
+        <span class="sc-tag ps-blue">AI chat</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">CV builder</span></div>
+      <div class="sc-body">
+        <div class="sc-label">CV builder</div>
+        <div class="sc-desc">3-panel: template picker / section editor / live A4 preview. Export PDF.</div>
+        <span class="sc-tag ps-gray">Document</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">ATS optimizer</span></div>
+      <div class="sc-body">
+        <div class="sc-label">ATS optimizer</div>
+        <div class="sc-desc">Upload CV + paste JD → keyword match %, highlighted résumé, improvement suggestions, download optimized PDF.</div>
+        <span class="sc-tag ps-green">Analysis</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Cover letter</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Cover letter</div>
+        <div class="sc-desc">Job title + tone (Professional/Friendly/Concise) + highlights → live preview → copy or download PDF.</div>
+        <span class="sc-tag ps-blue">AI generate</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Career health</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Career health</div>
+        <div class="sc-desc">Daily mood/energy/workload check-in. Streak, job satisfaction %, WLB %, insights, recommendations.</div>
+        <span class="sc-tag ps-amber">Wellbeing</span>
+      </div>
+    </div>
+    <div class="screen-card" onclick="sw('tools')">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">LinkedIn analysis</span></div>
+      <div class="sc-body">
+        <div class="sc-label">LinkedIn analysis</div>
+        <div class="sc-desc">URL or PDF upload → section scores /10 (Headline, Summary, Experience, Education) + critique + rewrites.</div>
+        <span class="sc-tag ps-blue">Profile score</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-label">Other screens</div>
+  <div class="screen-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="screen-card">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Discussion board</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Discussion board</div>
+        <div class="sc-desc">Thread feed + similar topics sidebar. Nested replies, tag chips, image attachments, post composer modal.</div>
+        <span class="sc-tag ps-gray">Community</span>
+      </div>
+    </div>
+    <div class="screen-card">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Skill gap analysis</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Skill gap analysis</div>
+        <div class="sc-desc">Target role selector, proficiency bars per skill, critical/partial/strength grouping, learning path cards.</div>
+        <span class="sc-tag ps-red">Gap detection</span>
+      </div>
+    </div>
+    <div class="screen-card">
+      <div class="sc-header"><div class="sc-dots"><div class="sc-dot" style="background:#ff5f57"></div><div class="sc-dot" style="background:#febc2e"></div><div class="sc-dot" style="background:#28c840"></div></div><span class="sc-title-bar">Settings</span></div>
+      <div class="sc-body">
+        <div class="sc-label">Settings</div>
+        <div class="sc-desc">4 tabs: General (profile), Password, Subscription (Standard £15 / Pro £25 / Ultimate £50 via Stripe), Notifications.</div>
+        <span class="sc-tag ps-gray">Account</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUTH FLOW ══ -->
+<div class="fpnl" id="fp-auth">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">Authentication and account recovery paths</div>
+  <div class="flow-group">
+    <div class="group-label">Entry</div>
+    <div class="flow-row">
+      <div class="flow-node fn-dark" style="max-width:160px;text-align:center"><div style="font-size:18px;margin-bottom:2px">⌨</div>Landing page / direct URL<div class="nd">First visit or logged out</div></div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue" onclick="this.closest('.fpnl').querySelector('#auth-login').scrollIntoView({behavior:'smooth'})">Login screen<div class="nd">Email/pass or OAuth</div></div>
+      <div class="flow-arrow">or</div>
+      <div class="flow-node fn-blue">Register screen<div class="nd">New account creation</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Login paths</div>
+    <div class="flow-row">
+      <div class="branch-item">
+        <div class="branch-head">Email + password</div>
+        <div class="flow-node fn-blue">Enter credentials<div class="nd">Email input + password</div></div>
+        <div class="flow-connector"></div>
+        <div class="decision">Credentials valid?</div>
+        <div class="flow-branch">
+          <div class="branch-item"><div class="branch-head" style="background:var(--g50);color:var(--g800)">Yes</div><div class="flow-node fn-green">Dashboard<div class="nd">Returning user</div></div></div>
+          <div class="branch-item"><div class="branch-head" style="background:var(--r50);color:var(--r800)">No</div><div class="flow-node fn-red">Error state<div class="nd">Inline field error</div></div></div>
+        </div>
+      </div>
+      <div class="flow-arrow" style="align-self:flex-start;padding-top:28px">or</div>
+      <div class="branch-item">
+        <div class="branch-head">OAuth</div>
+        <div class="flow-node fn-blue">Google / LinkedIn<div class="nd">One-click OAuth</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-blue">OAuth provider<div class="nd">Redirect + consent</div></div>
+        <div class="flow-connector"></div>
+        <div class="decision">New or returning?</div>
+        <div class="flow-branch">
+          <div class="branch-item"><div class="branch-head" style="background:var(--a50);color:var(--a800)">New</div><div class="flow-node fn-blue">Onboarding →<div class="nd">5-step wizard</div></div></div>
+          <div class="branch-item"><div class="branch-head" style="background:var(--g50);color:var(--g800)">Existing</div><div class="flow-node fn-green">Dashboard<div class="nd">Returning user</div></div></div>
+        </div>
+      </div>
+      <div class="flow-arrow" style="align-self:flex-start;padding-top:28px">or</div>
+      <div class="branch-item">
+        <div class="branch-head">Forgot password</div>
+        <div class="flow-node fn-amber">Enter email<div class="nd">Recovery screen</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-amber">Magic link sent<div class="nd">Check inbox</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-amber">Reset password<div class="nd">New password form</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Login success<div class="nd">→ Dashboard</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="auth-login" class="section-sep"></div>
+  <div class="flow-group">
+    <div class="group-label">Session management</div>
+    <div class="flow-row">
+      <div class="flow-node">JWT issued<div class="nd">30-day expiry</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Refresh on activity<div class="nd">Silent re-auth</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-red">Session expired<div class="nd">Redirect to login</div></div>
+    </div>
+    <div class="flow-row" style="margin-top:6px">
+      <div class="flow-node fn-red">Log out<div class="nd">Sidebar footer</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Clear JWT + state<div class="nd">Local storage wipe</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Login screen<div class="nd">Entry point</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ONBOARDING FLOW ══ -->
+<div class="fpnl" id="fp-onboard">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">First-time user journey from registration to Dashboard. Triggered once per account.</div>
+  <div class="flow-group">
+    <div class="group-label">Onboarding wizard — 5 sequential steps</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue" style="max-width:140px">Step 1: Account<div class="nd">Email, password, name</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Step 2: Career<div class="nd">Situation, role, exp, salary</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:140px">Step 3: Contact<div class="nd">Location, preferences</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Step 4: Goals<div class="nd">Primary focus selection (multi)</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:140px">Step 5: Plan<div class="nd">Standard / Pro / Ultimate</div></div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-row">
+      <div class="flow-node fn-green" style="max-width:100%">Dashboard — first-time state<div class="nd">Career score empty · prompt to complete Career Profile · upload résumé CTA</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Career profile wizard — triggered from dashboard or nav</div>
+    <div class="flow-row">
+      <div class="flow-node" style="max-width:160px">Step 1: Personal info<div class="nd">Sub-tabs: Basic · Work prefs · Skills · Motivations</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="max-width:160px">Step 2: Skills & expertise<div class="nd">Tech skills: proficiency + target + learning goals</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="max-width:140px">Step 3: Career goals<div class="nd">Target role, timeline, priorities</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="max-width:140px">Step 4: Work style<div class="nd">MBTI personality output</div></div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-row">
+      <div class="flow-node fn-green">Profile complete → embeddings generated<div class="nd">Résumé parsed → pgvector stored → fit scoring unlocked</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Résumé upload (can happen at any point)</div>
+    <div class="flow-row">
+      <div class="flow-node fn-amber">Upload PDF / Docx<div class="nd">From profile or dashboard CTA</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Parse worker (async)<div class="nd">Text extraction via pdfplumber</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">LLM structured extraction<div class="nd">Experience, skills, education JSON</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Embedding stored<div class="nd">pgvector — unlocks scoring</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ JOB SEARCH FLOW ══ -->
+<div class="fpnl" id="fp-job">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">Complete job search lifecycle from discovery to submitted application.</div>
+
+  <div class="flow-group">
+    <div class="group-label">Discovery → detail</div>
+    <div class="flow-row">
+      <div class="flow-node fn-dark" style="max-width:120px">Dashboard<div class="nd">"Top picks" sidebar</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Job discovery<div class="nd">3-col grid, sorted by fit</div></div>
+    </div>
+    <div style="margin:6px 0 6px 20px;font-size:11px;color:var(--ink3)">Actions on discovery page:</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">Filter / sort<div class="nd">Location, salary, remote, exp</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Search (⌘K)<div class="nd">Global search palette</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Favourite ★<div class="nd">Saved to favourites tab</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Click card<div class="nd">→ Job detail</div></div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue" style="max-width:200px">Job detail page<div class="nd">JD + metadata + fit score + skills + views/applicants</div></div>
+    </div>
+    <div class="flow-branch" style="margin-top:6px">
+      <div class="branch-item">
+        <div class="branch-head">Primary CTA</div>
+        <div class="flow-node fn-amber">Generate outreach draft<div class="nd">→ Drafter agent queued</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-amber">Draft ready → Approvals<div class="nd">Notification sent</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Secondary CTA</div>
+        <div class="flow-node">Interview prep<div class="nd">→ RAG-grounded prep page</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Tertiary</div>
+        <div class="flow-node">Cover letter<div class="nd">→ Prefilled from JD</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">External</div>
+        <div class="flow-node fn-red">Apply now<div class="nd">External job board (new tab)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Approvals — HITL gate (see HITL Pipeline tab for full detail)</div>
+    <div class="flow-row">
+      <div class="flow-node fn-amber">PENDING_APPROVAL<div class="nd">Draft surfaces in Approvals</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">User reviews draft<div class="nd">Read, optionally edit</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="decision" style="max-width:120px;margin:0">Approve / Reject?</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">APPROVED → SUBMITTED<div class="nd">Sender dispatches message</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Job tracker pipeline</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">Applied<div class="nd">Status dropdown</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Phone screen<div class="nd">Update status</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-purple">Interview<div class="nd">→ Interview prep</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Offer<div class="nd">Negotiate, compare</div></div>
+      <div class="flow-arrow">or</div>
+      <div class="flow-node fn-red">Rejected<div class="nd">Archived</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Salary benchmark & sponsorship</div>
+    <div class="flow-row">
+      <div class="flow-node">Salary benchmark<div class="nd">Research role pay range</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Salary predictor<div class="nd">Role + location + exp</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Result: £ range<div class="nd">Position in market band</div></div>
+    </div>
+    <div class="flow-row" style="margin-top:6px">
+      <div class="flow-node">Sponsorship hub<div class="nd">UK visa eligibility</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Points calculator<div class="nd">Mandatory + salary + bonus</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Score ≥ 70<div class="nd">Eligible — find sponsors</div></div>
+      <div class="flow-arrow">or</div>
+      <div class="flow-node fn-red">Score &lt; 70<div class="nd">Gap analysis + tips</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CAREER GROWTH FLOW ══ -->
+<div class="fpnl" id="fp-career">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">From career discovery to tracked milestones and success analytics.</div>
+
+  <div class="flow-group">
+    <div class="group-label">Career pathfinder → steps → planner</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue" style="max-width:160px">Career pathfinder start<div class="nd">From nav or dashboard CTA</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Q1: Industry + role<div class="nd">Grid chip selection</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Q2: Skills inventory<div class="nd">Current skills + levels</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Q3: Experience years<div class="nd">Numeric + context</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Q4: Salary + location<div class="nd">Range picker + relocation toggle</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue" style="max-width:160px">Q5: Open to relocation?<div class="nd">Yes / Maybe / No</div></div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-row">
+      <div class="flow-node fn-green" style="max-width:100%">3 personalized career paths<div class="nd">Match % · timeline · salary range · difficulty · skills gap · learning path · market insights · target companies</div></div>
+    </div>
+    <div class="flow-branch" style="margin-top:8px">
+      <div class="branch-item">
+        <div class="branch-head">Action A</div>
+        <div class="flow-node fn-green">Create transition plan<div class="nd">→ Career steps generated</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Career steps page<div class="nd">Vertical timeline roadmap</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Add to planner<div class="nd">Steps → milestones</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Action B</div>
+        <div class="flow-node fn-blue">Analyze skill gaps<div class="nd">→ Skill gap analysis</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-blue">Skill gap page<div class="nd">Critical / partial / strengths</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-blue">Learning path cards<div class="nd">Courses, timelines</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Action C</div>
+        <div class="flow-node fn-purple">Get AI guidance<div class="nd">→ Career copilot</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-purple">Copilot chat<div class="nd">Context-aware advice</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Career planner interactions</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">View: List / Kanban / Calendar<div class="nd">Toggle between 3 views</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Add milestone (modal)<div class="nd">3-step: Basic → Details → Requirements</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Update status<div class="nd">Planned → In progress → Done</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Completed milestone<div class="nd">→ Recent achievements</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Career success analytics</div>
+    <div class="flow-row">
+      <div class="flow-node">Skills mastery<div class="nd">Tracks proficiency progress</div></div>
+      <div class="flow-arrow">+</div>
+      <div class="flow-node">Career progress<div class="nd">Overall goal completion</div></div>
+      <div class="flow-arrow">+</div>
+      <div class="flow-node">Market value £<div class="nd">Based on skills + roles</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Career success dashboard<div class="nd">Skills grows chart + goals + achievements</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOOLS FLOW ══ -->
+<div class="fpnl" id="fp-tools">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">All 6 tools and their internal user flows.</div>
+
+  <div class="flow-group">
+    <div class="group-label">Career copilot</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">Open copilot<div class="nd">Empty state: 4 quick-action cards</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Select quick action or type<div class="nd">Strategy / Resume / Interview / Skills</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">AI responds (streaming)<div class="nd">Profile-grounded, not generic</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Feedback per message<div class="nd">👍 👎 copy regenerate</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">ATS optimizer</div>
+    <div class="flow-row">
+      <div class="flow-node fn-amber">Upload CV (PDF)<div class="nd">Drop zone or browse</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Text extracted<div class="nd">Preview displayed</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Paste job description<div class="nd">Textarea input</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Analyse CV<div class="nd">LLM comparison call</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Result: match % + keywords + suggestions<div class="nd">Highlighted résumé + download PDF</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Cover letter</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">Select job (prefilled or manual)<div class="nd">From tracker or typed</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Select tone<div class="nd">Professional / Friendly / Concise</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Add key highlights<div class="nd">Optional context textarea</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Generate → preview<div class="nd">Live preview, word count</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Copy or download PDF<div class="nd">Export actions</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">CV builder</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">Select template<div class="nd">Modern / Classic / Minimal</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Edit sections<div class="nd">Personal, Experience, Education, Skills</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">Add / remove sections<div class="nd">+ Add section row</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Live A4 preview updates<div class="nd">Real-time right panel</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Download PDF<div class="nd">Export final CV</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">LinkedIn analysis</div>
+    <div class="flow-row">
+      <div class="flow-node fn-purple">Enter LinkedIn URL<div class="nd">Or upload exported PDF</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-purple">Run analysis<div class="nd">Scrape or parse PDF</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Score donut + section list<div class="nd">Headline, Summary, Experience, Education, Other</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Click section → detail panel<div class="nd">Critique + suggestions + examples</div></div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Career health</div>
+    <div class="flow-row">
+      <div class="flow-node fn-amber">Daily check-in prompt<div class="nd">Mood + energy + workload + tags</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Save check-in<div class="nd">Stored per day per user</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Metrics updated<div class="nd">Streak, satisfaction %, WLB %</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-green">Insights + recommendations<div class="nd">AI-generated from check-in history</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HITL PIPELINE ══ -->
+<div class="fpnl" id="fp-pipeline">
+  <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">The Human-in-the-Loop guarantee — every outbound message must be explicitly approved. This is enforced at the database level, not just in the UI.</div>
+
+  <div class="flow-group">
+    <div class="group-label">Application state machine — 7 states</div>
+    <div class="flow-row">
+      <div class="flow-node fn-blue">DISCOVERED<div class="nd">Job scraped, stored in catalog</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">SCORING<div class="nd">Scorer agent calculating fit</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-blue">DRAFTING<div class="nd">Drafter agent writing outreach</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">PENDING_APPROVAL<div class="nd">Waiting for user review</div></div>
+    </div>
+    <div class="flow-branch" style="margin-top:8px">
+      <div class="branch-item">
+        <div class="branch-head" style="background:var(--g50);color:var(--g800)">User approves</div>
+        <div class="flow-node fn-green">APPROVED<div class="nd">DB written by user action ONLY</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Sender agent triggered<div class="nd">403 if not APPROVED in DB</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">SUBMITTED<div class="nd">sent_at recorded</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head" style="background:var(--am50);color:var(--am800)">User edits</div>
+        <div class="flow-node fn-amber">edited_by_user = true<div class="nd">Diff stored in llm_logs</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-amber">Returns to PENDING_APPROVAL<div class="nd">Re-review prompt</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head" style="background:var(--r50);color:var(--r800)">User rejects</div>
+        <div class="flow-node fn-red">REJECTED<div class="nd">Pipeline ends, archived</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head" style="background:var(--r50);color:var(--r800)">System error</div>
+        <div class="flow-node fn-red">FAILED<div class="nd">Alert + llm_log entry</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-red">RETRY (max 3×)<div class="nd">Exponential backoff</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">Approval dashboard — user interaction flow</div>
+    <div class="flow-row">
+      <div class="flow-node">Notification: "3 drafts waiting"<div class="nd">Bell icon + badge in sidebar</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Open Approvals page<div class="nd">Cards in PENDING state</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">Read draft card<div class="nd">Channel + draft text + timestamp</div></div>
+    </div>
+    <div class="flow-branch" style="margin-top:8px">
+      <div class="branch-item">
+        <div class="branch-head">Option 1: Approve</div>
+        <div class="flow-node fn-green">Click Approve & Send<div class="nd">PATCH /applications/{id}/approve</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Card → "Sent ✓"<div class="nd">Opacity fades, badge updates</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-green">Message dispatched<div class="nd">Email or LinkedIn via Sender</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Option 2: Edit first</div>
+        <div class="flow-node fn-blue">Click Edit<div class="nd">Textarea becomes editable</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-blue">Modify text<div class="nd">Free-form editing</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-amber">Then Approve<div class="nd">edited_by_user = true logged</div></div>
+      </div>
+      <div class="branch-item">
+        <div class="branch-head">Option 3: Reject</div>
+        <div class="flow-node fn-red">Click Reject<div class="nd">Confirm action</div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-node fn-red">REJECTED state<div class="nd">Removed from queue</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-group">
+    <div class="group-label">API enforcement — the trust guarantee</div>
+    <div class="flow-row">
+      <div class="flow-node fn-red">POST /applications/{id}/submit called<div class="nd">Any source: UI or direct API call</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-amber">DB status check<div class="nd">SELECT status FROM applications WHERE id=?</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fn-red">Status ≠ APPROVED<div class="nd">HTTP 403 Forbidden returned</div></div>
+    </div>
+    <div class="flow-row" style="margin-top:6px">
+      <div class="flow-node fn-green" style="max-width:100%">Status = APPROVED → Sender queued → message dispatched → SUBMITTED<div class="nd">The only path to SUBMITTED requires a prior human write to APPROVED in the database</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function sw(id){
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.fpnl').forEach(p=>p.classList.remove('on'));
+  document.getElementById('fp-'+id).classList.add('on');
+  document.querySelectorAll('.ftab').forEach(b=>{
+    if(b.textContent.toLowerCase().includes(id)||
+      (id==='inventory'&&b.textContent.includes('inventory'))||
+      (id==='auth'&&b.textContent.includes('Auth'))||
+      (id==='onboard'&&b.textContent.includes('Onboarding'))||
+      (id==='job'&&b.textContent.includes('Job'))||
+      (id==='career'&&b.textContent.includes('Career'))||
+      (id==='tools'&&b.textContent.includes('Tools'))||
+      (id==='pipeline'&&b.textContent.includes('HITL'))
+    ) b.classList.add('on');
+  });
+  document.querySelectorAll('.ftab').forEach((b,i)=>{
+    const ids=['inventory','auth','onboard','job','career','tools','pipeline'];
+    if(b.classList.contains('on')===false) return;
+  });
+  const tabs=document.querySelectorAll('.ftab');
+  const ids=['inventory','auth','onboard','job','career','tools','pipeline'];
+  tabs.forEach((b,i)=>{b.onclick=()=>sw(ids[i]);if(ids[i]===id)b.classList.add('on');else b.classList.remove('on')});
+}
+document.querySelectorAll('.ftab').forEach((b,i)=>{
+  const ids=['inventory','auth','onboard','job','career','tools','pipeline'];
+  b.onclick=()=>sw(ids[i]);
+});
+</script>

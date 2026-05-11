@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { LinkedinAnalysisClient } from "@/components/workspace/LinkedinAnalysisClient";
 
 export const metadata: Metadata = {
-  title: "LinkedIn Analysis",
+  title: "LinkedIn analysis",
 };
 
-export default function LinkedInAnalysisPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="LinkedIn Analysis"
-      description="Profile strength, headline/body suggestions, and consistency with your CV narrative."
-    />
-  );
+export default function LinkedinAnalysisPage() {
+  return <LinkedinAnalysisClient />;
 }

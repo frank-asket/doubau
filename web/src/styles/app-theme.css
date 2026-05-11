@@ -1,5 +1,5 @@
 /**
- * DouBow product shell — Phase 4 DS: navy sidebar, white surfaces, accent #4F8EF7.
+ * DouBow product shell — Phase 4 DS: navy sidebar, white surfaces, accent #1A5CFF (userflow spec).
  * Scoped with `.theme-app` so marketing (`hirslams.css`) stays on lime tokens.
  */
 
@@ -8,17 +8,18 @@
 
   /* ── Core palette ── */
   --app-sidebar: #0f1117;
-  --app-accent: #4f8ef7;
-  --app-accent-hover: #3d7eed;
-  --app-accent-700: #2b6fd0;
+  /* Primary CTA / links — aligned with product flow spec (.tmp userflow HTML #1a5cff) */
+  --app-accent: #1a5cff;
+  --app-accent-hover: #1548d9;
+  --app-accent-700: #0c3cad;
 
   /* Blue scale (accent-aligned) */
-  --app-blue-50: #edf4ff;
-  --app-blue-100: #d8e8ff;
-  --app-blue-200: #b8d0ff;
-  --app-blue-300: #8ab4ff;
-  --app-blue-500: #4f8ef7;
-  --app-blue-600: #3d7eed;
+  --app-blue-50: #e8eeff;
+  --app-blue-100: #d0dfff;
+  --app-blue-200: #a8c4ff;
+  --app-blue-300: #7aa6ff;
+  --app-blue-500: #1a5cff;
+  --app-blue-600: #1548d9;
 
   /* Surfaces */
   --app-bg-page: #f8f9fc;
@@ -39,7 +40,7 @@
   --app-success: #22c55e;
   --app-danger: #ef4444;
   --app-warning: #f59e0b;
-  --app-info: #4f8ef7;
+  --app-info: #1a5cff;
   --app-purple: #8b5cf6;
   --app-teal: #14b8a6;
 
@@ -51,7 +52,7 @@
 
   /* Badge backgrounds + foregrounds */
   --app-badge-blue-bg: #e8eeff;
-  --app-badge-blue-fg: #4f8ef7;
+  --app-badge-blue-fg: #1a5cff;
   --app-badge-green-bg: #dcfce7;
   --app-badge-green-fg: #15803d;
   --app-badge-amber-bg: #fef3c7;

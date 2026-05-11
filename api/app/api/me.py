@@ -7,9 +7,23 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, UploadFile
 from sqlalchemy import desc, func, select
 
+from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score_from_jd_text
 from app.api.deps import CurrentUserDep, DbDep
-from app.api.schemas import ProfileOut, ProfileUpsert
+from app.api.schemas import (
+    CheckInCreate,
+    CheckInOut,
+    JdFitRequest,
+    MilestoneCreate,
+    MilestoneOut,
+    MilestonePatch,
+    ProfileOut,
+    ProfileUpsert,
+    WorkspaceSummaryOut,
+)
 from app.core.settings import settings
+from app.models.application import Application, ApplicationStatus
+from app.models.check_in import CheckIn
+from app.models.milestone import Milestone
 from app.models.job_match_event import JobMatchEvent
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
@@ -34,6 +48,7 @@ def _resume_document_out(doc: ResumeDocument) -> dict:
         "size_bytes": doc.size_bytes,
         "error": doc.error,
         "parsed_json": doc.parsed_json,
+        "extracted_text": doc.extracted_text,
         "embedding_model": doc.embedding_model,
         "embedding_dimensions": emb_dims,
     }
@@ -257,4 +272,168 @@ def match_metrics(
         if reason:
             by_reason[str(reason)] = by_reason.get(str(reason), 0) + int(n)
     return {"window_days": days, "by_event_type": by_event, "by_reason": by_reason}
+
+
+@router.get("/workspace-summary", response_model=WorkspaceSummaryOut)
+def workspace_summary(db: DbDep, current_user: CurrentUserDep) -> WorkspaceSummaryOut:
+    profile = current_user.profile
+    latest = db.scalar(
+        select(ResumeDocument)
+        .where(ResumeDocument.user_id == current_user.id)
+        .order_by(desc(ResumeDocument.created_at))
+        .limit(1)
+    )
+    resume_status = latest.status if latest else None
+    resume_id = str(latest.id) if latest else None
+
+    rows = db.execute(
+        select(Application.status, func.count())
+        .where(Application.user_id == current_user.id)
+        .group_by(Application.status)
+    ).all()
+    by_status: dict[str, int] = {}
+    total = 0
+    for st, n in rows:
+        key = st.value if hasattr(st, "value") else str(st)
+        by_status[key] = int(n)
+        total += int(n)
+
+    pending = db.scalar(
+        select(func.count())
+        .select_from(Application)
+        .where(Application.user_id == current_user.id)
+        .where(Application.status == ApplicationStatus.PENDING_APPROVAL)
+    )
+    pending_n = int(pending or 0)
+
+    return WorkspaceSummaryOut(
+        email=current_user.email,
+        persona=profile.persona if profile else None,
+        current_role=profile.current_role if profile else None,
+        location=profile.location if profile else None,
+        plan_tier=profile.plan_tier if profile else None,
+        resume_status=resume_status,
+        resume_id=resume_id,
+        applications_total=total,
+        applications_by_status=by_status,
+        pending_approval_count=pending_n,
+    )
+
+
+@router.post("/jd-fit", response_model=FitScoreOut)
+def jd_fit(db: DbDep, current_user: CurrentUserDep, payload: JdFitRequest) -> FitScoreOut:
+    resume = db.scalar(
+        select(ResumeDocument)
+        .where(ResumeDocument.user_id == current_user.id)
+        .where(ResumeDocument.status.in_((ResumeStatus.PARSED, ResumeStatus.EMBEDDED)))
+        .order_by(desc(ResumeDocument.created_at))
+        .limit(1)
+    )
+    if resume is None or not (resume.extracted_text or "").strip():
+        raise HTTPException(status_code=400, detail="Upload and parse a résumé first.")
+
+    text = (resume.extracted_text or "").strip()
+    try:
+        return compute_fit_score_from_jd_text(
+            job_title=payload.job_title,
+            company=payload.company,
+            job_description=payload.job_description,
+            resume_text=text,
+        )
+    except FitScoreError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+
+@router.get("/milestones", response_model=list[MilestoneOut])
+def list_milestones(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    limit: int = 100,
+) -> list[MilestoneOut]:
+    limit = max(1, min(limit, 200))
+    rows = db.scalars(
+        select(Milestone)
+        .where(Milestone.user_id == current_user.id)
+        .order_by(desc(Milestone.created_at))
+        .limit(limit)
+    ).all()
+    return [MilestoneOut.model_validate(r) for r in rows]
+
+
+@router.post("/milestones", response_model=MilestoneOut)
+def create_milestone(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    payload: MilestoneCreate,
+) -> MilestoneOut:
+    row = Milestone(
+        user_id=current_user.id,
+        title=payload.title.strip(),
+        status=payload.status.strip() if payload.status else "todo",
+        due_date=payload.due_date,
+        meta=dict(payload.meta or {}),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return MilestoneOut.model_validate(row)
+
+
+@router.patch("/milestones/{milestone_id}", response_model=MilestoneOut)
+def patch_milestone(
+    milestone_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+    payload: MilestonePatch,
+) -> MilestoneOut:
+    row = db.get(Milestone, milestone_id)
+    if row is None or row.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    data = payload.model_dump(exclude_unset=True)
+    if "title" in data:
+        row.title = str(data["title"]).strip()
+    if "status" in data:
+        row.status = str(data["status"]).strip()
+    if "due_date" in data:
+        row.due_date = data["due_date"]
+    if "meta" in data and isinstance(data["meta"], dict):
+        row.meta = {**(row.meta or {}), **data["meta"]}
+    db.commit()
+    db.refresh(row)
+    return MilestoneOut.model_validate(row)
+
+
+@router.get("/check-ins", response_model=list[CheckInOut])
+def list_check_ins(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    limit: int = 60,
+) -> list[CheckInOut]:
+    limit = max(1, min(limit, 200))
+    rows = db.scalars(
+        select(CheckIn)
+        .where(CheckIn.user_id == current_user.id)
+        .order_by(desc(CheckIn.created_at))
+        .limit(limit)
+    ).all()
+    return [CheckInOut.model_validate(r) for r in rows]
+
+
+@router.post("/check-ins", response_model=CheckInOut)
+def create_check_in(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    payload: CheckInCreate,
+) -> CheckInOut:
+    row = CheckIn(
+        user_id=current_user.id,
+        mood=payload.mood,
+        energy=payload.energy,
+        workload=payload.workload,
+        notes=(payload.notes.strip() if isinstance(payload.notes, str) and payload.notes.strip() else None),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return CheckInOut.model_validate(row)
 

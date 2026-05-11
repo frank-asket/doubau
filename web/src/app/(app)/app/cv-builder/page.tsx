@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { CvBuilderClient } from "@/components/workspace/CvBuilderClient";
 
 export const metadata: Metadata = {
-  title: "CV Builder",
+  title: "CV builder",
 };
 
 export default function CvBuilderPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="CV Builder"
-      description="Structured résumé authoring with section templates and version history."
-    />
-  );
+  return <CvBuilderClient />;
 }

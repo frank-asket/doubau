@@ -118,6 +118,28 @@ export default function CopilotPage() {
         </div>
       ) : null}
 
+      <div className="flex flex-wrap gap-2">
+        <span className="w-full text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+          Quick actions
+        </span>
+        {[
+          { label: "Career strategy", prompt: "Given my persona and goals, what should I prioritize this week?" },
+          { label: "Résumé review", prompt: "Review my latest résumé text and list the top 5 improvements before I apply." },
+          { label: "Interview prep", prompt: "What interview questions should I expect for my target role, and how should I structure answers?" },
+          { label: "Skill analysis", prompt: "Which skills should I emphasize next based on typical job postings in my field?" },
+        ].map((a) => (
+          <button
+            key={a.label}
+            type="button"
+            disabled={busy || !sessionId}
+            onClick={() => setInput(a.prompt)}
+            className="rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)] disabled:opacity-50"
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex min-h-[320px] flex-col gap-3 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-4">
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto text-[13px] leading-6">
           {messages.length === 0 ? (

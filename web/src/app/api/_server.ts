@@ -1,7 +1,29 @@
 import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+}
+
+/** BFF GET proxy: returns 503 JSON when the backend is unreachable (ECONNREFUSED) instead of throwing. */
+export async function proxyBackendGet(pathWithLeadingSlash: string): Promise<NextResponse> {
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const path = pathWithLeadingSlash.startsWith("/") ? pathWithLeadingSlash : `/${pathWithLeadingSlash}`;
+  try {
+    const resp = await fetch(`${base}${path}`, {
+      headers: await getBackendAuthHeaders(),
+      cache: "no-store",
+    });
+    const data = await resp.json().catch(() => (resp.ok ? [] : { detail: "Invalid JSON from API" }));
+    return NextResponse.json(data, { status: resp.status });
+  } catch {
+    return NextResponse.json(
+      {
+        detail: `Cannot reach API at ${getApiBaseUrl()}. Start FastAPI (e.g. \`docker compose up\` from the repo root, or \`cd api && uv run uvicorn app.main:app --reload --port 8000\`).`,
+      },
+      { status: 503 },
+    );
+  }
 }
 
 export async function getBackendAuthHeaders(): Promise<HeadersInit> {

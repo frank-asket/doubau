@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { CareerHealthClient } from "@/components/workspace/CareerHealthClient";
 
 export const metadata: Metadata = {
-  title: "Career Health",
+  title: "Career health",
 };
 
 export default function CareerHealthPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P2"
-      title="Career Health"
-      description="Cadence and wellness signals while job searching — streaks, workload balance, and burnout checks."
-    />
-  );
+  return <CareerHealthClient />;
 }

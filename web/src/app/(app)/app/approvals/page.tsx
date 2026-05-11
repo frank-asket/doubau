@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
 import { AppApprovalCard } from "@/components/ui/approval-card";
 import { AppBadge } from "@/components/ui/badge";
@@ -206,16 +208,35 @@ export default function ApprovalsPage() {
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
             Approval dashboard
           </h1>
           <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-            Review AI drafts before anything is sent (HITL). Inline edits persist via{" "}
-            <span className="font-app-mono text-[12px]">PATCH /applications/drafts/:draft_id</span>. Status updates stream
-            over <span className="font-medium text-[var(--app-text-primary)]">WebSocket</span>{" "}
-            <span className="font-app-mono text-[12px]">/applications/ws</span> with a 60s query fallback.
+            Drafts land here after <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> on a
+            job, or when you run a demo. Edit copy, approve, then submit when you are ready—nothing sends without your
+            sign-off.
           </p>
+          <div className="mt-4 max-w-xl">
+            <JobPipelineHint variant="approvals" />
+          </div>
+          <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">
+            Continue from{" "}
+            <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
+              Job discovery
+            </Link>{" "}
+            anytime.
+          </p>
+          <details className="mt-3 max-w-2xl text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
+            <summary className="cursor-pointer font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]">
+              Technical notes
+            </summary>
+            <p className="mt-2 pl-1">
+              Inline edits persist via{" "}
+              <span className="font-app-mono text-[11px]">PATCH /applications/drafts/:draft_id</span>. Status updates stream
+              over WebSocket <span className="font-app-mono text-[11px]">/applications/ws</span> with a 60s query fallback.
+            </p>
+          </details>
         </div>
 
         <AppButton
@@ -258,7 +279,13 @@ export default function ApprovalsPage() {
         {!loadingInitial && sortedDrafts.length === 0 ? (
           <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
             <p className="text-[13px] leading-6 text-[var(--app-text-secondary)]">
-              No drafts awaiting review. Create a demo draft to run through approve → submit.
+              No drafts awaiting review. From{" "}
+              <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
+                discovery
+              </Link>
+              , open a role → <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>, or use{" "}
+              <span className="font-medium text-[var(--app-text-primary)]">Create demo draft</span> above to try approve →
+              submit.
             </p>
           </div>
         ) : null}

@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { PathfinderPageClient } from "@/components/workspace/PathfinderPageClient";
 
 export const metadata: Metadata = {
-  title: "Career Pathfinder",
+  title: "Career pathfinder",
 };
 
 export default function PathfinderPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      phase="P1"
-      title="Career Pathfinder"
-      description="Explore adjacent roles and skill bridges based on your CV and market signals."
-    />
-  );
+  return <PathfinderPageClient />;
 }
