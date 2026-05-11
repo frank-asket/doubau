@@ -33,7 +33,7 @@
   --app-text-info: #2563eb;
 
   /* Borders (DS: 0.5px feel → use 1px at sm sizes; token matches HTML) */
-  --app-border: #e5e8ef;
+  --app-border: #e4e8f0;
   --app-border-strong: #d1d5db;
 
   /* Semantic */
@@ -88,9 +88,9 @@
   --app-radius-pill: 999px;
 
   /* Elevation */
-  --app-shadow-0: none;
-  --app-shadow-1: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --app-shadow-2: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --app-shadow-0: 0 1px 0 rgba(15, 17, 23, 0.02);
+  --app-shadow-1: 0 1px 0 rgba(15, 17, 23, 0.03), 0 12px 28px rgba(16, 24, 40, 0.06);
+  --app-shadow-2: 0 1px 0 rgba(15, 17, 23, 0.04), 0 18px 48px rgba(16, 24, 40, 0.1);
 
   /* Typography scale */
   --app-text-display: 32px;
@@ -101,15 +101,15 @@
   --app-text-small: 13px;
   --app-text-caption: 11px;
 
-  /* Focus (accent RGB 79, 142, 247) */
-  --app-ring-color: rgba(79, 142, 247, 0.1);
-  --app-focus-ring: rgba(79, 142, 247, 0.35);
-  --app-focus-border: rgba(79, 142, 247, 0.45);
+  /* Focus (accent RGB 26, 92, 255) */
+  --app-ring-color: rgba(26, 92, 255, 0.1);
+  --app-focus-ring: rgba(26, 92, 255, 0.28);
+  --app-focus-border: rgba(26, 92, 255, 0.48);
 
   /* Shell */
   --app-topbar-h: 56px;
   --app-sidebar-w: 220px;
-  --app-content-max: 1100px;
+  --app-content-max: 1180px;
 
   background-color: var(--app-bg-page);
   color: var(--app-text-primary);
@@ -125,4 +125,29 @@
   --ch-bg: #f8fafc;
   --ch-grn: #22c55e;
   --ch-red: #ef4444;
+}
+
+.theme-app ::selection {
+  background: color-mix(in srgb, var(--app-accent) 18%, transparent);
+}
+
+.theme-app * {
+  scrollbar-color: color-mix(in srgb, var(--app-sidebar) 20%, transparent) transparent;
+}
+
+.theme-app .app-surface {
+  border: 0.5px solid var(--app-border);
+  background: var(--app-bg-elevated);
+  box-shadow: var(--app-shadow-0);
+}
+
+.theme-app .app-surface-hover {
+  transition-property: border-color, box-shadow, transform;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.theme-app .app-surface-hover:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 34%, var(--app-border));
+  box-shadow: var(--app-shadow-1);
 }

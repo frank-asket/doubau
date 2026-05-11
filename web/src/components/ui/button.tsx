@@ -19,7 +19,8 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center font-medium transition-colors",
+        "inline-flex min-h-10 cursor-pointer items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform]",
+        "duration-150 ease-out active:scale-[0.96]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
         "disabled:pointer-events-none disabled:opacity-50",
         variant !== "ghost" &&

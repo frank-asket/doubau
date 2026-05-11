@@ -75,9 +75,9 @@ function NavLinkStack({
             <Link
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`block rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
+              className={`relative block min-h-10 rounded-md px-3 py-2 transition-[background-color,color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
                 active
-                  ? "bg-[var(--app-sidebar-active-bg)] text-white"
+                  ? "bg-[var(--app-sidebar-active-bg)] text-white shadow-[inset_3px_0_0_var(--app-accent)]"
                   : "text-[var(--app-sidebar-muted)] hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/80"
               }`}
             >

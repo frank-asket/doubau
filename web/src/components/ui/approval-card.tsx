@@ -39,8 +39,7 @@ export function AppApprovalCard({
   return (
     <div
       className={cn(
-        "rounded-[var(--app-radius-lg)] border-[1.5px] border-solid border-[var(--app-border)] p-3.5 transition-[border-color,opacity]",
-        "hover:border-[var(--app-accent)]",
+        "app-surface app-surface-hover rounded-[var(--app-radius-lg)] p-3.5",
         className,
       )}
     >

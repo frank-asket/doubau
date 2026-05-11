@@ -75,8 +75,16 @@ export function DashboardResumePanel() {
   const extended = snippet && latest?.parsed_json?.text && latest.parsed_json.text.length > 220;
 
   return (
-    <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-0)]">
-      <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">Résumé</div>
+    <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+            Matching input
+          </div>
+          <div className="mt-1 text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">Résumé</div>
+        </div>
+        {latest?.status ? <AppBadge variant={statusBadgeVariant(latest.status)}>{statusLabel(latest.status)}</AppBadge> : null}
+      </div>
       <p className="mt-1 text-[14px] leading-6 text-[var(--app-text-secondary)]">
         Your résumé powers job matching and outreach drafts. Upload PDF or Word (.docx), max 10&nbsp;MB.
       </p>
@@ -94,12 +102,11 @@ export function DashboardResumePanel() {
       ) : null}
 
       {latest?.id ? (
-        <div className="mt-4 rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-muted)] px-4 py-3">
+        <div className="mt-4 rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-4 py-3 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[13px] font-semibold text-[var(--app-text-primary)]">
               {latest.file_name ?? "Résumé"}
             </span>
-            <AppBadge variant={statusBadgeVariant(latest.status)}>{statusLabel(latest.status)}</AppBadge>
           </div>
           {snippet ? (
             <p className="mt-2 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">

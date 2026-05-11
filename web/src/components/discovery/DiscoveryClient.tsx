@@ -63,11 +63,11 @@ function formatListedAt(iso: string | null | undefined): string | null {
 function ScoreBadge({ value, label }: { value: number; label: string }) {
   const rounded = Math.round(value);
   return (
-    <div className="flex flex-col items-end gap-0.5">
+    <div className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 text-right shadow-[inset_0_0_0_0.5px_var(--app-border)]">
       <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
         {label}
       </span>
-      <span className="tabular-nums text-[22px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
+      <span className="mt-1 block tabular-nums text-[22px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
         {rounded}
       </span>
     </div>
@@ -152,7 +152,7 @@ function JobCard({
   return (
     <div
       ref={rootRef}
-      className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 transition-colors hover:border-[var(--app-border-strong,#ffffff14)]"
+      className="app-surface app-surface-hover rounded-[var(--app-radius-lg)] p-5"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
@@ -160,7 +160,7 @@ function JobCard({
             <h2 className="text-pretty text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
               <Link
                 href={`/app/discovery/${job.id}`}
-                className="hover:text-[var(--app-accent)] hover:underline"
+                className="underline-offset-4 hover:text-[var(--app-accent)] hover:underline"
               >
                 {job.title}
               </Link>
@@ -212,7 +212,7 @@ function JobCard({
                 href={job.source_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block text-[12px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                className="inline-flex min-h-10 items-center text-[12px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
                 onClick={() => {
                   onClickOut(job.id, {
                     tab,
@@ -237,7 +237,7 @@ function JobCard({
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             <Link
               href={`/app/discovery/${job.id}`}
-              className="inline-flex h-8 items-center justify-center rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-accent)]"
+              className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] transition-[border-color,color,transform] duration-150 ease-out hover:border-[var(--app-accent)] hover:text-[var(--app-accent)] active:scale-[0.96]"
             >
               Details
             </Link>
@@ -687,7 +687,7 @@ export function DiscoveryClient({
         </div>
       ) : null}
 
-      <section className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+      <section className="app-surface rounded-[var(--app-radius-lg)] p-5">
         <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
           Import
         </div>
@@ -710,10 +710,10 @@ export function DiscoveryClient({
                 key={k}
                 type="button"
                 className={cn(
-                  "rounded-[var(--app-radius-pill)] px-4 py-2 text-[12px] font-medium transition-colors",
+                  "min-h-10 rounded-[var(--app-radius-pill)] px-4 text-[12px] font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
                   scrapeKind === k
                     ? "bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[var(--app-text-primary)]"
-                    : "bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-sidebar-hover-bg)]",
+                    : "bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]",
                 )}
                 onClick={() => setScrapeKind(k)}
               >
@@ -769,7 +769,7 @@ export function DiscoveryClient({
           className={cn(
             "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "feed"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
+              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
           )}
           onClick={() => setTab("feed")}
@@ -784,7 +784,7 @@ export function DiscoveryClient({
           className={cn(
             "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "all"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
+              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
           )}
           onClick={() => setTab("all")}
@@ -799,7 +799,7 @@ export function DiscoveryClient({
           className={cn(
             "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "hidden"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
+              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
           )}
           onClick={() => setTab("hidden")}

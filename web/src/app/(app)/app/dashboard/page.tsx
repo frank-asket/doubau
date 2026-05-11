@@ -104,6 +104,41 @@ function discoveryTouchPct(by: Record<string, number> | undefined): number {
   return Math.min(100, Math.round((score / 30) * 100));
 }
 
+function MetricTile({
+  label,
+  value,
+  detail,
+  variant = "gray",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  variant?: "blue" | "green" | "amber" | "gray";
+}) {
+  const tone = {
+    blue: "bg-[var(--app-badge-blue-bg)] text-[#0C447C]",
+    green: "bg-[var(--app-badge-green-bg)] text-[var(--app-badge-green-fg)]",
+    amber: "bg-[var(--app-badge-amber-bg)] text-[var(--app-badge-amber-fg)]",
+    gray: "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]",
+  } satisfies Record<NonNullable<typeof variant>, string>;
+
+  return (
+    <div className="app-surface rounded-[var(--app-radius-lg)] p-4">
+      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+        {label}
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <div className="tabular-nums text-[24px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
+          {value}
+        </div>
+        <span className={`rounded-[var(--app-radius-pill)] px-2 py-1 text-[11px] font-medium ${tone[variant]}`}>
+          {detail}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   let profile: Profile = {};
   let workspaceSummary: WorkspaceSummary | null = null;
@@ -177,42 +212,62 @@ export default async function DashboardPage() {
     workspaceSummary?.applications_total ?? 0,
   );
   const discPct = discoveryTouchPct(matchMetrics?.by_event_type);
+  const applicationsTotal = workspaceSummary?.applications_total ?? 0;
+  const pendingApprovals = workspaceSummary?.pending_approval_count ?? 0;
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <div>
-        <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-          Dashboard
-        </h1>
-        <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-          {profile.email ? (
-            <>
-              Signed in as <span className="font-semibold text-[var(--app-text-primary)]">{profile.email}</span> ·{" "}
-              <span className="font-semibold text-[var(--app-text-primary)]">{personaLabel(profile.persona)}</span>
-              {profile.plan_tier ? (
+      <section className="app-surface rounded-[var(--app-radius-lg)] p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+              Career command center
+            </div>
+            <h1 className="mt-1 text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
+              Dashboard
+            </h1>
+            <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
+              {profile.email ? (
                 <>
-                  {" "}
-                  · Plan:{" "}
-                  <span className="font-semibold text-[var(--app-text-primary)]">{profile.plan_tier}</span>
+                  Signed in as <span className="font-semibold text-[var(--app-text-primary)]">{profile.email}</span> ·{" "}
+                  <span className="font-semibold text-[var(--app-text-primary)]">{personaLabel(profile.persona)}</span>
+                  {profile.plan_tier ? (
+                    <>
+                      {" "}
+                      · Plan:{" "}
+                      <span className="font-semibold text-[var(--app-text-primary)]">{profile.plan_tier}</span>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
-            </>
-          ) : (
-            "Personalizing your workspace…"
-          )}
-        </p>
-        <p className="mt-2 max-w-2xl text-pretty text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
-          Core MVP loop: discover roles → open a posting → generate outreach → approve before anything sends.
-        </p>
-        <div className="mt-4 max-w-2xl">
-          <JobPipelineHint variant="dashboard" />
+              ) : (
+                "Personalizing your workspace…"
+              )}
+            </p>
+            <p className="mt-2 max-w-2xl text-pretty text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
+              Core MVP loop: discover roles → open a posting → generate outreach → approve before anything sends.
+            </p>
+          </div>
+          <div className="w-full max-w-xl lg:w-[420px]">
+            <JobPipelineHint variant="dashboard" />
+          </div>
         </div>
+      </section>
+
+      <div className="grid gap-[var(--app-space-md)] sm:grid-cols-3">
+        <MetricTile label="Applications" value={String(applicationsTotal)} detail="Tracked" variant="blue" />
+        <MetricTile label="Pending review" value={String(pendingApprovals)} detail="HITL gate" variant="amber" />
+        <MetricTile
+          label="Résumé index"
+          value={`${resumePct}%`}
+          detail={workspaceSummary?.resume_status ?? "Unset"}
+          variant="green"
+        />
       </div>
 
       {profile.email &&
       (!profile.plan_tier ||
         !["ultimate", "Ultimate"].includes(String(profile.plan_tier))) ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-badge-blue-bg)] px-4 py-3 text-[13px] text-[#0C447C]">
+        <div className="app-surface flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius-lg)] bg-[var(--app-badge-blue-bg)] px-4 py-3 text-[13px] text-[#0C447C]">
           <span>
             {profile.plan_tier ? (
               <>
@@ -225,7 +280,7 @@ export default async function DashboardPage() {
           </span>
           <Link
             href="/app/billing"
-            className="shrink-0 rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--app-accent-hover)]"
+            className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 text-[12px] font-semibold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96]"
           >
             View plans
           </Link>
@@ -233,7 +288,7 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-3">
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
           <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
             Account signals
           </div>
@@ -257,7 +312,7 @@ export default async function DashboardPage() {
               actionsSlot={
                 <Link
                   href="/app/approvals"
-                  className="inline-flex cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-3 py-1 text-[12px] font-medium leading-5 text-white transition-colors hover:bg-[var(--app-accent-hover)]"
+                  className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-3 text-[12px] font-medium leading-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96]"
                 >
                   Open approval dashboard
                 </Link>
@@ -283,7 +338,7 @@ export default async function DashboardPage() {
       <DashboardResumePanel />
 
       <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-2">
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
           <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">Your focus</div>
           <p className="mt-1 text-[14px] leading-6 text-[var(--app-text-secondary)]">
             These defaults come from your career stage — you can edit them in onboarding anytime.
@@ -301,7 +356,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
           <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
             Recommended next steps
           </div>
@@ -323,4 +378,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
