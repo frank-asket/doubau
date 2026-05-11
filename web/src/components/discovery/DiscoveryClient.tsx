@@ -626,11 +626,34 @@ export function DiscoveryClient({
       <DiscoveryCoverageNotice />
 
       {loadError ? (
-        <div className="rounded-[var(--app-radius-lg)] border border-[color:rgba(220,38,38,0.35)] bg-[color:rgba(220,38,38,0.08)] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-primary)]">
-          Could not load jobs from the API. Start FastAPI at{" "}
-          <span className="font-app-mono text-[12px]">{apiBaseHint}</span>, verify{" "}
-          <span className="font-app-mono text-[12px]">NEXT_PUBLIC_API_BASE_URL</span>, sign in, and ensure the Clerk JWT
-          template <span className="font-app-mono text-[12px]">doubow-api</span> matches the backend audience.
+        <div
+          role="alert"
+          className="rounded-[var(--app-radius-lg)] border border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_7%,var(--app-bg-elevated))] px-4 py-4 sm:px-5 sm:py-5"
+        >
+          <p className="text-[14px] font-semibold tracking-tight text-[var(--app-text-primary)]">Couldn&apos;t load jobs</p>
+          <p className="mt-2 max-w-2xl text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+            The workspace couldn&apos;t reach your API with a valid session. Fix the items below, then refresh this page.
+          </p>
+          <ul className="mt-4 list-none space-y-2.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 font-semibold text-[var(--app-accent)]">1.</span>
+              <span>
+                API reachable at{" "}
+                <code className="rounded bg-[var(--app-bg-muted)] px-1.5 py-0.5 font-app-mono text-[11px] text-[var(--app-text-primary)]">
+                  {apiBaseHint}
+                </code>{" "}
+                (set <code className="font-app-mono text-[11px]">NEXT_PUBLIC_API_BASE_URL</code> in <code className="font-app-mono text-[11px]">web/.env</code>).
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 font-semibold text-[var(--app-accent)]">2.</span>
+              <span>
+                Signed in with Clerk; JWT template{" "}
+                <code className="rounded bg-[var(--app-bg-muted)] px-1.5 py-0.5 font-app-mono text-[11px]">doubow-api</code>{" "}
+                audience matches API <code className="font-app-mono text-[11px]">DOUBOW_CLERK_AUDIENCE</code>.
+              </span>
+            </li>
+          </ul>
         </div>
       ) : null}
 
@@ -703,11 +726,18 @@ export function DiscoveryClient({
         ) : null}
       </section>
 
-      <div className="flex flex-wrap gap-2 border-b border-[var(--app-border)] pb-3">
+      <div
+        className="flex flex-wrap gap-2 border-b border-[var(--app-border)] pb-3"
+        role="tablist"
+        aria-label="Job list views"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === "feed"}
+          id="discovery-tab-feed"
           className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "feed"
               ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
@@ -718,8 +748,11 @@ export function DiscoveryClient({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === "all"}
+          id="discovery-tab-all"
           className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "all"
               ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
@@ -730,8 +763,11 @@ export function DiscoveryClient({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === "hidden"}
+          id="discovery-tab-hidden"
           className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
             tab === "hidden"
               ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[0_1px_0_rgba(255,255,255,0.06)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
@@ -742,24 +778,29 @@ export function DiscoveryClient({
         </button>
       </div>
 
-      {tab === "feed" && feedRows.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 text-center text-[13px] leading-6 text-[var(--app-text-secondary)]">
+      {!loadError && tab === "feed" && feedRows.length === 0 ? (
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
           No personalized rows yet. Embed a résumé on the Dashboard (with OpenAI configured), add jobs via{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or switch to{" "}
           <span className="font-medium text-[var(--app-text-primary)]">All roles</span>. When listings appear, use{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Details</span> →{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> →{" "}
-          <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] hover:underline">
+          <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
             Approvals
           </Link>
           .
         </div>
-      ) : tab === "hidden" && hiddenRows.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 text-center text-[13px] leading-6 text-[var(--app-text-secondary)]">
+      ) : !loadError && tab === "hidden" && hiddenRows.length === 0 ? (
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
           Nothing hidden yet. Use{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Hide</span> on a card to remove it from your feed.
         </div>
-      ) : (
+      ) : !loadError && tab === "all" && allRows.length === 0 ? (
+        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
+          No roles in the catalog yet. Queue a URL or RSS under{" "}
+          <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or run a bulk sync, then refresh.
+        </div>
+      ) : !loadError ? (
         <div className="flex flex-col gap-4">
           {list.map((row, i) => (
             <motion.div
@@ -792,7 +833,7 @@ export function DiscoveryClient({
             </motion.div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

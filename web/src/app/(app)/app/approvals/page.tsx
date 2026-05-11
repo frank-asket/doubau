@@ -264,29 +264,69 @@ export default function ApprovalsPage() {
       </div>
 
       {error ? (
-        <div className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-danger)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--app-danger)]">
+        <div
+          role="alert"
+          className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-danger)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-4 py-3 text-pretty text-[13px] leading-relaxed text-[var(--app-danger)]"
+        >
           {error}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-[var(--app-space-md)]">
         {loadingInitial && draftCount === 0 ? (
-          <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6 text-[13px] text-[var(--app-text-secondary)]">
-            Loading…
+          <div
+            className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6"
+            aria-busy="true"
+            aria-label="Loading approvals"
+          >
+            <div className="space-y-3">
+              <div className="h-4 w-[32%] max-w-[200px] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+              <div className="h-3 w-full max-w-md animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+              <div className="h-3 w-[88%] max-w-lg animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+              <div className="h-20 w-full animate-pulse rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)]" />
+            </div>
+            <p className="mt-4 text-[12px] text-[var(--app-text-tertiary)]">Loading drafts and applications…</p>
           </div>
         ) : null}
 
         {!loadingInitial && sortedDrafts.length === 0 ? (
-          <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
-            <p className="text-[13px] leading-6 text-[var(--app-text-secondary)]">
-              No drafts awaiting review. From{" "}
-              <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
-                discovery
-              </Link>
-              , open a role → <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>, or use{" "}
-              <span className="font-medium text-[var(--app-text-primary)]">Create demo draft</span> above to try approve →
-              submit.
+          <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 sm:px-8 sm:py-10">
+            <p className="text-center text-[14px] font-semibold text-[var(--app-text-primary)]">Nothing in your queue yet</p>
+            <p className="mx-auto mt-2 max-w-md text-center text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+              When you generate outreach from a role, drafts land here for review before anything is sent.
             </p>
+            <ol className="mx-auto mt-6 max-w-md list-none space-y-3 text-left text-[13px] text-[var(--app-text-secondary)]">
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[12px] font-semibold text-[var(--app-text-primary)]">
+                  1
+                </span>
+                <span className="pt-0.5">
+                  Open{" "}
+                  <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
+                    Discovery
+                  </Link>{" "}
+                  and choose a role.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[12px] font-semibold text-[var(--app-text-primary)]">
+                  2
+                </span>
+                <span className="pt-0.5">
+                  Use <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> on the job
+                  page.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[12px] font-semibold text-[var(--app-text-primary)]">
+                  3
+                </span>
+                <span className="pt-0.5">
+                  Or tap <span className="font-medium text-[var(--app-text-primary)]">Create demo draft</span> above to
+                  try approve → submit.
+                </span>
+              </li>
+            </ol>
           </div>
         ) : null}
 

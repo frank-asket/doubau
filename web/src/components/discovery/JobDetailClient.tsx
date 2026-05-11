@@ -141,13 +141,13 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/app/discovery"
-            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)]"
+            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)] active:scale-[0.98]"
           >
             ← Back to discovery
           </Link>
           <Link
             href="/app/approvals"
-            className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--app-accent)] hover:underline"
+            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--app-accent)_10%,transparent)] active:scale-[0.98]"
           >
             Approvals queue →
           </Link>
@@ -161,7 +161,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--app-border)] pb-5">
             <div className="flex min-w-0 flex-1 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--app-badge-blue-bg)] text-[18px] font-semibold text-[var(--app-badge-blue-fg)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--app-radius-md)] bg-[var(--app-badge-blue-bg)] text-[18px] font-semibold tracking-tight text-[var(--app-badge-blue-fg)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)]">
                 {initials}
               </div>
               <div className="min-w-0">
@@ -184,7 +184,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   href={job.source_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-[var(--app-accent-hover)]"
+                  className="inline-flex items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-colors hover:bg-[var(--app-accent-hover)] active:scale-[0.98]"
                 >
                   Apply on original site
                 </a>
@@ -197,9 +197,22 @@ export function JobDetailClient({ job }: { job: JobRow }) {
               <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
                 Job description
               </h2>
-              <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--app-text-secondary)]">
-                {job.description?.trim() || "No full description stored for this listing. Open the original posting for complete details."}
-              </p>
+              {job.description?.trim() ? (
+                <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--app-text-secondary)]">
+                  {job.description.trim()}
+                </p>
+              ) : (
+                <div className="mt-2 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)] px-4 py-3 text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+                  No full description stored here.{" "}
+                  {job.source_url ? (
+                    <a href={job.source_url} target="_blank" rel="noreferrer" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
+                      Open the original posting
+                    </a>
+                  ) : (
+                    "Add a source URL when importing listings to link out."
+                  )}
+                </div>
+              )}
             </section>
 
             {job.tags && job.tags.length > 0 ? (
@@ -252,8 +265,9 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           <AppButton
             type="button"
             variant="primary"
-            className="w-full justify-center gap-2"
+            className="w-full justify-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform active:scale-[0.99] disabled:active:scale-100"
             disabled={outreachBusy}
+            aria-busy={outreachBusy}
             onClick={() => void generateOutreach()}
           >
             {outreachBusy ? "Working…" : "Generate outreach"}
@@ -275,7 +289,12 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                 <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
                   Compare this role to your latest parsed résumé with the same structured model as discovery.
                 </p>
-                <AppButton type="button" variant="outline" className="mt-3 w-full justify-center" onClick={() => void loadFit()}>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  className="mt-3 w-full justify-center transition-transform active:scale-[0.99]"
+                  onClick={() => void loadFit()}
+                >
                   Run AI fit
                 </AppButton>
                 {fitError ? (
@@ -283,7 +302,15 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                 ) : null}
               </div>
             ) : null}
-            {fitLoading ? <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">Scoring…</p> : null}
+            {fitLoading ? (
+              <div className="mt-4 space-y-2" aria-live="polite" aria-busy="true">
+                <div className="h-7 w-[40%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                <div className="h-2 w-full animate-pulse rounded-full bg-[var(--app-bg-muted)]" />
+                <div className="h-3 w-[85%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                <div className="h-3 w-[60%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                <p className="pt-1 text-[12px] text-[var(--app-text-tertiary)]">Scoring against your résumé…</p>
+              </div>
+            ) : null}
             {fit && fitStyle ? (
               <div className="mt-3">
                 <div className={`text-[22px] font-semibold tabular-nums ${fitStyle.text}`}>{Math.round(fit.score)}%</div>
