@@ -87,6 +87,104 @@ def test_generate_draft_creates_llm_log_fallback() -> None:
         pass
 
 
+def test_approve_requires_generated_draft() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    with SessionLocal() as db:
+        row = Application(
+            user_id=user_id,
+            company="NoDraftCo",
+            job_title="Product Manager",
+            status=ApplicationStatus.PENDING_APPROVAL,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        app_id = row.id
+
+    r = client.post(f"/applications/{app_id}/approve", headers=headers)
+    assert r.status_code == 409, r.text
+    assert "draft" in r.json()["detail"].lower()
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.id == app_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
+def test_submit_requires_approved_application_with_draft() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    with SessionLocal() as db:
+        row = Application(
+            user_id=user_id,
+            company="NoDraftCo",
+            job_title="Product Manager",
+            status=ApplicationStatus.APPROVED,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        app_id = row.id
+
+    r = client.post(f"/applications/{app_id}/submit", headers=headers)
+    assert r.status_code == 409, r.text
+    assert "draft" in r.json()["detail"].lower()
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.id == app_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
+def test_submitted_application_draft_cannot_be_edited() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    with SessionLocal() as db:
+        row = Application(
+            user_id=user_id,
+            company="SentCo",
+            job_title="Product Manager",
+            status=ApplicationStatus.SUBMITTED,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        draft = OutreachDraft(application_id=row.id, channel="email", content="Already sent")
+        db.add(draft)
+        db.commit()
+        db.refresh(draft)
+        app_id = row.id
+        draft_id = draft.id
+
+    r = client.patch(
+        f"/applications/drafts/{draft_id}",
+        headers=headers,
+        json={"content": "Change after send"},
+    )
+    assert r.status_code == 409, r.text
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.id == app_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
 def test_dispatch_outbound_smtp_marks_email_sent(monkeypatch: pytest.MonkeyPatch) -> None:
     """With SMTP configured, dispatch sends via mocked SMTP and marks the email draft SENT."""
     calls: list[dict[str, str]] = []

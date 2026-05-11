@@ -7,6 +7,11 @@ aws_region = "eu-west-3"
 # Must be globally unique. Example pattern with account ID:
 resume_bucket_name = "s3-resumes-888687695411"
 
+# Optional: if the app should access S3 through an access point alias, set both.
+# Use the alias value as DOUBOW_S3_BUCKET_RESUMES in API/worker env.
+# s3_access_point_name  = "doubau-888687695411"
+# s3_access_point_alias = "doubau-888687695411-4p8y6mdoq7eqbhic44539kjwqonwqeuw3a-s3alias"
+
 # Must match API object keys (default: resumes/<user_id>/...).
 # resume_object_prefix = "resumes"
 
@@ -21,6 +26,13 @@ resume_bucket_name = "s3-resumes-888687695411"
 # AmazonS3FullAccess — leave this empty so Terraform only creates the bucket (no extra policy).
 # Example user ARN when you do attach: arn:aws:iam::888687695411:user/aiengineer
 grant_s3_access_user_name = ""
+
+# Recommended for Railway/API credentials: create a dedicated least-privilege IAM user
+# and access key. The key can only GetObject/PutObject under resumes/* and job-html/*.
+# The secret access key is sensitive and will be stored in Terraform state.
+# app_iam_user_name          = "doubow-api-s3"
+# create_app_iam_user        = true
+# create_app_iam_access_key  = true
 
 extra_tags = {
   Environment = "prod"

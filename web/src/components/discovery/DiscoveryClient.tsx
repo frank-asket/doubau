@@ -30,6 +30,8 @@ export type FeedRow = {
   job: JobRow;
   score: number;
   similarity: number | null;
+  score_reason?: string;
+  score_components?: Record<string, number>;
 };
 
 type FitScoreResponse = {
@@ -118,6 +120,7 @@ function JobCard({
   const job = row.job;
   const score = row.score;
   const similarity = row.similarity;
+  const scoreReason = row.score_reason;
   const showMatchRing = tab === "feed";
 
   const fit = fitData[job.id];
@@ -190,6 +193,11 @@ function JobCard({
             <p className="line-clamp-3 text-[13px] leading-6 text-[var(--app-text-secondary)]">{job.description}</p>
           ) : null}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {scoreReason && tab === "feed" ? (
+              <span className="inline-flex items-center rounded-[var(--app-radius-pill)] bg-[color-mix(in_srgb,var(--app-accent)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--app-text-primary)]">
+                {scoreReason}
+              </span>
+            ) : null}
             {listingSourceLabel(job.listing_source) ? (
               <span className="inline-flex items-center rounded-[var(--app-radius-pill)] bg-[var(--app-badge-gray-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--app-badge-gray-fg)]">
                 via {listingSourceLabel(job.listing_source)}
@@ -401,8 +409,6 @@ export function DiscoveryClient({
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeKind, setScrapeKind] = useState<"url" | "rss">("url");
   const [scrapeBusy, setScrapeBusy] = useState(false);
-  const [remoteOkBusy, setRemoteOkBusy] = useState(false);
-  const [adzunaBusy, setAdzunaBusy] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [fitData, setFitData] = useState<Record<string, FitScoreResponse>>({});
   const [fitLoadingId, setFitLoadingId] = useState<string | null>(null);
@@ -482,46 +488,6 @@ export function DiscoveryClient({
       }
     } finally {
       setScrapeBusy(false);
-    }
-  }
-
-  async function queueRemoteOkSync() {
-    setScrapeMsg(null);
-    setRemoteOkBusy(true);
-    try {
-      const resp = await fetch("/api/jobs/ingest/remoteok", { method: "POST" });
-      const data = (await resp.json().catch(() => ({}))) as { task_id?: string; detail?: string };
-      if (resp.ok && data.task_id) {
-        setScrapeMsg("Remote OK import started. New roles will appear shortly.");
-        router.refresh();
-      } else {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Request failed (${resp.status})`);
-      }
-    } finally {
-      setRemoteOkBusy(false);
-    }
-  }
-
-  async function queueAdzunaSync() {
-    setScrapeMsg(null);
-    setAdzunaBusy(true);
-    try {
-      const resp = await fetch("/api/jobs/ingest/adzuna", { method: "POST" });
-      const data = (await resp.json().catch(() => ({}))) as {
-        task_id?: string;
-        detail?: string;
-        status?: string;
-      };
-      if (resp.ok && data.task_id) {
-        setScrapeMsg("Adzuna import started. New roles will appear shortly when the connection is ready.");
-        router.refresh();
-      } else {
-        setScrapeMsg(
-          typeof data.detail === "string" ? data.detail : `Adzuna request failed (${resp.status})`,
-        );
-      }
-    } finally {
-      setAdzunaBusy(false);
     }
   }
 
@@ -635,8 +601,7 @@ export function DiscoveryClient({
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
           Open a role for the full posting, then <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>{" "}
-          to prepare a message for review. Your résumé helps prioritize roles that fit your goals. Import a posting URL,
-          RSS feed, or supported job board when you want to expand the list.
+          to prepare a message for review. Your résumé, location, seniority, and recent feedback shape the order.
         </p>
         <div className="mt-4">
           <JobPipelineHint variant="discovery" />
@@ -659,7 +624,7 @@ export function DiscoveryClient({
 
       <section className="app-surface rounded-[var(--app-radius-lg)] p-5">
         <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-          Import
+          Add a posting
         </div>
         <form className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end" onSubmit={submitScrape}>
           <div className="min-w-0 flex-1 space-y-2">
@@ -693,32 +658,16 @@ export function DiscoveryClient({
           </div>
           <AppButton
             className="lg:shrink-0"
-            disabled={scrapeBusy || remoteOkBusy || adzunaBusy}
+            disabled={scrapeBusy}
             type="submit"
             variant="primary"
           >
-            {scrapeBusy ? "Queueing…" : "Queue"}
+            {scrapeBusy ? "Adding…" : "Add posting"}
           </AppButton>
         </form>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <AppButton
-            disabled={remoteOkBusy || scrapeBusy || adzunaBusy}
-            type="button"
-            variant="outline"
-            onClick={() => void queueRemoteOkSync()}
-          >
-            {remoteOkBusy ? "Queueing…" : "Sync Remote OK"}
-          </AppButton>
-          <AppButton
-            disabled={adzunaBusy || scrapeBusy || remoteOkBusy}
-            type="button"
-            variant="outline"
-            onClick={() => void queueAdzunaSync()}
-          >
-            {adzunaBusy ? "Queueing…" : "Sync Adzuna"}
-          </AppButton>
           <p className="max-w-xl text-[12px] leading-5 text-[var(--app-text-tertiary)]">
-            Use controlled provider imports to seed your search. Each card shows where the role came from and links back to the original posting.
+            Add a posting you already trust, or browse the roles already in your catalog. Each card shows where the role came from and links back to the original posting.
           </p>
         </div>
         {scrapeMsg ? (

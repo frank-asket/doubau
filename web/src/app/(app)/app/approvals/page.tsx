@@ -72,25 +72,6 @@ export default function ApprovalsPage() {
     ]);
   };
 
-  const createDemoM = useMutation({
-    mutationFn: async () => {
-      const created = await fetch("/api/applications", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ company: "Acme", job_title: "Product Manager" }),
-      });
-      if (!created.ok) throw new Error("create_app");
-      const app = (await created.json()) as Application;
-      const gen = await fetch(`/api/applications/${app.id}/generate_draft`, { method: "POST" });
-      if (!gen.ok) throw new Error("generate_draft");
-    },
-    onMutate: () => setMutationError(null),
-    onSuccess: async () => {
-      await invalidateApprovalQueries();
-    },
-    onError: () => setMutationError("Could not create a sample draft."),
-  });
-
   const patchDraftM = useMutation({
     mutationFn: async ({ draftId, content }: { draftId: string; content: string }) => {
       const resp = await fetch(`/api/applications/drafts/${draftId}`, {
@@ -247,15 +228,12 @@ export default function ApprovalsPage() {
           </div>
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <AppButton
-            disabled={loadingInitial || createDemoM.isPending}
-            size="md"
-            variant="outline"
-            type="button"
-            onClick={() => createDemoM.mutate()}
+          <Link
+            href="/app/discovery"
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-4 text-[13px] font-medium leading-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]"
           >
-            Create sample draft
-          </AppButton>
+            Find roles to contact
+          </Link>
         </div>
       </section>
 
@@ -331,8 +309,7 @@ export default function ApprovalsPage() {
                   3
                 </span>
                 <span className="pt-0.5">
-                  Or tap <span className="font-medium text-[var(--app-text-primary)]">Create sample draft</span> above to
-                  try approve → submit.
+                  Return here to edit, approve, and submit only when the message feels right.
                 </span>
               </li>
             </ol>

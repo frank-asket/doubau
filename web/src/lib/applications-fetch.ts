@@ -6,6 +6,8 @@ export type ApplicationRow = {
   job_title: string;
   status: string;
   source_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type DraftRow = {
@@ -13,6 +15,7 @@ export type DraftRow = {
   application_id: string;
   channel: string;
   content: string;
+  status?: string;
 };
 
 export async function fetchApplications(): Promise<ApplicationRow[]> {

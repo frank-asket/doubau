@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -28,13 +28,39 @@ function statusOrder(s: string): number {
   return order[s] ?? 99;
 }
 
+const PIPELINE_COLUMNS = [
+  { id: "DISCOVERED", title: "Saved", description: "Roles you have added or started from." },
+  { id: "PENDING_APPROVAL", title: "Review", description: "Drafts waiting for your sign-off." },
+  { id: "APPROVED", title: "Ready", description: "Approved outreach, not submitted yet." },
+  { id: "SUBMITTED", title: "Submitted", description: "Outreach has been sent or queued." },
+  { id: "FAILED", title: "Closed", description: "Rejected, failed, or parked for later." },
+];
+
 export function TrackerClient() {
   useApplicationsPipelineWs(true);
+
+  const qc = useQueryClient();
 
   const applicationsQuery = useQuery({
     queryKey: queryKeys.applications,
     queryFn: fetchApplications,
     refetchInterval: APPLICATIONS_POLL_MS,
+  });
+
+  const generateDraftM = useMutation({
+    mutationFn: async (appId: string) => {
+      const resp = await fetch(`/api/applications/${appId}/generate_draft`, { method: "POST" });
+      if (!resp.ok) {
+        const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(typeof data.detail === "string" ? data.detail : "Could not generate outreach.");
+      }
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.applications }),
+        qc.invalidateQueries({ queryKey: queryKeys.applicationDrafts }),
+      ]);
+    },
   });
 
   const loading = applicationsQuery.isLoading;
@@ -49,6 +75,16 @@ export function TrackerClient() {
       return `${a.company} ${a.job_title}`.localeCompare(`${b.company} ${b.job_title}`);
     });
   }, [applicationsQuery.data]);
+  const byColumn = useMemo(() => {
+    const groups = new Map<string, typeof sorted>();
+    for (const column of PIPELINE_COLUMNS) groups.set(column.id, []);
+    for (const app of sorted) {
+      const key = app.status === "RETRY" ? "FAILED" : app.status;
+      const bucket = groups.get(key) ?? groups.get("DISCOVERED");
+      bucket?.push(app);
+    }
+    return groups;
+  }, [sorted]);
   const total = sorted.length;
   const pending = sorted.filter((app) => app.status === "PENDING_APPROVAL").length;
   const submitted = sorted.filter((app) => app.status === "SUBMITTED").length;
@@ -109,86 +145,103 @@ export function TrackerClient() {
         </div>
       ) : null}
 
-      <div className="app-surface overflow-x-auto rounded-[var(--app-radius-lg)]">
-        <table className="w-full min-w-[640px] border-collapse text-left text-[13px]">
-          <thead>
-            <tr className="border-b border-[var(--app-border)] text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-              <th className="px-4 py-3 font-medium">Application</th>
-              <th className="px-4 py-3 font-medium">Company</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Source</th>
-              <th className="px-4 py-3 font-medium">ID</th>
-            </tr>
-          </thead>
-          <tbody className="text-[12px]">
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-8 font-[family-name:var(--font-app-sans)] text-[13px] text-[var(--app-text-secondary)]"
-                >
-                  Loading…
-                </td>
-              </tr>
-            ) : null}
-            {!loading && sorted.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-8 font-[family-name:var(--font-app-sans)] text-[13px] text-[var(--app-text-secondary)]"
-                >
-                  No applications yet. Create one from{" "}
-                  <Link className="font-semibold text-[var(--app-accent)]" href="/app/approvals">
-                    Draft approvals
-                  </Link>{" "}
-                  or start from a role in Find jobs.
-                </td>
-              </tr>
-            ) : null}
-            {sorted.map((app) => {
-              const { variant, label } = applicationStatusBadge(app.status);
-              const shortId = `${app.id.slice(0, 8)}…`;
-              return (
-                <tr
-                  key={app.id}
-                  className="border-b border-[var(--app-border)] font-[family-name:var(--font-app-mono)] transition-colors hover:bg-[var(--app-bg-muted)] last:border-0"
-                >
-                  <td className="max-w-[220px] px-4 py-3 align-top font-medium text-[var(--app-text-primary)]">
-                    <span className="font-[family-name:var(--font-app-sans)]">{app.job_title}</span>
-                  </td>
-                  <td className="px-4 py-3 align-top text-[var(--app-text-secondary)]">{app.company}</td>
-                  <td className="px-4 py-3 align-top font-[family-name:var(--font-app-sans)]">
-                    <AppBadge variant={variant}>{label}</AppBadge>
-                  </td>
-                  <td className="max-w-[180px] px-4 py-3 align-top">
-                    {app.source_url ? (
-                      <a
-                        href={app.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-[11px] text-[var(--app-accent)] hover:underline"
-                      >
-                        {(() => {
-                          try {
-                            return new URL(app.source_url).hostname;
-                          } catch {
-                            return "link";
-                          }
-                        })()}
-                      </a>
-                    ) : (
-                      <span className="text-[var(--app-text-tertiary)]">—</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 align-top text-[11px] text-[var(--app-text-tertiary)]">
-                    {shortId}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {generateDraftM.isError ? (
+        <div
+          className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-danger)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--app-danger)]"
+          role="alert"
+        >
+          {generateDraftM.error instanceof Error ? generateDraftM.error.message : "Could not generate outreach."}
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="app-surface rounded-[var(--app-radius-lg)] p-6 text-[13px] text-[var(--app-text-secondary)]">
+          Loading applications…
+        </div>
+      ) : null}
+
+      {!loading && sorted.length === 0 ? (
+        <div className="app-surface rounded-[var(--app-radius-lg)] border-dashed px-5 py-10 text-center">
+          <p className="text-[14px] font-semibold text-[var(--app-text-primary)]">No applications yet</p>
+          <p className="mx-auto mt-2 max-w-md text-pretty text-[13px] leading-6 text-[var(--app-text-secondary)]">
+            Start from a role in Find jobs, generate outreach, and the application will move through this board.
+          </p>
+          <Link className="mt-5 inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 text-[13px] font-medium text-white hover:bg-[var(--app-accent-hover)]" href="/app/discovery">
+            Find jobs
+          </Link>
+        </div>
+      ) : null}
+
+      {!loading && sorted.length > 0 ? (
+        <div className="grid gap-3 xl:grid-cols-5">
+          {PIPELINE_COLUMNS.map((column) => {
+            const rows = byColumn.get(column.id) ?? [];
+            return (
+              <section key={column.id} className="min-h-[220px] rounded-[var(--app-radius-lg)] bg-[var(--app-bg-muted)] p-3 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-[13px] font-semibold text-[var(--app-text-primary)]">{column.title}</h2>
+                    <p className="mt-1 text-[11px] leading-4 text-[var(--app-text-tertiary)]">{column.description}</p>
+                  </div>
+                  <span className="rounded-[var(--app-radius-pill)] bg-[var(--app-bg-elevated)] px-2 py-0.5 text-[11px] font-semibold text-[var(--app-text-secondary)] shadow-[inset_0_0_0_0.5px_var(--app-border)]">
+                    {rows.length}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {rows.map((app) => {
+                    const { variant, label } = applicationStatusBadge(app.status);
+                    return (
+                      <article key={app.id} className="rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-[var(--app-text-primary)]">{app.job_title}</h3>
+                            <p className="mt-1 truncate text-[12px] text-[var(--app-text-secondary)]">{app.company}</p>
+                          </div>
+                          <AppBadge variant={variant}>{label}</AppBadge>
+                        </div>
+                        {app.source_url ? (
+                          <a href={app.source_url} target="_blank" rel="noopener noreferrer" className="mt-3 block truncate text-[11px] font-medium text-[var(--app-accent)] hover:underline">
+                            {(() => {
+                              try {
+                                return new URL(app.source_url).hostname;
+                              } catch {
+                                return "Original posting";
+                              }
+                            })()}
+                          </a>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {app.status === "DISCOVERED" || app.status === "RETRY" ? (
+                            <AppButton
+                              disabled={generateDraftM.isPending}
+                              size="sm"
+                              variant="primary"
+                              type="button"
+                              onClick={() => generateDraftM.mutate(app.id)}
+                            >
+                              Generate outreach
+                            </AppButton>
+                          ) : null}
+                          {app.status === "PENDING_APPROVAL" || app.status === "APPROVED" ? (
+                            <Link className="inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius-pill)] border border-[var(--app-border)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] hover:border-[var(--app-accent)] hover:text-[var(--app-accent)]" href="/app/approvals">
+                              Review draft
+                            </Link>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                  {rows.length === 0 ? (
+                    <div className="rounded-[var(--app-radius-md)] border-[0.5px] border-dashed border-[var(--app-border)] px-3 py-6 text-center text-[12px] text-[var(--app-text-tertiary)]">
+                      Nothing here yet.
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

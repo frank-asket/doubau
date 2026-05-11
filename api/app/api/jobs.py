@@ -348,6 +348,8 @@ class FeedOut(BaseModel):
     job: JobOut
     score: float
     similarity: float | None = None
+    score_reason: str
+    score_components: dict[str, float] = Field(default_factory=dict)
 
 
 def _score_job_heuristic(*, job: Job, persona: str | None, focus: list[str]) -> float:
@@ -427,6 +429,34 @@ def _feedback_adjustments(db: Session, *, user_id: UUID, job_ids: list[UUID]) ->
     return out
 
 
+def _score_reason(
+    *,
+    similarity: float | None,
+    location_score_: float,
+    seniority_score_: float,
+    recency_score__: float,
+    feedback_adjustment: float,
+) -> str:
+    parts: list[str] = []
+    if similarity is not None and similarity >= 0.65:
+        parts.append("strong résumé overlap")
+    elif similarity is not None and similarity >= 0.35:
+        parts.append("some résumé overlap")
+    if location_score_ >= 0.9:
+        parts.append("location fit")
+    elif location_score_ >= 0.7:
+        parts.append("remote/regional fit")
+    if seniority_score_ >= 0.8:
+        parts.append("seniority fit")
+    if recency_score__ >= 0.8:
+        parts.append("fresh listing")
+    if feedback_adjustment > 0:
+        parts.append("boosted by your feedback")
+    if feedback_adjustment < 0:
+        parts.append("reduced by your feedback")
+    return ", ".join(parts[:3]) or "ranked from your profile and listing freshness"
+
+
 @router.get("/feed", response_model=list[FeedOut])
 def feed(
     db: DbDep,
@@ -484,7 +514,7 @@ def feed(
                 job_ids=[r[0].id for r in rows],
             )
 
-            scored_rows: list[tuple[float, float, Job]] = []
+            scored_rows: list[tuple[float, float, Job, float, float, float, float]] = []
             for row in rows:
                 job = row[0]
                 dist = float(row[1])
@@ -506,16 +536,36 @@ def feed(
                     seniority_score=sen_s,
                     recency_score_=rec_s,
                 )
-                blended = max(0.0, min(1.0, blended + fb_adj.get(job.id, 0.0)))
-                scored_rows.append((blended, vec_sim, job))
+                adj = fb_adj.get(job.id, 0.0)
+                blended = max(0.0, min(1.0, blended + adj))
+                scored_rows.append((blended, vec_sim, job, loc_s, sen_s, rec_s, adj))
 
             scored_rows.sort(key=lambda t: (t[0], t[1]), reverse=True)
 
             out: list[FeedOut] = []
-            for blended, vec_sim, job in scored_rows:
+            for blended, vec_sim, job, loc_s, sen_s, rec_s, adj in scored_rows:
                 pct = max(0.0, min(100.0, 100.0 * blended))
                 sim_pct = max(0.0, min(100.0, 100.0 * vec_sim))
-                out.append(FeedOut(job=_job_out(job), score=pct, similarity=sim_pct))
+                out.append(
+                    FeedOut(
+                        job=_job_out(job),
+                        score=pct,
+                        similarity=sim_pct,
+                        score_reason=_score_reason(
+                            similarity=vec_sim,
+                            location_score_=loc_s,
+                            seniority_score_=sen_s,
+                            recency_score__=rec_s,
+                            feedback_adjustment=adj,
+                        ),
+                        score_components={
+                            "resume": round(vec_sim * 100, 1),
+                            "location": round(loc_s * 100, 1),
+                            "seniority": round(sen_s * 100, 1),
+                            "freshness": round(rec_s * 100, 1),
+                        },
+                    )
+                )
 
             return out[offset : offset + limit]
 
@@ -546,7 +596,7 @@ def feed(
     heur_max = 6.5
 
     reranked: list[FeedOut] = []
-    scored_rows2: list[tuple[float, float, Job]] = []
+    scored_rows2: list[tuple[float, float, Job, float, float, float, float]] = []
     for j in jobs:
         heur = _score_job_heuristic(job=j, persona=persona, focus=focus)
         base_sim = max(0.0, min(1.0, heur / heur_max))
@@ -567,18 +617,38 @@ def feed(
             seniority_score=sen_s,
             recency_score_=rec_s,
         )
-        blended = max(0.0, min(1.0, blended + fb_adj2.get(j.id, 0.0)))
-        scored_rows2.append((blended, base_sim, j))
+        adj = fb_adj2.get(j.id, 0.0)
+        blended = max(0.0, min(1.0, blended + adj))
+        scored_rows2.append((blended, base_sim, j, loc_s, sen_s, rec_s, adj))
 
     scored_rows2.sort(
         key=lambda t: (t[0], t[1], (t[2].company or ""), (t[2].title or "")),
         reverse=True,
     )
 
-    for blended, base_sim, j in scored_rows2:
+    for blended, base_sim, j, loc_s, sen_s, rec_s, adj in scored_rows2:
         pct = max(0.0, min(100.0, 100.0 * blended))
         sim_pct = max(0.0, min(100.0, 100.0 * base_sim))
-        reranked.append(FeedOut(job=_job_out(j), score=pct, similarity=sim_pct))
+        reranked.append(
+            FeedOut(
+                job=_job_out(j),
+                score=pct,
+                similarity=sim_pct,
+                score_reason=_score_reason(
+                    similarity=base_sim,
+                    location_score_=loc_s,
+                    seniority_score_=sen_s,
+                    recency_score__=rec_s,
+                    feedback_adjustment=adj,
+                ),
+                score_components={
+                    "profile": round(base_sim * 100, 1),
+                    "location": round(loc_s * 100, 1),
+                    "seniority": round(sen_s * 100, 1),
+                    "freshness": round(rec_s * 100, 1),
+                },
+            )
+        )
 
     return reranked[offset : offset + limit]
 

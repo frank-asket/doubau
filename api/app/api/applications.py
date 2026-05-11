@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
@@ -60,6 +61,8 @@ class ApplicationOut(BaseModel):
     job_title: str
     source_url: str | None
     status: ApplicationStatus
+    created_at: datetime
+    updated_at: datetime
 
 
 class DraftOut(BaseModel):
@@ -88,19 +91,49 @@ class DraftPatch(BaseModel):
     feedback_score: int | None = Field(default=None, ge=1, le=5)
 
 
+def _touch_application(app: Application) -> None:
+    app.updated_at = datetime.utcnow()
+
+
+def _application_out(app: Application) -> ApplicationOut:
+    return ApplicationOut(
+        id=app.id,
+        company=app.company,
+        job_title=app.job_title,
+        source_url=app.source_url,
+        status=app.status,
+        created_at=app.created_at,
+        updated_at=app.updated_at,
+    )
+
+
+def _draft_out(draft: OutreachDraft) -> DraftOut:
+    return DraftOut(
+        id=draft.id,
+        application_id=draft.application_id,
+        channel=draft.channel,
+        content=draft.content,
+        status=draft.status.value,
+    )
+
+
+def _application_has_draft(db, application_id: UUID) -> bool:
+    return (
+        db.scalar(
+            select(OutreachDraft.id).where(OutreachDraft.application_id == application_id).limit(1)
+        )
+        is not None
+    )
+
+
 @router.get("", response_model=list[ApplicationOut])
 def list_applications(db: DbDep, current_user: CurrentUserDep) -> list[ApplicationOut]:
-    apps = db.scalars(select(Application).where(Application.user_id == current_user.id)).all()
-    return [
-        ApplicationOut(
-            id=a.id,
-            company=a.company,
-            job_title=a.job_title,
-            source_url=a.source_url,
-            status=a.status,
-        )
-        for a in apps
-    ]
+    apps = db.scalars(
+        select(Application)
+        .where(Application.user_id == current_user.id)
+        .order_by(Application.updated_at.desc(), Application.created_at.desc())
+    ).all()
+    return [_application_out(a) for a in apps]
 
 
 @router.post("", response_model=ApplicationOut)
@@ -119,13 +152,7 @@ def create_application(
     db.add(app)
     db.commit()
     db.refresh(app)
-    return ApplicationOut(
-        id=app.id,
-        company=app.company,
-        job_title=app.job_title,
-        source_url=app.source_url,
-        status=app.status,
-    )
+    return _application_out(app)
 
 
 @router.post("/{application_id}/generate_draft", response_model=DraftBundleOut)
@@ -145,8 +172,15 @@ def generate_draft(
         raise HTTPException(status_code=409, detail=str(e)) from e
 
     app.status = ApplicationStatus.PENDING_APPROVAL
+    _touch_application(app)
     email_body, _em = generate_email_draft_content(db, app)
     li_body, _lm = generate_linkedin_draft_content(db, app)
+
+    existing = db.scalars(
+        select(OutreachDraft).where(OutreachDraft.application_id == app.id)
+    ).all()
+    for draft in existing:
+        db.delete(draft)
 
     d_email = OutreachDraft(
         application_id=app.id,
@@ -167,20 +201,11 @@ def generate_draft(
     db.refresh(d_li)
     db.refresh(app)
 
-    def _out(d: OutreachDraft) -> DraftOut:
-        return DraftOut(
-            id=d.id,
-            application_id=d.application_id,
-            channel=d.channel,
-            content=d.content,
-            status=d.status.value,
-        )
-
     return DraftBundleOut(
         application_id=app.id,
         application_status=app.status,
-        email=_out(d_email),
-        linkedin=_out(d_li),
+        email=_draft_out(d_email),
+        linkedin=_draft_out(d_li),
     )
 
 
@@ -192,16 +217,7 @@ def list_drafts(db: DbDep, current_user: CurrentUserDep) -> list[DraftOut]:
         .where(Application.user_id == current_user.id)
         .order_by(OutreachDraft.created_at.desc())
     ).all()
-    return [
-        DraftOut(
-            id=d.id,
-            application_id=d.application_id,
-            channel=d.channel,
-            content=d.content,
-            status=d.status.value,
-        )
-        for d in drafts
-    ]
+    return [_draft_out(d) for d in drafts]
 
 
 @router.patch("/drafts/{draft_id}", response_model=DraftOut)
@@ -224,7 +240,14 @@ def patch_draft(
 
     prev = d.content
     if payload.content is not None:
+        if app.status in (ApplicationStatus.SUBMITTED, ApplicationStatus.FAILED):
+            raise HTTPException(
+                status_code=409,
+                detail="Submitted or closed applications cannot be edited.",
+            )
         d.content = payload.content
+        app.status = ApplicationStatus.PENDING_APPROVAL
+        _touch_application(app)
 
     user_edit_val = payload.content if payload.content is not None else prev
     record_llm_interaction(
@@ -246,13 +269,7 @@ def patch_draft(
     )
     db.commit()
     db.refresh(d)
-    return DraftOut(
-        id=d.id,
-        application_id=d.application_id,
-        channel=d.channel,
-        content=d.content,
-        status=d.status.value,
-    )
+    return _draft_out(d)
 
 
 @router.post("/{application_id}/interview_prep", response_model=InterviewPrepOut)
@@ -305,17 +322,14 @@ def approve(
         assert_transition(app.status, ApplicationStatus.APPROVED)
     except InvalidTransition as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
+    if not _application_has_draft(db, application_id):
+        raise HTTPException(status_code=409, detail="Generate an outreach draft before approval.")
 
     app.status = ApplicationStatus.APPROVED
+    _touch_application(app)
     db.commit()
     db.refresh(app)
-    return ApplicationOut(
-        id=app.id,
-        company=app.company,
-        job_title=app.job_title,
-        source_url=app.source_url,
-        status=app.status,
-    )
+    return _application_out(app)
 
 
 @router.post("/{application_id}/reject", response_model=ApplicationOut)
@@ -334,15 +348,10 @@ def reject_application(
         raise HTTPException(status_code=409, detail=str(e)) from e
 
     app.status = ApplicationStatus.FAILED
+    _touch_application(app)
     db.commit()
     db.refresh(app)
-    return ApplicationOut(
-        id=app.id,
-        company=app.company,
-        job_title=app.job_title,
-        source_url=app.source_url,
-        status=app.status,
-    )
+    return _application_out(app)
 
 
 @router.post("/{application_id}/submit", response_model=ApplicationOut)
@@ -361,21 +370,18 @@ def submit(
         raise HTTPException(
             status_code=403, detail="Application must be APPROVED before submit"
         ) from e
+    if not _application_has_draft(db, application_id):
+        raise HTTPException(status_code=409, detail="No approved outreach draft found.")
 
     app.status = ApplicationStatus.SUBMITTED
+    _touch_application(app)
     db.commit()
     db.refresh(app)
     try:
         dispatch_application_outbound.delay(str(app.id))
     except Exception as exc:  # noqa: BLE001
         log.warning("dispatch_application_outbound.delay failed (broker down?): %s", exc)
-    return ApplicationOut(
-        id=app.id,
-        company=app.company,
-        job_title=app.job_title,
-        source_url=app.source_url,
-        status=app.status,
-    )
+    return _application_out(app)
 
 
 @router.websocket("/ws")
