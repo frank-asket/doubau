@@ -144,6 +144,12 @@ class Settings(BaseSettings):
         if not isinstance(v, str):
             return v
         s = v.strip()
+        # Railway typically injects DATABASE_URL. If DOUBOW_DATABASE_URL is unset (or mistakenly
+        # set to localhost inside a container), fall back to DATABASE_URL.
+        if (not s) or ("localhost" in s or "127.0.0.1" in s or "[::1]" in s):
+            fallback = os.getenv("DATABASE_URL", "").strip()
+            if fallback:
+                s = fallback
         head = s.split("://", 1)[0]
         if "+" in head:
             return s
