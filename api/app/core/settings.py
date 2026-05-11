@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Literal
 
 from pydantic import computed_field, field_validator
@@ -151,6 +152,18 @@ class Settings(BaseSettings):
         if s.startswith("postgresql://"):
             return "postgresql+psycopg://" + s[len("postgresql://") :]
         return s
+
+    @field_validator("openai_api_key", mode="before")
+    @classmethod
+    def normalize_openai_key(cls, v: object) -> object:
+        """
+        Prefer DOUBOW_OPENAI_API_KEY (this project's convention), but allow the common
+        OPENAI_API_KEY as a fallback so deployments don't silently break Copilot/embeddings.
+        """
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+        fallback = os.getenv("OPENAI_API_KEY", "").strip()
+        return fallback or None
 
     @field_validator("openai_api_key", "anthropic_api_key", "openrouter_api_key", mode="before")
     @classmethod

@@ -234,7 +234,7 @@ function JobCard({
               value={similarity ?? score ?? 0}
             />
           ) : null}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             <Link
               href={`/app/discovery/${job.id}`}
               className="inline-flex h-8 items-center justify-center rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-accent)]"
@@ -262,7 +262,17 @@ function JobCard({
               onClick={() => onUpvote(job.id)}
               title="Tell us this job is a good match"
             >
-              {feedbackBusyId === job.id ? "Working…" : "Upvote"}
+              {feedbackBusyId === job.id ? (
+                "Working…"
+              ) : (
+                <>
+                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
+                    ↑
+                  </span>
+                  <span className="hidden sm:inline">Upvote</span>
+                  <span className="sm:hidden">Good fit</span>
+                </>
+              )}
             </AppButton>
             <AppButton
               size="sm"
@@ -271,7 +281,17 @@ function JobCard({
               onClick={() => onToggleDownvote(job.id)}
               title="Tell us this job is not a good match"
             >
-              {feedbackBusyId === job.id ? "Working…" : "Downvote"}
+              {feedbackBusyId === job.id ? (
+                "Working…"
+              ) : (
+                <>
+                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
+                    ↓
+                  </span>
+                  <span className="hidden sm:inline">Downvote</span>
+                  <span className="sm:hidden">Bad fit</span>
+                </>
+              )}
             </AppButton>
             <AppButton
               size="sm"
@@ -280,7 +300,17 @@ function JobCard({
               onClick={() => onHide(job.id)}
               title="Hide this job from your feed"
             >
-              {hideBusyId === job.id ? "Working…" : (hideLabel ?? "Hide")}
+              {hideBusyId === job.id ? (
+                "Working…"
+              ) : (
+                <>
+                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
+                    ⊘
+                  </span>
+                  <span className="hidden sm:inline">{hideLabel ?? "Hide"}</span>
+                  <span className="sm:hidden">{tab === "hidden" ? "Unhide" : "Hide"}</span>
+                </>
+              )}
             </AppButton>
           </div>
         </div>

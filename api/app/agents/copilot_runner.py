@@ -16,14 +16,23 @@ from app.core.settings import settings
 
 
 def build_copilot_executor(db: Session, user_id: UUID) -> AgentExecutor | None:
-    if not settings.openai_api_key:
+    api_key: str | None = None
+    model: str | None = None
+    base_url: str | None = None
+
+    # Prefer direct OpenAI; fall back to OpenRouter if configured (keeps Copilot usable
+    # in demos where only OpenRouter is provisioned).
+    if settings.openai_api_key:
+        api_key = settings.openai_api_key
+        model = settings.openai_chat_model
+    elif settings.openrouter_api_key:
+        api_key = settings.openrouter_api_key
+        model = settings.openrouter_chat_model
+        base_url = settings.openrouter_base_url.rstrip("/")
+    else:
         return None
     tools = build_copilot_tools(db, user_id)
-    llm = ChatOpenAI(
-        model=settings.openai_chat_model,
-        api_key=settings.openai_api_key,
-        temperature=0.25,
-    )
+    llm = ChatOpenAI(model=model, api_key=api_key, base_url=base_url, temperature=0.25)
     prompt = ChatPromptTemplate.from_messages(
         [
             (

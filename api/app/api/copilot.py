@@ -112,7 +112,13 @@ async def copilot_ws(websocket: WebSocket) -> None:
                 ex = build_copilot_executor(db, user.id)
                 if ex is None:
                     await websocket.send_json(
-                        {"type": "error", "detail": "OpenAI API key not configured for Career Copilot."}
+                        {
+                            "type": "error",
+                            "detail": (
+                                "Career Copilot is not configured. Set DOUBOW_OPENAI_API_KEY (or OPENAI_API_KEY) "
+                                "or configure DOUBOW_OPENROUTER_API_KEY + DOUBOW_OPENROUTER_*."
+                            ),
+                        }
                     )
                     continue
 

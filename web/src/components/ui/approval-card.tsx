@@ -54,8 +54,10 @@ export function AppApprovalCard({
         <AppBadge variant={badgeVariant}>{badgeLabel}</AppBadge>
       </div>
 
-      <div className="rounded-[var(--app-radius-badge)] border-l-[3px] border-l-[var(--app-accent)] bg-[var(--app-bg-muted)] px-2.5 py-2.5 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-        {snippet}
+      <div className="rounded-[var(--app-radius-badge)] border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-3 py-3">
+        <div className="border-l-[3px] border-l-[var(--app-accent)] pl-3 text-pretty text-[13px] leading-6 text-[var(--app-text-secondary)] [font-variant-numeric:tabular-nums]">
+          {snippet}
+        </div>
       </div>
 
       {actionsSlot === undefined ? (
