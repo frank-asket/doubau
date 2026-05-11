@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.agents.interview_rag import (
     load_job_description_for_application,
@@ -117,10 +117,15 @@ def _draft_out(draft: OutreachDraft) -> DraftOut:
     )
 
 
-def _application_has_draft(db, application_id: UUID) -> bool:
+def _application_has_active_draft(db, application_id: UUID) -> bool:
     return (
         db.scalar(
-            select(OutreachDraft.id).where(OutreachDraft.application_id == application_id).limit(1)
+            select(OutreachDraft.id)
+            .where(
+                OutreachDraft.application_id == application_id,
+                OutreachDraft.status == DraftStatus.DRAFT,
+            )
+            .limit(1)
         )
         is not None
     )
@@ -142,18 +147,17 @@ def create_application(
     db: DbDep,
     current_user: CurrentUserDep,
 ) -> ApplicationOut:
+    existing_stmt = select(Application).where(Application.user_id == current_user.id)
     if payload.source_url:
-        existing = db.scalar(
-            select(Application)
-            .where(
-                Application.user_id == current_user.id,
-                Application.source_url == payload.source_url,
-            )
-            .order_by(Application.created_at.desc())
-            .limit(1)
+        existing_stmt = existing_stmt.where(Application.source_url == payload.source_url)
+    else:
+        existing_stmt = existing_stmt.where(
+            func.lower(Application.company) == payload.company.strip().lower(),
+            func.lower(Application.job_title) == payload.job_title.strip().lower(),
         )
-        if existing is not None:
-            return _application_out(existing)
+    existing = db.scalar(existing_stmt.order_by(Application.created_at.desc()).limit(1))
+    if existing is not None:
+        return _application_out(existing)
 
     app = Application(
         user_id=current_user.id,
@@ -336,7 +340,7 @@ def approve(
         assert_transition(app.status, ApplicationStatus.APPROVED)
     except InvalidTransition as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
-    if not _application_has_draft(db, application_id):
+    if not _application_has_active_draft(db, application_id):
         raise HTTPException(status_code=409, detail="Generate an outreach draft before approval.")
 
     app.status = ApplicationStatus.APPROVED
@@ -384,7 +388,7 @@ def submit(
         raise HTTPException(
             status_code=403, detail="Application must be APPROVED before submit"
         ) from e
-    if not _application_has_draft(db, application_id):
+    if not _application_has_active_draft(db, application_id):
         raise HTTPException(status_code=409, detail="No approved outreach draft found.")
 
     app.status = ApplicationStatus.SUBMITTED

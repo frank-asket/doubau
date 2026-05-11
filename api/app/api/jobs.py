@@ -66,6 +66,16 @@ class JobOut(BaseModel):
     created_at: datetime
 
 
+class CatalogSummaryOut(BaseModel):
+    active_total: int
+    embedded_total: int
+    missing_embedding_total: int
+    with_source_url_total: int
+    by_source: dict[str, int] = Field(default_factory=dict)
+    by_location: dict[str, int] = Field(default_factory=dict)
+    stale_after_days: int
+
+
 def _job_out(j: Job) -> JobOut:
     return JobOut(
         id=j.id,
@@ -311,6 +321,61 @@ def list_hidden_jobs(
     )
     jobs = db.scalars(stmt.limit(limit).offset(offset)).all()
     return [_job_out(j) for j in jobs]
+
+
+@router.get("/catalog/summary", response_model=CatalogSummaryOut)
+def catalog_summary(db: DbDep, _: CurrentUserDep) -> CatalogSummaryOut:
+    cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
+    active_filters = (
+        func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff,
+        Job.is_stale.is_(False),
+    )
+
+    active_total = int(
+        db.scalar(select(func.count()).select_from(Job).where(*active_filters)) or 0
+    )
+    embedded_total = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Job)
+            .where(*active_filters)
+            .where(Job.embedding_vector.is_not(None))
+        )
+        or 0
+    )
+    with_source_url_total = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Job)
+            .where(*active_filters)
+            .where(Job.source_url.is_not(None))
+        )
+        or 0
+    )
+
+    source_rows = db.execute(
+        select(func.coalesce(Job.listing_source, "unknown"), func.count())
+        .where(*active_filters)
+        .group_by(func.coalesce(Job.listing_source, "unknown"))
+        .order_by(desc(func.count()))
+    ).all()
+    location_rows = db.execute(
+        select(func.coalesce(Job.location, "Unspecified"), func.count())
+        .where(*active_filters)
+        .group_by(func.coalesce(Job.location, "Unspecified"))
+        .order_by(desc(func.count()))
+        .limit(12)
+    ).all()
+
+    return CatalogSummaryOut(
+        active_total=active_total,
+        embedded_total=embedded_total,
+        missing_embedding_total=max(0, active_total - embedded_total),
+        with_source_url_total=with_source_url_total,
+        by_source={str(k): int(v) for k, v in source_rows},
+        by_location={str(k): int(v) for k, v in location_rows},
+        stale_after_days=max(1, settings.jobs_stale_after_days),
+    )
 
 
 class ScrapeQueueOut(BaseModel):
