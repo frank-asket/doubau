@@ -6,6 +6,30 @@ from pydantic import computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _running_in_container() -> bool:
+    """
+    Best-effort detection for Docker/Kubernetes-style containers.
+
+    We only use this to decide whether to fall back from an explicit localhost URL to a
+    platform-injected DATABASE_URL (e.g. Railway). In local dev, we must not override
+    DOUBOW_DATABASE_URL just because it contains "localhost".
+    """
+    try:
+        if os.path.exists("/.dockerenv"):
+            return True
+    except Exception:
+        # If the FS check fails, keep going with other signals.
+        pass
+
+    # Common on Linux container runtimes: cgroup includes "docker", "containerd", "kubepods".
+    try:
+        with open("/proc/1/cgroup") as f:
+            cgroup = f.read()
+        return any(x in cgroup for x in ("docker", "containerd", "kubepods"))
+    except Exception:
+        return False
+
+
 def _parse_cors_allow_origins(raw: str) -> list[str]:
     """Env-friendly CORS: JSON array, comma-separated URLs, or bare hostnames (https added)."""
     s = (raw or "").strip()
@@ -144,12 +168,20 @@ class Settings(BaseSettings):
         if not isinstance(v, str):
             return v
         s = v.strip()
-        # Railway typically injects DATABASE_URL. If DOUBOW_DATABASE_URL is unset (or mistakenly
-        # set to localhost inside a container), fall back to DATABASE_URL.
-        if (not s) or ("localhost" in s or "127.0.0.1" in s or "[::1]" in s):
+        # Prefer DOUBOW_DATABASE_URL when explicitly set.
+        #
+        # Only fall back to platform-injected DATABASE_URL when DOUBOW_DATABASE_URL is empty,
+        # OR when we're inside a container and DOUBOW_DATABASE_URL points to localhost.
+        if not s:
             fallback = os.getenv("DATABASE_URL", "").strip()
             if fallback:
                 s = fallback
+        else:
+            is_localhost = ("localhost" in s) or ("127.0.0.1" in s) or ("[::1]" in s)
+            if is_localhost and _running_in_container():
+                fallback = os.getenv("DATABASE_URL", "").strip()
+                if fallback:
+                    s = fallback
         head = s.split("://", 1)[0]
         if "+" in head:
             return s

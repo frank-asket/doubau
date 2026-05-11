@@ -115,7 +115,7 @@ async def copilot_ws(websocket: WebSocket) -> None:
                         {
                             "type": "error",
                             "detail": (
-                                "Career Copilot is not configured. Set DOUBOW_OPENAI_API_KEY (or OPENAI_API_KEY) "
+                                "Career Copilot is not configured. Set DOUBOW_OPENAI_API_KEY (or OPENAI_API_KEY), "
                                 "or configure DOUBOW_OPENROUTER_API_KEY + DOUBOW_OPENROUTER_*."
                             ),
                         }
