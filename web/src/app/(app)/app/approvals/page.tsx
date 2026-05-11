@@ -88,7 +88,7 @@ export default function ApprovalsPage() {
     onSuccess: async () => {
       await invalidateApprovalQueries();
     },
-    onError: () => setMutationError("Failed to create demo application."),
+    onError: () => setMutationError("Could not create a sample draft."),
   });
 
   const patchDraftM = useMutation({
@@ -204,53 +204,62 @@ export default function ApprovalsPage() {
   }, [applicationsData]);
 
   const draftCount = draftsQuery.data?.length ?? 0;
+  const pendingCount = sortedDrafts.filter((d) => appById.get(d.application_id)?.status === "PENDING_APPROVAL").length;
+  const approvedCount = sortedDrafts.filter((d) => appById.get(d.application_id)?.status === "APPROVED").length;
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-            Approval dashboard
-          </h1>
-          <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-            Drafts land here after <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> on a
-            job, or when you run a demo. Edit copy, approve, then submit when you are ready—nothing sends without your
-            sign-off.
-          </p>
-          <div className="mt-4 max-w-xl">
-            <JobPipelineHint variant="approvals" />
-          </div>
-          <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">
-            Continue from{" "}
-            <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
-              Job discovery
-            </Link>{" "}
-            anytime.
-          </p>
-          <details className="mt-3 max-w-2xl text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
-            <summary className="cursor-pointer font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]">
-              Technical notes
-            </summary>
-            <p className="mt-2 pl-1">
-              Inline edits persist via{" "}
-              <span className="font-app-mono text-[11px]">PATCH /applications/drafts/:draft_id</span>. Status updates stream
-              over WebSocket <span className="font-app-mono text-[11px]">/applications/ws</span> with a 60s query fallback.
+      <section className="app-surface rounded-[var(--app-radius-lg)] p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+              Review queue
+            </div>
+            <h1 className="mt-1 text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
+              Approval dashboard
+            </h1>
+            <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
+              Drafts land here after <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> on a
+              job. Edit the message, approve it, then submit when you are ready. Nothing goes out without your sign-off.
             </p>
-          </details>
+            <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">
+              Continue from{" "}
+              <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
+                Job discovery
+              </Link>{" "}
+              anytime.
+            </p>
+          </div>
+          <div className="w-full max-w-xl lg:w-[420px]">
+            <JobPipelineHint variant="approvals" />
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                ["Drafts", draftCount],
+                ["Pending", pendingCount],
+                ["Approved", approvedCount],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">{label}</div>
+                  <div className="mt-1 tabular-nums text-[18px] font-semibold leading-none text-[var(--app-text-primary)]">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <AppButton
+            disabled={loadingInitial || createDemoM.isPending}
+            size="md"
+            variant="outline"
+            type="button"
+            onClick={() => createDemoM.mutate()}
+          >
+            Create sample draft
+          </AppButton>
+        </div>
+      </section>
 
-        <AppButton
-          disabled={loadingInitial || createDemoM.isPending}
-          size="md"
-          variant="outline"
-          type="button"
-          onClick={() => createDemoM.mutate()}
-        >
-          Create demo draft
-        </AppButton>
-      </div>
-
-      <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-3">
+      <div className="app-surface rounded-[var(--app-radius-lg)] px-4 py-3">
         <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
           Pipeline states
         </div>
@@ -275,7 +284,7 @@ export default function ApprovalsPage() {
       <div className="flex flex-col gap-[var(--app-space-md)]">
         {loadingInitial && draftCount === 0 ? (
           <div
-            className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6"
+            className="app-surface rounded-[var(--app-radius-lg)] p-6"
             aria-busy="true"
             aria-label="Loading approvals"
           >
@@ -290,7 +299,7 @@ export default function ApprovalsPage() {
         ) : null}
 
         {!loadingInitial && sortedDrafts.length === 0 ? (
-          <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-8 sm:px-8 sm:py-10">
+          <div className="app-surface rounded-[var(--app-radius-lg)] border-dashed px-5 py-8 sm:px-8 sm:py-10">
             <p className="text-center text-[14px] font-semibold text-[var(--app-text-primary)]">Nothing in your queue yet</p>
             <p className="mx-auto mt-2 max-w-md text-center text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
               When you generate outreach from a role, drafts land here for review before anything is sent.
@@ -322,7 +331,7 @@ export default function ApprovalsPage() {
                   3
                 </span>
                 <span className="pt-0.5">
-                  Or tap <span className="font-medium text-[var(--app-text-primary)]">Create demo draft</span> above to
+                  Or tap <span className="font-medium text-[var(--app-text-primary)]">Create sample draft</span> above to
                   try approve → submit.
                 </span>
               </li>

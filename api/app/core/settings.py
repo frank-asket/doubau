@@ -196,6 +196,28 @@ class Settings(BaseSettings):
             return "postgresql+psycopg://" + s[len("postgresql://") :]
         return s
 
+    @field_validator("redis_url", mode="before")
+    @classmethod
+    def normalize_redis_url_for_platforms(cls, v: object) -> object:
+        """Prefer DOUBOW_REDIS_URL, with Railway/Heroku-style REDIS_URL as a fallback."""
+        if not isinstance(v, str):
+            return v
+        s = v.strip()
+        if not s:
+            return os.getenv("REDIS_URL", "").strip() or s
+
+        is_local = (
+            "localhost" in s
+            or "127.0.0.1" in s
+            or "[::1]" in s
+            or "redis:6379" in s
+        )
+        if is_local and _running_in_container():
+            fallback = os.getenv("REDIS_URL", "").strip()
+            if fallback:
+                return fallback
+        return s
+
     @field_validator("openai_api_key", mode="before")
     @classmethod
     def normalize_openai_key(cls, v: object) -> object:

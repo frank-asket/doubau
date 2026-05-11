@@ -48,7 +48,7 @@ export function PathfinderPageClient() {
 
       <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-          Profile snapshot
+          Career profile
         </div>
         {q.isLoading ? (
           <p className="mt-2 text-[13px] text-[var(--app-text-secondary)]">Loading…</p>

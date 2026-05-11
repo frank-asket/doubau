@@ -49,19 +49,39 @@ export function TrackerClient() {
       return `${a.company} ${a.job_title}`.localeCompare(`${b.company} ${b.job_title}`);
     });
   }, [applicationsQuery.data]);
+  const total = sorted.length;
+  const pending = sorted.filter((app) => app.status === "PENDING_APPROVAL").length;
+  const submitted = sorted.filter((app) => app.status === "SUBMITTED").length;
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-            Job Tracker
-          </h1>
-          <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-            Pipeline view for every application. IDs and status columns use a compact mono rhythm for scanning.
-          </p>
+      <section className="app-surface rounded-[var(--app-radius-lg)] p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+              Application pipeline
+            </div>
+            <h1 className="mt-1 text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
+              Job Tracker
+            </h1>
+            <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
+              Keep every opportunity organized from first draft to submitted application.
+            </p>
+          </div>
+          <div className="grid w-full max-w-xl grid-cols-3 gap-2 lg:w-[420px]">
+            {[
+              ["Total", total],
+              ["Review", pending],
+              ["Submitted", submitted],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
+                <div className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">{label}</div>
+                <div className="mt-1 tabular-nums text-[18px] font-semibold leading-none text-[var(--app-text-primary)]">{value}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           <AppButton
             disabled={loading || applicationsQuery.isFetching}
             size="md"
@@ -73,12 +93,12 @@ export function TrackerClient() {
           </AppButton>
           <Link
             href="/app/approvals"
-            className="inline-flex cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-4 py-[7px] text-[13px] font-medium leading-5 text-white transition-colors hover:bg-[var(--app-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]"
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-4 text-[13px] font-medium leading-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]"
           >
             Approval dashboard
           </Link>
         </div>
-      </div>
+      </section>
 
       {error ? (
         <div
@@ -89,7 +109,7 @@ export function TrackerClient() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)]">
+      <div className="app-surface overflow-x-auto rounded-[var(--app-radius-lg)]">
         <table className="w-full min-w-[640px] border-collapse text-left text-[13px]">
           <thead>
             <tr className="border-b border-[var(--app-border)] text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
@@ -119,9 +139,9 @@ export function TrackerClient() {
                 >
                   No applications yet. Create one from{" "}
                   <Link className="font-semibold text-[var(--app-accent)]" href="/app/approvals">
-                    Approval dashboard
+                    Draft approvals
                   </Link>{" "}
-                  (demo draft) or connect discovery flows.
+                  or start from a role in Find jobs.
                 </td>
               </tr>
             ) : null}
@@ -131,7 +151,7 @@ export function TrackerClient() {
               return (
                 <tr
                   key={app.id}
-                  className="border-b border-[var(--app-border)] font-[family-name:var(--font-app-mono)] last:border-0"
+                  className="border-b border-[var(--app-border)] font-[family-name:var(--font-app-mono)] transition-colors hover:bg-[var(--app-bg-muted)] last:border-0"
                 >
                   <td className="max-w-[220px] px-4 py-3 align-top font-medium text-[var(--app-text-primary)]">
                     <span className="font-[family-name:var(--font-app-sans)]">{app.job_title}</span>

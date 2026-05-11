@@ -52,8 +52,8 @@ export function AtsOptimizerClient() {
 
   return (
     <ProductPageChrome
-      title="ATS optimizer"
-      description="Paste a job description (plus optional title and company). We compare it to your latest parsed résumé using the same structured fit model as Job Discovery."
+      title="CV match check"
+      description="Paste a job description and compare it with your latest résumé before you apply."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
@@ -92,7 +92,7 @@ export function AtsOptimizerClient() {
             onClick={() => m.mutate()}
             className="w-full justify-center sm:w-auto"
           >
-            {m.isPending ? "Scoring…" : "Run ATS-style fit"}
+            {m.isPending ? "Scoring…" : "Check match"}
           </AppButton>
           {error ? (
             <p className="text-[13px] text-[var(--app-badge-red-fg)]" role="alert">
@@ -104,8 +104,7 @@ export function AtsOptimizerClient() {
         <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
           {!result ? (
             <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-              Results include overall score, match percentage, narrative rationale, and gap vs strength skills — powered by the API{" "}
-              <span className="font-mono text-[12px]">POST /me/jd-fit</span>.
+              Your results will show a match score, a short explanation, strengths to emphasize, and gaps to address.
             </p>
           ) : (
             <>

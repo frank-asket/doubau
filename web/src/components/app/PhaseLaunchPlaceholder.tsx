@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 
 export function PhaseLaunchPlaceholder({
   title,
-  phase,
+  eyebrow = "Coming soon",
   description,
   children,
 }: {
   title: string;
-  phase: "P1" | "P2";
+  eyebrow?: string;
   description?: string;
   children?: ReactNode;
 }) {
@@ -15,14 +15,14 @@ export function PhaseLaunchPlaceholder({
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div>
         <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-          Phase {phase}
+          {eyebrow}
         </div>
         <h1 className="mt-1 text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
           {title}
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
           {description ??
-            "Roadmap route scaffold. Implement APIs and UX in focused iterations; this shell keeps navigation and IA consistent with Phase 4."}
+            "This workspace is being prepared. You can keep using the rest of DouBow while this feature comes online."}
         </p>
       </div>
       {children ? (

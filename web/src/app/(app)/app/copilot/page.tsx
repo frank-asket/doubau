@@ -24,7 +24,7 @@ export default function CopilotPage() {
     setError(null);
     const resp = await fetch("/api/copilot/sessions", { method: "POST" });
     if (!resp.ok) {
-      setError("Could not start a Copilot session.");
+      setError("Could not start your coaching session.");
       return;
     }
     const data = (await resp.json()) as { id?: string };
@@ -95,7 +95,7 @@ export default function CopilotPage() {
       };
       ws.onclose = () => resolve();
     }).catch(() => {
-      setError("Connection failed. Is the API running?");
+      setError("Connection failed. Please refresh and try again.");
     });
 
     setBusy(false);
@@ -105,10 +105,10 @@ export default function CopilotPage() {
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-4">
       <div>
         <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-          Career Copilot
+          Career coach
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-          Chat with your applications, drafts, and jobs. Answers stream over a secure WebSocket.
+          Ask questions about your applications, drafts, jobs, and next steps.
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export default function CopilotPage() {
               }
             >
               <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                {m.role === "user" ? "You" : "Copilot"}
+                {m.role === "user" ? "You" : "Coach"}
               </div>
               <div className="mt-1 whitespace-pre-wrap font-[family-name:var(--font-app-mono)] text-[12.5px] leading-relaxed">
                 {m.text}
@@ -171,7 +171,7 @@ export default function CopilotPage() {
         <div className="flex flex-col gap-2 border-t-[0.5px] border-solid border-[var(--app-border)] pt-3 sm:flex-row">
           <textarea
             className="min-h-[44px] flex-1 resize-none rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 font-[family-name:var(--font-app-mono)] text-[13px] leading-relaxed text-[var(--app-text-primary)] outline-none placeholder:text-[var(--app-text-tertiary)]"
-            placeholder="Message Career Copilot…"
+            placeholder="Message your career coach…"
             rows={2}
             value={input}
             disabled={busy || !sessionId}

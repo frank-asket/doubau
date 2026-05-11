@@ -151,7 +151,7 @@ export function CareerHealthClient() {
   return (
     <ProductPageChrome
       title="Career health"
-      description="Log how you are showing up for your search — stored in your account via the API — alongside pipeline and discovery signals."
+      description="Reflect on how your search is going and connect your check-ins with application progress."
     >
       <WorkspaceInsightsPanel intro="Operational health is the combination of mindset, velocity in the product, and discovery engagement." />
 
@@ -162,7 +162,7 @@ export function CareerHealthClient() {
               Daily check-in
             </div>
             <p className="mt-1 text-[12px] text-[var(--app-text-secondary)]">
-              Mood is required; energy and workload are optional. Data is persisted with timestamps for your history below.
+              Mood is required; energy and workload are optional. Your history appears below so you can spot patterns over time.
             </p>
           </div>
 

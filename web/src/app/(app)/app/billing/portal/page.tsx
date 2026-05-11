@@ -16,7 +16,7 @@ export default function BillingPortalPage() {
           Subscription
         </h1>
         <p className="mt-2 text-[14px] text-[var(--app-text-secondary)]">
-          View or change your Clerk Billing subscription (payment method, renewal, cancel).
+          View or change your plan, payment method, renewal, or cancellation settings.
         </p>
       </div>
 
@@ -28,7 +28,7 @@ export default function BillingPortalPage() {
             <AppButton className="w-full justify-center">Open subscription details</AppButton>
           </SubscriptionDetailsButton>
           <p className="mt-4 text-center text-[12px] text-[var(--app-text-tertiary)]">
-            Opens Clerk&apos;s billing drawer for the signed-in user.
+            Your subscription details open in a secure billing panel.
           </p>
         </div>
       ) : (

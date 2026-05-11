@@ -23,11 +23,11 @@ export function SalaryBenchmarkClient() {
 
   return (
     <ProductPageChrome
-      title="Salary benchmark"
-      description="Listings in DouBow do not yet carry structured salary fields. Use your personalized feed as a live sample of roles and match scores, then research compensation externally for those titles."
+      title="Salary guide"
+      description="Use your current job list to compare target titles, locations, and seniority before you apply."
     >
       {q.isLoading ? (
-        <p className="text-[13px] text-[var(--app-text-secondary)]">Loading feed snapshot…</p>
+        <p className="text-[13px] text-[var(--app-text-secondary)]">Loading salary guide…</p>
       ) : q.isError ? (
         <p className="text-pretty text-[13px] leading-relaxed text-[var(--app-badge-red-fg)]">
           {q.error instanceof Error ? q.error.message : "Could not load job feed."}
@@ -39,7 +39,7 @@ export function SalaryBenchmarkClient() {
             <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
               Job discovery
             </Link>
-            . Match % reflects embedding similarity + blending — not salary data.
+            . Use these roles as starting points for compensation research.
           </p>
           <ul className="space-y-2">
             {(q.data ?? []).slice(0, 15).map((row) => (

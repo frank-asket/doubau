@@ -32,7 +32,7 @@ export function CvBuilderClient() {
   return (
     <ProductPageChrome
       title="CV builder"
-      description="Your parsed résumé text comes from FastAPI after upload. Use this view to sanity-check extraction before tailoring outreach."
+      description="Review the résumé DouBow has on file and use it as the starting point for tailored applications."
     >
       {q.isLoading ? (
         <p className="text-[13px] text-[var(--app-text-secondary)]">Loading résumé…</p>
@@ -59,7 +59,7 @@ export function CvBuilderClient() {
               Parsed text (read-only)
             </div>
             <pre className="mt-3 max-h-[min(480px,55vh)] overflow-auto whitespace-pre-wrap rounded-md bg-[var(--app-bg-page)] p-4 font-[family-name:var(--font-app-mono)] text-[11px] leading-relaxed text-[var(--app-text-secondary)]">
-              {text || "(No extracted text yet — wait for PARSED/EMBEDDED.)"}
+              {text || "No extracted text is ready yet. Try again after your résumé finishes processing."}
             </pre>
           </div>
         </div>

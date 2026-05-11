@@ -244,7 +244,7 @@ export default async function DashboardPage() {
               )}
             </p>
             <p className="mt-2 max-w-2xl text-pretty text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
-              Core MVP loop: discover roles → open a posting → generate outreach → approve before anything sends.
+              Discover roles, prepare outreach, review every draft, and track each application in one place.
             </p>
           </div>
           <div className="w-full max-w-xl lg:w-[420px]">
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-[var(--app-space-md)] sm:grid-cols-3">
         <MetricTile label="Applications" value={String(applicationsTotal)} detail="Tracked" variant="blue" />
-        <MetricTile label="Pending review" value={String(pendingApprovals)} detail="HITL gate" variant="amber" />
+        <MetricTile label="Pending review" value={String(pendingApprovals)} detail="Needs review" variant="amber" />
         <MetricTile
           label="Résumé index"
           value={`${resumePct}%`}
@@ -272,10 +272,10 @@ export default async function DashboardPage() {
             {profile.plan_tier ? (
               <>
                 You are on <strong>{String(profile.plan_tier)}</strong>. Compare Standard, Pro, and Ultimate when billing is
-                connected in Clerk.
+                connected.
               </>
             ) : (
-              <>Pick a plan when you are ready — Standard, Pro, or Ultimate — from billing (Clerk).</>
+              <>Pick a plan when you are ready — Standard, Pro, or Ultimate — from billing.</>
             )}
           </span>
           <Link
@@ -293,7 +293,7 @@ export default async function DashboardPage() {
             Account signals
           </div>
           <p className="mt-1 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-            Derived from your résumé status, application pipeline, and discovery events — not placeholder demo scores.
+            Based on your résumé status, application pipeline, and recent job discovery activity.
           </p>
           <div className="mt-3 flex flex-col gap-3">
             <AppProgress label="Résumé readiness (indexing)" tone="success" value={resumePct} />

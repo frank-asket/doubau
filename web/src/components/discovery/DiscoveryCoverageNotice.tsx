@@ -8,14 +8,13 @@ export function DiscoveryCoverageNotice() {
         Coverage & trust
       </div>
       <p className="mt-2">
-        Results combine <strong className="font-medium text-[var(--app-text-primary)]">remote/global</strong> feeds with{" "}
-        <strong className="font-medium text-[var(--app-text-primary)]">regional</strong> listings (for example via Adzuna). Depth varies by
-        market — use tabs, filters, and saves to build a pipeline that fits you.
+        DouBow does not try to be Google Jobs. Results come from a controlled job pool: explicitly supported feeds and APIs
+        first, then narrow imports when you choose to add more roles. Depth varies by market while the index grows.
       </p>
       <p className="mt-2">
-        Every card shows the <strong className="font-medium text-[var(--app-text-primary)]">listing source</strong> and a{" "}
-        <strong className="font-medium text-[var(--app-text-primary)]">view original</strong> link to the provider — required for attribution and
-        compliance with source terms.
+        Every card shows the <strong className="font-medium text-[var(--app-text-primary)]">provider</strong>, freshness, and a{" "}
+        <strong className="font-medium text-[var(--app-text-primary)]">view original</strong> link when available, so you can verify where each
+        opportunity came from.
       </p>
     </aside>
   );

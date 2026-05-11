@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { OnboardingStepFrame } from "@/components/onboarding/OnboardingStepFrame";
+
 type Profile = {
   persona?: string | null;
   current_role?: string | null;
@@ -26,7 +28,7 @@ export default function OnboardingCareerPage() {
 
   const inputClass = useMemo(
     () =>
-      "mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-transparent px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+      "mt-2 h-11 w-full rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-transparent px-3 text-[14px] text-[var(--app-text-primary)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[var(--app-focus-ring)]",
     [],
   );
 
@@ -75,15 +77,15 @@ export default function OnboardingCareerPage() {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] p-6">
-      <h1 className="text-balance text-2xl font-semibold tracking-tight">Career details</h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        Start with one quick question so we can personalize DouBow from day one.
-      </p>
-
-      <form onSubmit={onNext} className="mt-6 space-y-4">
+    <OnboardingStepFrame
+      eyebrow="Career setup"
+      title="Tell us where you are in your search."
+      description="This sets your default matching, drafting tone, and first dashboard recommendations."
+      stepLabel="Step 1 of 5"
+    >
+      <form onSubmit={onNext} className="space-y-4">
         <fieldset className="block">
-          <legend className="text-sm font-medium">Where are you right now?</legend>
+          <legend className="text-[13px] font-medium text-[var(--app-text-primary)]">Current situation</legend>
           <div className="mt-3 grid gap-3">
             {personaOptions.map((o) => {
               const checked = persona === o.id;
@@ -93,15 +95,15 @@ export default function OnboardingCareerPage() {
                   type="button"
                   onClick={() => setPersona(o.id)}
                   className={[
-                    "rounded-xl border px-4 py-3 text-left transition-transform active:scale-[0.96]",
+                    "rounded-[var(--app-radius-md)] border-[0.5px] px-4 py-3 text-left transition-[background-color,border-color,transform] duration-150 ease-out active:scale-[0.96]",
                     checked
-                      ? "border-[color-mix(in_srgb,var(--accent)_60%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
-                      : "border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/10",
+                      ? "border-[color-mix(in_srgb,var(--app-accent)_55%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_9%,var(--app-bg-elevated))]"
+                      : "border-[var(--app-border)] hover:bg-[var(--app-bg-muted)]",
                   ].join(" ")}
                   aria-pressed={checked}
                 >
-                  <div className="text-sm font-semibold">{o.label}</div>
-                  <div className="mt-1 text-xs text-[var(--muted)]">{o.hint}</div>
+                  <div className="text-[13px] font-semibold text-[var(--app-text-primary)]">{o.label}</div>
+                  <div className="mt-1 text-[12px] leading-5 text-[var(--app-text-secondary)]">{o.hint}</div>
                 </button>
               );
             })}
@@ -109,14 +111,14 @@ export default function OnboardingCareerPage() {
         </fieldset>
 
         <div className="pt-2">
-          <div className="text-sm font-medium">A bit more context (optional)</div>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+          <div className="text-[13px] font-medium text-[var(--app-text-primary)]">A bit more context</div>
+          <p className="mt-1 text-[12px] leading-5 text-[var(--app-text-secondary)]">
             This improves scoring and drafting quality. You can change it later.
           </p>
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium">Current role</span>
+          <span className="text-[13px] font-medium text-[var(--app-text-primary)]">Current role</span>
           <input
             value={currentRole}
             onChange={(e) => setCurrentRole(e.target.value)}
@@ -128,7 +130,7 @@ export default function OnboardingCareerPage() {
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">Years of experience</span>
+          <span className="text-[13px] font-medium text-[var(--app-text-primary)]">Years of experience</span>
           <input
             value={yearsExperience}
             onChange={(e) => setYearsExperience(e.target.value)}
@@ -140,7 +142,7 @@ export default function OnboardingCareerPage() {
         </label>
 
         {error ? (
-          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+          <div className="rounded-[var(--app-radius-md)] border border-red-500/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-600">
             {error}
           </div>
         ) : null}
@@ -148,12 +150,11 @@ export default function OnboardingCareerPage() {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-[var(--accent)] text-sm font-semibold text-white transition-transform disabled:opacity-60 active:scale-[0.96]"
+          className="inline-flex h-11 w-full items-center justify-center rounded-[var(--app-radius-md)] bg-[var(--app-accent)] text-[14px] font-semibold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] disabled:opacity-60 active:scale-[0.96]"
         >
-          {loading ? "Saving…" : "Next"}
+          {loading ? "Saving..." : "Continue"}
         </button>
       </form>
-    </div>
+    </OnboardingStepFrame>
   );
 }
-

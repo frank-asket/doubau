@@ -186,7 +186,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   rel="noreferrer"
                   className="inline-flex items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-colors hover:bg-[var(--app-accent-hover)] active:scale-[0.98]"
                 >
-                  Apply on original site
+                  View original
                 </a>
               ) : null}
             </div>
@@ -252,6 +252,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
             <div className="space-y-4">
               <MetaItem label="Date posted" value={formatListedAt(job.source_posted_at ?? job.created_at) ?? "—"} />
+              <MetaItem label="Provider" value={listingSourceLabel(job.listing_source) ?? "—"} />
               <MetaItem
                 label="Employment type"
                 value={job.employment_type?.replace(/_/g, " ") || "—"}
@@ -278,12 +279,12 @@ export function JobDetailClient({ job }: { job: JobRow }) {
             </p>
           ) : (
             <p className="text-center text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
-              Creates an application and AI drafts, then opens your queue. Nothing is sent until you approve.
+              Creates an application draft, then opens your review queue. Nothing is sent until you approve.
             </p>
           )}
 
           <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
-            <div className="text-[12px] font-semibold text-[var(--app-text-primary)]">AI fit score</div>
+            <div className="text-[12px] font-semibold text-[var(--app-text-primary)]">Fit score</div>
             {!fit && !fitLoading ? (
               <div className="mt-3">
                 <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
@@ -295,7 +296,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   className="mt-3 w-full justify-center transition-transform active:scale-[0.99]"
                   onClick={() => void loadFit()}
                 >
-                  Run AI fit
+                  Check fit
                 </AppButton>
                 {fitError ? (
                   <p className="mt-2 text-[12px] text-[var(--app-badge-red-fg)]">{fitError}</p>

@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import Request, Response
+from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 from starlette.types import ASGIApp
@@ -12,7 +13,30 @@ from starlette.types import ASGIApp
 from app.core.settings import settings
 from app.db import SessionLocal
 from app.models.idempotency_key import IdempotencyKey
-from app.security import decode_access_token
+from app.models.user import User
+from app.security import decode_any_access_token
+
+
+def _uuid_from_sub(sub: object) -> UUID | None:
+    if not sub:
+        return None
+    try:
+        return UUID(str(sub))
+    except ValueError:
+        return None
+
+
+def _user_id_from_payload(db: Session, payload: dict) -> UUID | None:
+    user_id = _uuid_from_sub(payload.get("sub"))
+    if user_id is not None:
+        return user_id
+
+    email = payload.get("email")
+    if not isinstance(email, str) or not email:
+        return None
+
+    user = db.query(User.id).filter(User.email == email).one_or_none()
+    return user[0] if user is not None else None
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
@@ -35,12 +59,13 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         token = auth.split(" ", 1)[1].strip()
         try:
-            payload = decode_access_token(token)
-            sub = payload.get("sub")
-            if not sub:
-                return await call_next(request)
-            user_id = UUID(sub)
+            payload = await decode_any_access_token(token)
         except Exception:  # noqa: BLE001
+            return await call_next(request)
+
+        with SessionLocal() as db:
+            user_id = _user_id_from_payload(db, payload)
+        if user_id is None:
             return await call_next(request)
 
         # Read body once; we must re-inject it for downstream handlers.
@@ -69,6 +94,13 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 .one_or_none()
             )
             if existing is not None:
+                if existing.method != request.method or existing.path != request.url.path:
+                    return StarletteResponse(
+                        content="Idempotency-Key reuse with different request target",
+                        status_code=409,
+                        media_type="text/plain",
+                    )
+
                 if existing.request_body_sha256 != body_sha:
                     return StarletteResponse(
                         content="Idempotency-Key reuse with different request body",
@@ -130,4 +162,3 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             headers=headers,
             media_type=response.media_type,
         )
-

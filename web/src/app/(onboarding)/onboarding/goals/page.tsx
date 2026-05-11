@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { OnboardingStepFrame } from "@/components/onboarding/OnboardingStepFrame";
+
 const options = [
   { id: "improve_cv", label: "Improve CV" },
   { id: "find_jobs", label: "Find jobs" },
@@ -96,18 +98,17 @@ export default function OnboardingGoalsPage() {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] p-6">
-      <h1 className="text-balance text-2xl font-semibold tracking-tight">Your goals</h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        Pick one or more focus areas so DouBow can tailor suggestions.
-        {prefilled ? (
-          <span className="ml-1 text-[color-mix(in_srgb,var(--foreground)_70%,transparent)]">
-            We pre-selected a few based on your career stage.
-          </span>
-        ) : null}
-      </p>
-
-      <form onSubmit={onNext} className="mt-6 space-y-4">
+    <OnboardingStepFrame
+      eyebrow="Search goals"
+      title="Choose what you want help with first."
+      description={
+        prefilled
+          ? "We pre-selected a few focus areas based on your career stage. Adjust them so your workspace starts in the right mode."
+          : "Pick one or more focus areas so DouBow can tailor suggestions."
+      }
+      stepLabel="Step 4 of 5"
+    >
+      <form onSubmit={onNext} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           {options.map((o) => {
             const checked = selectedSet.has(o.id);
@@ -117,10 +118,10 @@ export default function OnboardingGoalsPage() {
                 type="button"
                 onClick={() => toggle(o.id)}
                 className={[
-                  "rounded-xl border px-4 py-3 text-left text-sm font-medium transition-transform active:scale-[0.96]",
+                  "min-h-14 rounded-[var(--app-radius-md)] border-[0.5px] px-4 py-3 text-left text-[13px] font-semibold transition-[background-color,border-color,transform] duration-150 ease-out active:scale-[0.96]",
                   checked
-                    ? "border-[color-mix(in_srgb,var(--accent)_60%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
-                    : "border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/10",
+                    ? "border-[color-mix(in_srgb,var(--app-accent)_55%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_9%,var(--app-bg-elevated))] text-[var(--app-text-primary)]"
+                    : "border-[var(--app-border)] text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]",
                 ].join(" ")}
                 aria-pressed={checked}
               >
@@ -131,7 +132,7 @@ export default function OnboardingGoalsPage() {
         </div>
 
         {error ? (
-          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+          <div className="rounded-[var(--app-radius-md)] border border-red-500/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-600">
             {error}
           </div>
         ) : null}
@@ -139,12 +140,11 @@ export default function OnboardingGoalsPage() {
         <button
           type="submit"
           disabled={loading || selected.length === 0}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-[var(--accent)] text-sm font-semibold text-white transition-transform disabled:opacity-60 active:scale-[0.96]"
+          className="inline-flex h-11 w-full items-center justify-center rounded-[var(--app-radius-md)] bg-[var(--app-accent)] text-[14px] font-semibold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] disabled:opacity-60 active:scale-[0.96]"
         >
-          {loading ? "Saving…" : "Next"}
+          {loading ? "Saving..." : "Continue"}
         </button>
       </form>
-    </div>
+    </OnboardingStepFrame>
   );
 }
-

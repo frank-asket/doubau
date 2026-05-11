@@ -191,11 +191,8 @@ function JobCard({
           ) : null}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {listingSourceLabel(job.listing_source) ? (
-              <span className="text-[12px] text-[var(--app-text-tertiary)]">
-                Source:{" "}
-                <span className="font-medium text-[var(--app-text-secondary)]">
-                  {listingSourceLabel(job.listing_source)}
-                </span>
+              <span className="inline-flex items-center rounded-[var(--app-radius-pill)] bg-[var(--app-badge-gray-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--app-badge-gray-fg)]">
+                via {listingSourceLabel(job.listing_source)}
               </span>
             ) : null}
             {formatListedAt(job.source_posted_at ?? undefined) ? (
@@ -221,7 +218,7 @@ function JobCard({
                   });
                 }}
               >
-                View posting
+                View original
               </Link>
             ) : null}
           </div>
@@ -253,7 +250,7 @@ function JobCard({
                 }
               }}
             >
-              {fitLoadingId === job.id ? "Scoring…" : fit ? (open ? "Hide fit" : "Show fit") : "AI fit"}
+              {fitLoadingId === job.id ? "Scoring…" : fit ? (open ? "Hide fit" : "Show fit") : "Check fit"}
             </AppButton>
             <AppButton
               size="sm"
@@ -475,8 +472,8 @@ export function DiscoveryClient({
       if (resp.ok && data.task_id) {
         setScrapeMsg(
           scrapeKind === "rss"
-            ? `RSS ingest queued (task ${data.task_id}). Child scrapes run in the background.`
-            : `Scrape queued (task ${data.task_id}). Refresh in a few seconds for new roles.`,
+            ? "We are importing that feed. New roles will appear shortly."
+            : "We are importing that posting. Refresh in a few seconds to see new roles.",
         );
         setScrapeUrl("");
         router.refresh();
@@ -495,9 +492,7 @@ export function DiscoveryClient({
       const resp = await fetch("/api/jobs/ingest/remoteok", { method: "POST" });
       const data = (await resp.json().catch(() => ({}))) as { task_id?: string; detail?: string };
       if (resp.ok && data.task_id) {
-        setScrapeMsg(
-          `Remote OK ingest queued (task ${data.task_id}). New roles appear after the worker runs; refresh shortly.`,
-        );
+        setScrapeMsg("Remote OK import started. New roles will appear shortly.");
         router.refresh();
       } else {
         setScrapeMsg(typeof data.detail === "string" ? data.detail : `Request failed (${resp.status})`);
@@ -518,9 +513,7 @@ export function DiscoveryClient({
         status?: string;
       };
       if (resp.ok && data.task_id) {
-        setScrapeMsg(
-          `Adzuna ingest queued (task ${data.task_id}). Requires API keys on the server; refresh after workers run.`,
-        );
+        setScrapeMsg("Adzuna import started. New roles will appear shortly when the connection is ready.");
         router.refresh();
       } else {
         setScrapeMsg(
@@ -634,8 +627,6 @@ export function DiscoveryClient({
 
   const list = tab === "feed" ? feedRows : tab === "hidden" ? hiddenRows : allRows;
 
-  const apiBaseHint = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
       <div>
@@ -644,9 +635,8 @@ export function DiscoveryClient({
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
           Open a role for the full posting, then <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>{" "}
-          to draft messages under human review. Ranking uses your résumé (embeddings when enabled, otherwise profile
-          heuristics). Import a posting URL or RSS, or use optional Remote OK / Adzuna syncs—tune Adzuna in env for your
-          sector.
+          to prepare a message for review. Your résumé helps prioritize roles that fit your goals. Import a posting URL,
+          RSS feed, or supported job board when you want to expand the list.
         </p>
         <div className="mt-4">
           <JobPipelineHint variant="discovery" />
@@ -662,28 +652,8 @@ export function DiscoveryClient({
         >
           <p className="text-[14px] font-semibold tracking-tight text-[var(--app-text-primary)]">Couldn&apos;t load jobs</p>
           <p className="mt-2 max-w-2xl text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-            The workspace couldn&apos;t reach your API with a valid session. Fix the items below, then refresh this page.
+            We could not load your job list. Check that you are signed in, then refresh the page.
           </p>
-          <ul className="mt-4 list-none space-y-2.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-            <li className="flex gap-2">
-              <span className="mt-0.5 shrink-0 font-semibold text-[var(--app-accent)]">1.</span>
-              <span>
-                API reachable at{" "}
-                <code className="rounded bg-[var(--app-bg-muted)] px-1.5 py-0.5 font-app-mono text-[11px] text-[var(--app-text-primary)]">
-                  {apiBaseHint}
-                </code>{" "}
-                (set <code className="font-app-mono text-[11px]">NEXT_PUBLIC_API_BASE_URL</code> in <code className="font-app-mono text-[11px]">web/.env</code>).
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 shrink-0 font-semibold text-[var(--app-accent)]">2.</span>
-              <span>
-                Signed in with Clerk; JWT template{" "}
-                <code className="rounded bg-[var(--app-bg-muted)] px-1.5 py-0.5 font-app-mono text-[11px]">doubow-api</code>{" "}
-                audience matches API <code className="font-app-mono text-[11px]">DOUBOW_CLERK_AUDIENCE</code>.
-              </span>
-            </li>
-          </ul>
         </div>
       ) : null}
 
@@ -748,7 +718,7 @@ export function DiscoveryClient({
             {adzunaBusy ? "Queueing…" : "Sync Adzuna"}
           </AppButton>
           <p className="max-w-xl text-[12px] leading-5 text-[var(--app-text-tertiary)]">
-            Optional bulk samples—tune Adzuna keywords in server env for your field. Source and listed date on each card.
+            Use controlled provider imports to seed your search. Each card shows where the role came from and links back to the original posting.
           </p>
         </div>
         {scrapeMsg ? (
@@ -810,8 +780,7 @@ export function DiscoveryClient({
 
       {!loadError && tab === "feed" && feedRows.length === 0 ? (
         <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
-          No personalized rows yet. Embed a résumé on the Dashboard (with OpenAI configured), add jobs via{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or switch to{" "}
+          No personalized rows yet. Add your résumé from the Dashboard, import jobs here, or switch to{" "}
           <span className="font-medium text-[var(--app-text-primary)]">All roles</span>. When listings appear, use{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Details</span> →{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> →{" "}

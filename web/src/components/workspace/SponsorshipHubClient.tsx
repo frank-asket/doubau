@@ -53,9 +53,9 @@ export function SponsorshipHubClient() {
         <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 text-[13px] text-[var(--app-text-secondary)]">
           No obvious sponsorship keywords in the current feed slice. Try widening ingestion in{" "}
           <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
-            discovery
+            Find jobs
           </Link>{" "}
-          or refine search providers on the API side.
+          or import more roles.
         </div>
       ) : (
         <ul className="space-y-2">

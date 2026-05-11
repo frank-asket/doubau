@@ -1,140 +1,253 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 
+import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
 import {
   AppSidebarNav,
   type AppNavSection,
 } from "@/components/app/AppSidebarNav";
 import { AppThemeShell } from "@/components/app/AppThemeShell";
+import { AppSetupReminder, type AppSetupReminderKind } from "@/components/app/AppSetupReminder";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
 
 const NAV_SECTIONS: AppNavSection[] = [
   {
-    id: "core",
-    title: "Core product",
+    id: "home",
+    title: "Home",
     items: [
       {
         href: "/app/dashboard",
         label: "Dashboard",
-        subtitle: "Overview, profile signals, and resume status",
+        subtitle: "Your job search at a glance",
       },
+    ],
+  },
+  {
+    id: "job-search",
+    title: "Job search",
+    collapsible: true,
+    items: [
       {
         href: "/app/discovery",
-        label: "Discovery",
-        subtitle: "Feed, fit, and role details",
-      },
-      {
-        href: "/app/approvals",
-        label: "Approvals",
-        subtitle: "HITL: review drafts before send",
+        label: "Find jobs",
+        subtitle: "Browse roles that match your goals",
       },
       {
         href: "/app/tracker",
-        label: "Job tracker",
-        subtitle: "Pipeline from saved roles to submitted apps",
+        label: "Applications",
+        subtitle: "Track every role from saved to submitted",
+      },
+      {
+        href: "/app/approvals",
+        label: "Draft approvals",
+        subtitle: "Review messages before they go out",
+      },
+      {
+        href: "/app/salary-benchmark",
+        label: "Salary guide",
+        subtitle: "Compare pay ranges before you apply",
+      },
+      {
+        href: "/app/sponsorship-hub",
+        label: "Visa sponsorship",
+        subtitle: "Check sponsors and visa fit",
       },
       {
         href: "/app/analytics",
-        label: "Match analytics",
-        subtitle: "Match quality and discovery signals",
-      },
-      {
-        href: "/app/copilot",
-        label: "Copilot",
-        subtitle: "Career answers grounded in your résumé",
-      },
-      {
-        href: "/app/billing",
-        label: "Billing",
-        subtitle: "Plans, checkout, and subscription portal",
+        label: "Match insights",
+        subtitle: "See what is working in your search",
       },
     ],
   },
   {
-    id: "roadmap-p1",
-    title: "Roadmap · P1",
+    id: "career-growth",
+    title: "Career growth",
     collapsible: true,
     items: [
       {
-        href: "/app/planner",
-        label: "Career planner",
-        subtitle: "Priorities from live workspace signals",
+        href: "/app/career-profile",
+        label: "Career profile",
+        subtitle: "Set your goals, skills, and preferences",
       },
       {
         href: "/app/pathfinder",
-        label: "Career pathfinder",
-        subtitle: "Persona + profile-grounded guidance",
+        label: "Career paths",
+        subtitle: "Explore roles that fit your next move",
       },
       {
         href: "/app/career-steps",
-        label: "Career steps",
-        subtitle: "Milestone timeline synced to the API",
+        label: "Action plan",
+        subtitle: "Follow a step-by-step growth plan",
+      },
+      {
+        href: "/app/planner",
+        label: "Career planner",
+        subtitle: "Plan milestones and weekly priorities",
       },
       {
         href: "/app/career-success",
-        label: "Career success",
-        subtitle: "Pipeline health + discovery engagement",
-      },
-      {
-        href: "/app/ats-optimizer",
-        label: "ATS optimizer",
-        subtitle: "Paste a JD; fit vs your résumé",
-      },
-      {
-        href: "/app/settings",
-        label: "Settings & billing",
-        subtitle: "Profile API + link to subscriptions",
+        label: "Progress",
+        subtitle: "Track skills, goals, and momentum",
       },
     ],
   },
   {
-    id: "roadmap-p2",
-    title: "Roadmap · P2",
+    id: "tools",
+    title: "Tools",
     collapsible: true,
     items: [
       {
+        href: "/app/copilot",
+        label: "Career coach",
+        subtitle: "Get guidance for strategy and next steps",
+      },
+      {
         href: "/app/cv-builder",
         label: "CV builder",
-        subtitle: "Parsed résumé text from the API",
+        subtitle: "Build and refine your résumé",
+      },
+      {
+        href: "/app/ats-optimizer",
+        label: "CV match check",
+        subtitle: "Compare your résumé with a job post",
       },
       {
         href: "/app/cover-letter",
-        label: "Cover letter",
-        subtitle: "Email drafts from your pipeline",
+        label: "Cover letters",
+        subtitle: "Create tailored letters faster",
       },
       {
         href: "/app/career-health",
         label: "Career health",
-        subtitle: "Summary + discovery metrics snapshot",
+        subtitle: "Check your readiness and weekly focus",
       },
       {
         href: "/app/linkedin-analysis",
-        label: "LinkedIn analysis",
-        subtitle: "LinkedIn drafts tied to applications",
+        label: "LinkedIn review",
+        subtitle: "Improve your profile and positioning",
       },
       {
-        href: "/app/salary-benchmark",
-        label: "Salary benchmark",
-        subtitle: "Feed snapshot (no salary fields yet)",
+        href: "/app/interview-prep",
+        label: "Interview prep",
+        subtitle: "Practice questions for your target roles",
       },
       {
-        href: "/app/sponsorship-hub",
-        label: "Sponsorship hub",
-        subtitle: "Keyword filter over your job feed",
+        href: "/app/skill-gap-analysis",
+        label: "Skills gap",
+        subtitle: "Know what to learn next",
+      },
+    ],
+  },
+  {
+    id: "account",
+    title: "Account",
+    collapsible: true,
+    items: [
+      {
+        href: "/app/search",
+        label: "Search",
+        subtitle: "Find jobs, drafts, and tools quickly",
+      },
+      {
+        href: "/app/notifications",
+        label: "Notifications",
+        subtitle: "Updates, reminders, and interview alerts",
       },
       {
         href: "/app/discussion",
-        label: "Discussion board",
-        subtitle: "Discovery activity timeline",
+        label: "Community",
+        subtitle: "Questions, stories, and shared advice",
+      },
+      {
+        href: "/app/settings",
+        label: "Settings",
+        subtitle: "Profile, preferences, and security",
+      },
+      {
+        href: "/app/billing",
+        label: "Billing",
+        subtitle: "Plan, payment, and subscription",
       },
     ],
   },
 ];
 
-export default function AppLayout({ children }: { children: ReactNode }) {
-  const mobileItems = NAV_SECTIONS[0]?.items ?? [];
+const MOBILE_NAV_ITEMS = [
+  NAV_SECTIONS[0].items[0],
+  NAV_SECTIONS[1].items[0],
+  NAV_SECTIONS[1].items[2],
+  NAV_SECTIONS[1].items[1],
+  NAV_SECTIONS[3].items[0],
+  NAV_SECTIONS[4].items[0],
+];
+
+type OnboardingProfile = {
+  persona?: string | null;
+  goals?: { focus?: unknown } | null;
+  plan_tier?: string | null;
+};
+
+type LatestResume = {
+  id?: string;
+  status?: string | null;
+};
+
+function onboardingStepFor(profile: OnboardingProfile): string | null {
+  if (!profile.persona) return "/onboarding/career";
+  if (!Array.isArray(profile.goals?.focus) || profile.goals.focus.length === 0) {
+    return "/onboarding/goals";
+  }
+  if (!profile.plan_tier) return "/onboarding/plan";
+  return null;
+}
+
+async function getOnboardingRedirect(): Promise<string | null> {
+  try {
+    const resp = await fetch(`${getApiBaseUrl()}/me/profile`, {
+      headers: await getBackendAuthHeaders(),
+      cache: "no-store",
+    });
+    if (!resp.ok) return null;
+    const profile = (await resp.json().catch(() => ({}))) as OnboardingProfile;
+    return onboardingStepFor(profile);
+  } catch {
+    return null;
+  }
+}
+
+function setupReminderForResume(resume: LatestResume | null): AppSetupReminderKind | null {
+  if (!resume?.id) return "resume_missing";
+  if (resume.status === "FAILED") return "resume_failed";
+  if (resume.status === "UPLOADED") return "resume_processing";
+  return null;
+}
+
+async function getSetupReminder(): Promise<AppSetupReminderKind | null> {
+  try {
+    const resp = await fetch(`${getApiBaseUrl()}/me/resume/latest`, {
+      headers: await getBackendAuthHeaders(),
+      cache: "no-store",
+    });
+    if (resp.status === 404) return "resume_missing";
+    if (!resp.ok) return null;
+    const resume = (await resp.json().catch(() => null)) as LatestResume | null;
+    return setupReminderForResume(resume);
+  } catch {
+    return null;
+  }
+}
+
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const onboardingPath = await getOnboardingRedirect();
+  if (onboardingPath) {
+    redirect(onboardingPath);
+  }
+
+  const setupReminder = await getSetupReminder();
+  const mobileItems = MOBILE_NAV_ITEMS;
 
   return (
     <AppProviders>
@@ -148,14 +261,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </Link>
         <div className="mt-8 min-h-0 flex-1 overflow-y-auto">
           <AppSidebarNav sections={NAV_SECTIONS} />
-        </div>
-        <div className="shrink-0 pt-6">
-          <Link
-            href="/app/design-system"
-            className="block rounded-md px-3 py-2 text-[11px] text-[var(--app-sidebar-muted)] transition-colors hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/70"
-          >
-            Design references
-          </Link>
         </div>
       </aside>
 
@@ -175,7 +280,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         >
           {mobileItems.map((item) => (
             <Link
-              key={item.href}
+              key={`${item.href}:${item.label}`}
               href={item.href}
               className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--app-radius-pill)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-secondary)] shadow-[var(--app-shadow-0)] transition-[border-color,color,background-color,transform] duration-150 ease-out active:scale-[0.96]"
             >
@@ -183,7 +288,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+          <AppSetupReminder kind={setupReminder} />
+          {children}
+        </div>
       </main>
     </AppThemeShell>
     </AppProviders>

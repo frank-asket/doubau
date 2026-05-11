@@ -71,7 +71,7 @@ function NavLinkStack({
       {items.map(({ href, label, subtitle }) => {
         const active = navActive(pathname, href);
         return (
-          <li key={href}>
+          <li key={`${href}:${label}`}>
             <Link
               href={href}
               aria-current={active ? "page" : undefined}

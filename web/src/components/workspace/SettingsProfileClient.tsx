@@ -77,8 +77,8 @@ export function SettingsProfileClient() {
 
   return (
     <ProductPageChrome
-      title="Settings & billing"
-      description="Profile fields sync to FastAPI via PUT /me/profile. Paid plans are managed under Billing (Clerk Billing)."
+      title="Settings"
+      description="Keep your profile, preferences, and plan details up to date."
     >
       {q.isLoading ? (
         <p className="text-[13px] text-[var(--app-text-secondary)]">Loading profile…</p>
