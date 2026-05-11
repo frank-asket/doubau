@@ -235,8 +235,8 @@ function JobCard({
         <div className="flex shrink-0 flex-row items-start gap-4 sm:flex-col sm:items-end">
           {showMatchRing ? (
             <ScoreBadge
-              label={similarity !== null ? "Match" : "Rank"}
-              value={similarity ?? score ?? 0}
+              label="Match"
+              value={score ?? 0}
             />
           ) : null}
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">

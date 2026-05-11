@@ -23,6 +23,7 @@ from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
 from app.models.job_feedback import JobFeedback
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.models.user import User
 from app.tasks import embed_job as embed_job_task
 from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
 from app.tasks import ingest_remoteok_jobs as ingest_remoteok_jobs_task
@@ -30,6 +31,12 @@ from app.tasks import scrape_job as scrape_job_task
 from app.tasks import scrape_rss_feed as scrape_rss_feed_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+
+def _require_ingestion_admin(user: User) -> None:
+    allowed = set(settings.admin_ingestion_user_ids_list)
+    if not allowed or (str(user.id) not in allowed and user.email not in allowed):
+        raise HTTPException(status_code=403, detail="Bulk job sync is restricted.")
 
 
 class JobCreate(BaseModel):
@@ -320,15 +327,17 @@ class ScrapeUrlIn(BaseModel):
 
 
 @router.post("/ingest/remoteok", response_model=ScrapeQueueOut)
-def queue_remoteok_ingest(_: CurrentUserDep) -> ScrapeQueueOut:
+def queue_remoteok_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
     """Enqueue Remote OK JSON ingest (``listing_source=remoteok``)."""
+    _require_ingestion_admin(user)
     res = ingest_remoteok_jobs_task.delay()
     return ScrapeQueueOut(task_id=str(res.id))
 
 
 @router.post("/ingest/adzuna", response_model=ScrapeQueueOut)
-def queue_adzuna_ingest(_: CurrentUserDep) -> ScrapeQueueOut:
+def queue_adzuna_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
     """Enqueue Adzuna API search ingest (``listing_source=adzuna``). Requires API keys in env."""
+    _require_ingestion_admin(user)
     res = ingest_adzuna_jobs_task.delay()
     return ScrapeQueueOut(task_id=str(res.id))
 

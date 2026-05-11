@@ -87,6 +87,66 @@ def test_generate_draft_creates_llm_log_fallback() -> None:
         pass
 
 
+def test_create_application_reuses_same_source_url() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "company": "Acme",
+        "job_title": "PM",
+        "source_url": "https://example.com/same-role",
+    }
+
+    r1 = client.post("/applications", headers=headers, json=payload)
+    r2 = client.post("/applications", headers=headers, json=payload)
+
+    assert r1.status_code == 200, r1.text
+    assert r2.status_code == 200, r2.text
+    assert r1.json()["id"] == r2.json()["id"]
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.user_id == user_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
+def test_generate_draft_is_idempotent_for_pending_application() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r0 = client.post(
+        "/applications",
+        headers=headers,
+        json={"company": "Acme", "job_title": "PM", "source_url": "https://example.com/pending"},
+    )
+    assert r0.status_code == 200, r0.text
+    app_id = r0.json()["id"]
+
+    r1 = client.post(f"/applications/{app_id}/generate_draft", headers=headers)
+    r2 = client.post(f"/applications/{app_id}/generate_draft", headers=headers)
+
+    assert r1.status_code == 200, r1.text
+    assert r2.status_code == 200, r2.text
+    with SessionLocal() as db:
+        drafts = db.scalars(
+            select(OutreachDraft).where(OutreachDraft.application_id == UUID(app_id))
+        ).all()
+        assert len(drafts) == 2
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.id == UUID(app_id)))
+            db.execute(delete(LlmLog).where(LlmLog.user_id == user_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
 def test_approve_requires_generated_draft() -> None:
     client = TestClient(app)
     token, user_id = _signup(client)

@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     clerk_issuer: str | None = None
     clerk_audience: str | None = None
 
-    # Comma-separated Clerk user ids allowed for admin ingestion routes (when implemented).
+    # Comma-separated local user UUIDs or emails allowed for admin ingestion routes.
     admin_ingestion_user_ids: str = ""
 
     idempotency_window_hours: int = 24

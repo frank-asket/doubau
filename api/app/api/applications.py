@@ -142,6 +142,19 @@ def create_application(
     db: DbDep,
     current_user: CurrentUserDep,
 ) -> ApplicationOut:
+    if payload.source_url:
+        existing = db.scalar(
+            select(Application)
+            .where(
+                Application.user_id == current_user.id,
+                Application.source_url == payload.source_url,
+            )
+            .order_by(Application.created_at.desc())
+            .limit(1)
+        )
+        if existing is not None:
+            return _application_out(existing)
+
     app = Application(
         user_id=current_user.id,
         company=payload.company,
@@ -166,10 +179,11 @@ def generate_draft(
     if app is None or app.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Not found")
 
-    try:
-        assert_transition(app.status, ApplicationStatus.PENDING_APPROVAL)
-    except InvalidTransition as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
+    if app.status != ApplicationStatus.PENDING_APPROVAL:
+        try:
+            assert_transition(app.status, ApplicationStatus.PENDING_APPROVAL)
+        except InvalidTransition as e:
+            raise HTTPException(status_code=409, detail=str(e)) from e
 
     app.status = ApplicationStatus.PENDING_APPROVAL
     _touch_application(app)
