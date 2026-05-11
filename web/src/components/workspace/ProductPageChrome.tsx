@@ -10,13 +10,13 @@ export function ProductPageChrome({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <div>
-        <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
+    <div className="flex w-full max-w-[var(--app-content-max)] flex-col gap-4">
+      <div className={description ? "px-1" : "sr-only"}>
+        <h1 className="sr-only">
           {title}
         </h1>
         {description ? (
-          <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
+          <p className="max-w-3xl text-pretty text-[13px] leading-6 text-[var(--app-text-secondary)]">
             {description}
           </p>
         ) : null}

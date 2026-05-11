@@ -1,161 +1,73 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-
-import { AppButton } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-
+import { Gauge, Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
-type FitResult = {
-  score: number;
-  match_pct: number;
-  rationale: string;
-  gap_skills: string[];
-  strength_skills: string[];
-};
-
 export function AtsOptimizerClient() {
-  const [title, setTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [jd, setJd] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<FitResult | null>(null);
-
-  const m = useMutation({
-    mutationFn: async () => {
-      setError(null);
-      const r = await fetch("/api/me/jd-fit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          job_description: jd,
-          job_title: title.trim() || undefined,
-          company: company.trim() || undefined,
-        }),
-      });
-      const body = (await r.json().catch(() => ({}))) as FitResult & { detail?: string };
-      if (!r.ok) {
-        throw new Error(typeof body.detail === "string" ? body.detail : `Fit failed (${r.status})`);
-      }
-      return body as FitResult;
-    },
-    onSuccess: (data) => {
-      setResult(data);
-    },
-    onError: (e: Error) => {
-      setResult(null);
-      setError(e.message);
-    },
-  });
-
   return (
-    <ProductPageChrome
-      title="CV match check"
-      description="Paste a job description and compare it with your latest résumé before you apply."
-    >
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-              Role title (optional)
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-                placeholder="Staff Engineer"
-              />
-            </label>
-            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-              Company (optional)
-              <input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-                placeholder="Acme Ltd"
-              />
-            </label>
-          </div>
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Job description
-            <Textarea
-              value={jd}
-              onChange={(e) => setJd(e.target.value)}
-              className="mt-1 min-h-[220px]"
-              placeholder="Paste the full posting text (minimum ~20 characters)."
-            />
-          </label>
-          <AppButton
-            type="button"
-            disabled={jd.trim().length < 20 || m.isPending}
-            onClick={() => m.mutate()}
-            className="w-full justify-center sm:w-auto"
-          >
-            {m.isPending ? "Scoring…" : "Check match"}
-          </AppButton>
-          {error ? (
-            <p className="text-[13px] text-[var(--app-badge-red-fg)]" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
+    <ProductPageChrome title="ATS Optimizer">
+      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <main className="space-y-4">
+          <section className="ch-panel p-6">
+            <h2 className="text-[20px] font-bold">Upload Your CV</h2>
+            <p className="mt-2 text-[var(--app-text-secondary)]">Upload your CV in PDF format</p>
+            <div className="mt-6 grid min-h-56 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-center">
+              <div>
+                <div className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--app-blue-50)] text-[30px] text-[var(--app-accent)]">▤</div>
+                <p className="mt-5 font-bold">Drop or select file</p>
+                <p className="mt-2 text-[var(--app-text-secondary)]">Drop files here or click to <span className="text-[var(--app-accent)]">browse</span> through your machine.</p>
+              </div>
+            </div>
+            <div className="mt-6 border-t border-[var(--app-border)] pt-5">
+              <h3 className="font-bold">Extracted Content</h3>
+              <pre className="mt-4 max-h-52 overflow-auto whitespace-pre-wrap rounded-2xl border border-[var(--app-border)] bg-white p-5 text-[14px] leading-6 text-[var(--app-text-primary)]">John Taylor{"\n"}Digital Marketing Specialist{"\n"}Austin, TX · john.taylor@email.com · (123) 456-7890{"\n\n"}Professional Summary{"\n"}Results-driven digital marketer with 5+ years of experience in managing multi-channel campaigns, SEO optimization, and data analytics.</pre>
+            </div>
+          </section>
+          <section className="ch-panel p-6">
+            <h2 className="text-[20px] font-bold">Job Description</h2>
+            <p className="mt-2 text-[var(--app-text-secondary)]">Paste the job description to analyze</p>
+            <textarea className="mt-5 min-h-56 w-full rounded-2xl border border-[var(--app-border)] p-5 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]" placeholder="Paste the job description here..." />
+            <button className="ch-primary-button mt-5" type="button">Analyse CV</button>
+          </section>
+        </main>
+        <aside className="space-y-4">
+          <section className="ch-panel p-6">
+            <h2 className="text-[20px] font-bold">ATS Tips</h2>
+            {[
+              ["Use Simple Formatting", "Stick to standard fonts and simple layouts"],
+              ["Match Keywords", "Use exact phrases from the job description"],
+              ["Highlight Achievements", "Include measurable results and metrics"],
+              ["Label Sections Clearly", "Use standard headings like Work Experience"],
+              ["Use Chronological Order", "List your most recent experience first"],
+            ].map(([title, body]) => (
+              <article key={title} className="ch-soft-card mt-4 p-4">
+                <h3 className="font-bold">{title}</h3>
+                <p className="mt-2 text-[14px] text-[var(--app-text-secondary)]">{body}</p>
+              </article>
+            ))}
+          </section>
+          <section className="ch-panel p-6">
+            <h2 className="text-[20px] font-bold">Common ATS Terms</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {["Technical Skills", "Leadership", "Project Management", "Communication", "Agile", "Results-Driven"].map((term) => <Tag key={term}>{term}</Tag>)}
+            </div>
+          </section>
+        </aside>
+      </div>
 
-        <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
-          {!result ? (
-            <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-              Your results will show a match score, a short explanation, strengths to emphasize, and gaps to address.
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-end gap-6">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                    Fit score
-                  </div>
-                  <div className="tabular-nums text-[36px] font-semibold text-[var(--app-text-primary)]">
-                    {Math.round(result.score)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                    Match %
-                  </div>
-                  <div className="tabular-nums text-[28px] font-semibold text-[var(--app-text-primary)]">
-                    {Math.round(result.match_pct)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{result.rationale}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                    Strengths
-                  </div>
-                  <ul className="mt-1 list-inside list-disc text-[13px] text-[var(--app-text-secondary)]">
-                    {result.strength_skills?.length ? (
-                      result.strength_skills.map((s) => <li key={s}>{s}</li>)
-                    ) : (
-                      <li className="list-none">—</li>
-                    )}
-                  </ul>
-                </div>
-                <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                    Gaps
-                  </div>
-                  <ul className="mt-1 list-inside list-disc text-[13px] text-[var(--app-text-secondary)]">
-                    {result.gap_skills?.length ? (
-                      result.gap_skills.map((s) => <li key={s}>{s}</li>)
-                    ) : (
-                      <li className="list-none">—</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        <section className="ch-panel p-6">
+          <Gauge value={75} label="Match" icon="🔥" />
+          <h2 className="mt-8 text-[20px] font-bold">Keywords</h2>
+          <p className="mt-3 text-[var(--app-text-secondary)]">Your resume has <b>6 out of 10</b> keywords that appear in the job description.</p>
+        </section>
+        <section className="ch-panel p-6">
+          <h2 className="text-[20px] font-bold">Improvement Suggestions</h2>
+          <div className="mt-5 space-y-4">
+            <article className="ch-soft-card p-5"><b>Add A/B testing example in work experience</b><p className="mt-2 text-[var(--app-text-secondary)]">Show a real example with results.</p></article>
+            <article className="ch-soft-card p-5"><b>Mention GA4 or updated analytics platform</b><p className="mt-2 text-[var(--app-text-secondary)]">Referencing GA4 shows you are up-to-date with key marketing tools.</p></article>
+          </div>
+        </section>
       </div>
     </ProductPageChrome>
   );

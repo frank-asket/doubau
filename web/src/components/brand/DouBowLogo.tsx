@@ -7,7 +7,7 @@ export function DouBowMark({
   size = 28,
   ...props
 }: { variant?: Variant; size?: number } & Omit<SVGProps<SVGSVGElement>, "width" | "height">) {
-  const fg = variant === "white" ? "#FFFFFF" : "#0D0D0D";
+  const fg = variant === "white" ? "#20D17D" : "#087D4B";
   return (
     <svg
       width={size}
@@ -19,6 +19,7 @@ export function DouBowMark({
     >
       <path
         d="M32 6 55.2 19.4v25.2L32 58 8.8 44.6V19.4L32 6Z"
+        fill={variant === "white" ? "rgba(32,209,125,0.10)" : "rgba(32,209,125,0.08)"}
         stroke={fg}
         strokeWidth="3.5"
         strokeLinejoin="round"
@@ -49,7 +50,7 @@ export function DouBowWordmark({
   size?: number;
   text?: string;
 } & Omit<SVGProps<SVGSVGElement>, "width" | "height">) {
-  const fg = variant === "white" ? "#FFFFFF" : "#0D0D0D";
+  const fg = variant === "white" ? "#EFF9F1" : "#111612";
   return (
     <svg
       width={Math.round(size * 4.1)}
@@ -63,7 +64,7 @@ export function DouBowWordmark({
         x="0"
         y="38"
         fill={fg}
-        fontFamily="Newsreader, ui-serif, Georgia, serif"
+        fontFamily="var(--font-app-sans), ui-sans-serif, system-ui, sans-serif"
         fontSize="40"
         fontWeight="600"
         letterSpacing="-0.5"
@@ -83,15 +84,15 @@ export function DouBowLogo({
   text?: string;
   size?: number;
 }) {
-  const fg = variant === "white" ? "#FFFFFF" : "#0D0D0D";
+  const fg = variant === "white" ? "#EFF9F1" : "#111612";
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10, color: fg }}>
       <DouBowMark variant={variant} size={size} />
       <span
         style={{
-          fontFamily: "var(--font-display), Newsreader, ui-serif, Georgia, serif",
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
+          fontFamily: "var(--font-app-sans), ui-sans-serif, system-ui, sans-serif",
+          fontWeight: 800,
+          letterSpacing: "-0.03em",
           fontSize: 18,
           lineHeight: 1,
         }}
@@ -101,4 +102,3 @@ export function DouBowLogo({
     </span>
   );
 }
-

@@ -48,6 +48,22 @@ class WorkspaceSummaryOut(BaseModel):
     pending_approval_count: int = 0
 
 
+class DashboardTrendPoint(BaseModel):
+    label: str
+    discovered: int = 0
+    pending: int = 0
+    submitted: int = 0
+    failed: int = 0
+
+
+class DashboardSummaryOut(WorkspaceSummaryOut):
+    """Dashboard-specific aggregates with stable chart data."""
+
+    resume_readiness: int = 0
+    applications_trend: list[DashboardTrendPoint] = Field(default_factory=list)
+    recent_applications: list[dict] = Field(default_factory=list)
+
+
 class JdFitRequest(BaseModel):
     """Paste a job description and compare to the latest parsed résumé (ATS-style)."""
 
@@ -100,4 +116,3 @@ class MilestoneOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
-import { JobPipelineHint } from "@/components/app/JobPipelineHint";
-import { DashboardResumePanel } from "@/components/resume/DashboardResumePanel";
-import { AppApprovalCard } from "@/components/ui/approval-card";
-import { AppBadge } from "@/components/ui/badge";
-import { AppProgress } from "@/components/ui/progress";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -14,367 +9,387 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type Profile = {
-  email?: string;
-  persona?: string | null;
-  goals?: { focus?: string[] } | null;
-  plan_tier?: string | null;
+type DashboardTrendPoint = {
+  label: string;
+  discovered: number;
+  pending: number;
+  submitted: number;
+  failed: number;
 };
 
-function personaLabel(persona: string | null | undefined): string {
-  switch (persona) {
-    case "student":
-      return "Student / recent graduate";
-    case "employed_exploring":
-      return "Employed, exploring";
-    case "active_search":
-      return "Actively job searching";
-    case "career_switcher":
-      return "Career switcher";
-    default:
-      return "Career stage not set";
-  }
-}
-
-function goalLabel(id: string): string {
-  switch (id) {
-    case "improve_cv":
-      return "Improve CV";
-    case "find_jobs":
-      return "Find jobs";
-    case "interview_prep":
-      return "Interview prep";
-    case "get_promoted":
-      return "Get promoted";
-    case "boost_linkedin":
-      return "Boost LinkedIn";
-    default:
-      return id;
-  }
-}
-
-type ApplicationOut = {
+type RecentApplication = {
   id: string;
   company: string;
   job_title: string;
   status: string;
   source_url?: string | null;
+  updated_at?: string;
 };
 
-type DraftOut = {
-  id: string;
-  application_id: string;
-  channel: string;
-  content: string;
-};
-
-type WorkspaceSummary = {
+type DashboardSummary = {
+  email?: string;
+  persona?: string | null;
+  current_role?: string | null;
+  location?: string | null;
+  plan_tier?: string | null;
   resume_status?: string | null;
+  resume_readiness?: number;
   applications_total?: number;
   applications_by_status?: Record<string, number>;
   pending_approval_count?: number;
+  applications_trend?: DashboardTrendPoint[];
+  recent_applications?: RecentApplication[];
 };
 
-function resumeReadinessPct(status: string | null | undefined): number {
-  switch (status) {
-    case "EMBEDDED":
-      return 100;
-    case "PARSED":
-      return 72;
-    case "UPLOADED":
-      return 40;
-    case "FAILED":
-      return 12;
-    default:
-      return 0;
-  }
+type FeedJob = {
+  job: {
+    id: string;
+    company: string;
+    title: string;
+    location: string | null;
+    seniority: string | null;
+    employment_type: string | null;
+    source_url: string | null;
+  };
+  score: number;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  DISCOVERED: "Discovered",
+  SCORING: "Scoring",
+  DRAFTED: "Drafted",
+  PENDING_APPROVAL: "Review",
+  APPROVED: "Approved",
+  SUBMITTED: "Submitted",
+  FAILED: "Failed",
+  RETRY: "Retry",
+};
+
+function pct(part: number, total: number) {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
 }
 
-function pipelineMomentumPct(by: Record<string, number> | undefined, total: number): number {
-  if (!total || !by) return 0;
-  const sub = by.SUBMITTED ?? 0;
-  return Math.min(100, Math.round((sub / total) * 100));
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status.replaceAll("_", " ").toLowerCase();
 }
 
-function discoveryTouchPct(by: Record<string, number> | undefined): number {
-  if (!by) return 0;
-  const imp = by.impression ?? 0;
-  const clk = by.click_out ?? 0;
-  const score = imp + clk * 2;
-  return Math.min(100, Math.round((score / 30) * 100));
+function formatUpdated(iso: string | undefined) {
+  if (!iso) return "No activity";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "No activity";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function MetricTile({
+function KpiCard({
   label,
   value,
   detail,
-  variant = "gray",
+  href,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   detail: string;
-  variant?: "blue" | "green" | "amber" | "gray";
+  href?: string;
 }) {
-  const tone = {
-    blue: "bg-[var(--app-badge-blue-bg)] text-[#0C447C]",
-    green: "bg-[var(--app-badge-green-bg)] text-[var(--app-badge-green-fg)]",
-    amber: "bg-[var(--app-badge-amber-bg)] text-[var(--app-badge-amber-fg)]",
-    gray: "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]",
-  } satisfies Record<NonNullable<typeof variant>, string>;
-
-  return (
-    <div className="app-surface rounded-[var(--app-radius-lg)] p-4">
-      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-        {label}
-      </div>
-      <div className="mt-2 flex items-end justify-between gap-3">
-        <div className="tabular-nums text-[24px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
+  const body = (
+    <article className="dashboard-card rounded-[20px] border border-[var(--app-border)] bg-white/90 p-5 shadow-[var(--app-shadow-0)]">
+      <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--app-text-tertiary)]">{label}</p>
+      <div className="mt-5 flex items-end justify-between gap-4">
+        <strong className="tabular-nums text-[34px] font-black leading-none tracking-[-0.045em] text-[var(--app-text-primary)]">
           {value}
+        </strong>
+        {href ? <span className="text-[18px] font-bold text-[var(--app-accent-700)]">›</span> : null}
+      </div>
+      <p className="mt-4 min-h-10 text-[13px] leading-5 text-[var(--app-text-secondary)]">{detail}</p>
+    </article>
+  );
+
+  return href ? <Link href={href}>{body}</Link> : body;
+}
+
+function ResumeReadiness({ value, status }: { value: number; status?: string | null }) {
+  return (
+    <section className="dashboard-card rounded-[24px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-0)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[18px] font-black tracking-[-0.02em]">Profile readiness</h2>
+          <p className="mt-1 text-[13px] text-[var(--app-text-secondary)]">
+            Resume parsing and embedding status used by job matching.
+          </p>
         </div>
-        <span className={`rounded-[var(--app-radius-pill)] px-2 py-1 text-[11px] font-medium ${tone[variant]}`}>
-          {detail}
+        <span className="rounded-full bg-[var(--app-bg-muted)] px-3 py-1 text-[12px] font-bold text-[var(--app-text-secondary)]">
+          {status || "Not uploaded"}
         </span>
       </div>
-    </div>
+      <div className="mt-7">
+        <div className="flex items-center justify-between text-[13px] font-bold">
+          <span>Readiness</span>
+          <span>{value}%</span>
+        </div>
+        <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
+          <span
+            className="dashboard-meter block h-full rounded-full bg-[var(--app-accent)]"
+            style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
+          />
+        </div>
+      </div>
+    </section>
   );
 }
 
-export default async function DashboardPage() {
-  let profile: Profile = {};
-  let workspaceSummary: WorkspaceSummary | null = null;
-  let matchMetrics: { by_event_type?: Record<string, number> } | null = null;
-  let pendingCard: {
-    title: string;
-    subtitle: string;
-    snippet: string;
-  } | null = null;
-
-  try {
-    const base = getApiBaseUrl();
-    const headers = await getBackendAuthHeaders();
-    const profileRes = await fetch(`${base}/me/profile`, {
-      headers,
-      cache: "no-store",
-    });
-
-    profile = profileRes.ok
-      ? ((await profileRes.json().catch(() => ({}))) as Profile)
-      : {};
-
-    const [appsRes, draftsRes, wsRes, mmRes] = await Promise.all([
-      fetch(`${base}/applications`, { headers, cache: "no-store" }),
-      fetch(`${base}/applications/drafts`, { headers, cache: "no-store" }),
-      fetch(`${base}/me/workspace-summary`, { headers, cache: "no-store" }),
-      fetch(`${base}/me/match/metrics?days=14`, { headers, cache: "no-store" }),
-    ]);
-    if (wsRes.ok) {
-      workspaceSummary = (await wsRes.json().catch(() => null)) as WorkspaceSummary | null;
-    }
-    if (mmRes.ok) {
-      matchMetrics = (await mmRes.json().catch(() => null)) as { by_event_type?: Record<string, number> } | null;
-    }
-    if (appsRes.ok && draftsRes.ok) {
-      const apps = (await appsRes.json()) as ApplicationOut[];
-      const drafts = (await draftsRes.json()) as DraftOut[];
-      const appById = new Map(apps.map((a) => [a.id, a]));
-      const hit = drafts.find((d) => appById.get(d.application_id)?.status === "PENDING_APPROVAL");
-      if (hit) {
-        const app = appById.get(hit.application_id);
-        if (app) {
-          const ch = hit.channel ? hit.channel.charAt(0).toUpperCase() + hit.channel.slice(1) : "Draft";
-          let subtitle = `${ch} · ${app.company}`;
-          if (app.source_url) {
-            try {
-              subtitle = `${ch} · ${new URL(app.source_url).hostname}`;
-            } catch {
-              /* ignore */
-            }
-          }
-          const raw = hit.content.trim();
-          const snippet = raw.length > 320 ? `${raw.slice(0, 320)}…` : raw;
-          pendingCard = {
-            title: `${app.job_title} — ${app.company}`,
-            subtitle,
-            snippet,
-          };
-        }
-      }
-    }
-  } catch {
-    /* Clerk auth failure or API unreachable (e.g. NEXT_PUBLIC_API_BASE_URL unset → localhost on Vercel). */
-  }
-
-  const focus = Array.isArray(profile.goals?.focus) ? profile.goals?.focus : [];
-
-  const resumePct = resumeReadinessPct(workspaceSummary?.resume_status);
-  const pipePct = pipelineMomentumPct(
-    workspaceSummary?.applications_by_status,
-    workspaceSummary?.applications_total ?? 0,
+function PipelineBreakdown({ byStatus, total }: { byStatus: Record<string, number>; total: number }) {
+  const statuses = ["DISCOVERED", "DRAFTED", "PENDING_APPROVAL", "APPROVED", "SUBMITTED", "FAILED"];
+  return (
+    <section className="dashboard-card rounded-[24px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-0)]">
+      <h2 className="text-[18px] font-black tracking-[-0.02em]">Pipeline breakdown</h2>
+      <div className="mt-5 space-y-4">
+        {statuses.map((status) => {
+          const count = byStatus[status] ?? 0;
+          return (
+            <div key={status}>
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="font-bold text-[var(--app-text-primary)]">{statusLabel(status)}</span>
+                <span className="tabular-nums text-[var(--app-text-secondary)]">{count}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
+                <span
+                  className="dashboard-meter block h-full rounded-full bg-[var(--app-sidebar)]"
+                  style={{ width: `${pct(count, total)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
-  const discPct = discoveryTouchPct(matchMetrics?.by_event_type);
-  const applicationsTotal = workspaceSummary?.applications_total ?? 0;
-  const pendingApprovals = workspaceSummary?.pending_approval_count ?? 0;
+}
+
+function ApplicationsChart({ points }: { points: DashboardTrendPoint[] }) {
+  const max = Math.max(
+    1,
+    ...points.map((p) => p.discovered + p.pending + p.submitted + p.failed),
+  );
+  const hasActivity = points.some((p) => p.discovered + p.pending + p.submitted + p.failed > 0);
 
   return (
-    <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <section className="app-surface rounded-[var(--app-radius-lg)] p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-              Career command center
+    <section className="dashboard-card rounded-[28px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-1)]">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[20px] font-black tracking-[-0.03em]">Application activity</h2>
+          <p className="mt-1 text-[13px] text-[var(--app-text-secondary)]">
+            Last 31 days, grouped into four-day windows.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 text-[12px] font-bold text-[var(--app-text-secondary)]">
+          <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-[#111612]" />Discovered</span>
+          <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-[#6ea2f5]" />Review</span>
+          <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-[var(--app-accent)]" />Submitted</span>
+          <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-[var(--app-danger)]" />Failed</span>
+        </div>
+      </div>
+
+      {hasActivity ? (
+        <div className="relative mt-8">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-[228px] rounded-2xl"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(to bottom, transparent 0, transparent 55px, rgba(17,22,18,0.06) 56px, transparent 57px)",
+            }}
+          />
+          <div className="grid h-[280px] grid-cols-8 items-end gap-4">
+            {points.map((point, index) => {
+              const total = point.discovered + point.pending + point.submitted + point.failed;
+              const scale = total ? Math.max(10, Math.round((total / max) * 100)) : 2;
+              return (
+                <div key={point.label} className="relative z-10 flex h-full flex-col justify-end gap-3">
+                  <div className="flex flex-1 items-end justify-center px-2 pb-2">
+                    <div
+                      className="dashboard-stack flex w-full max-w-16 flex-col justify-end overflow-hidden rounded-xl bg-white shadow-[inset_0_0_0_1px_rgba(17,22,18,0.06)]"
+                      style={{ height: `${scale}%`, animationDelay: `${index * 45}ms` }}
+                      title={`${total} applications`}
+                    >
+                      <span className="block bg-[var(--app-danger)]" style={{ height: `${pct(point.failed, total)}%` }} />
+                      <span className="block bg-[var(--app-accent)]" style={{ height: `${pct(point.submitted, total)}%` }} />
+                      <span className="block bg-[#6ea2f5]" style={{ height: `${pct(point.pending, total)}%` }} />
+                      <span className="block bg-[#111612]" style={{ height: `${pct(point.discovered, total)}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="tabular-nums text-[12px] font-black text-[var(--app-text-primary)]">{total}</p>
+                    <p className="mt-1 rounded-full bg-[var(--app-bg-muted)] px-2 py-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+                      {point.label}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8 flex h-[280px] items-center justify-center rounded-[24px] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)] px-6 text-center">
+          <p className="max-w-sm text-[13px] leading-6 text-[var(--app-text-secondary)]">
+            No application activity in the last 31 days. Once roles enter the tracker, this chart will use the saved
+            application events.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecentApplications({ applications }: { applications: RecentApplication[] }) {
+  return (
+    <section className="dashboard-card rounded-[24px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-0)]">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[18px] font-black tracking-[-0.02em]">Recent applications</h2>
+        <Link className="text-[13px] font-bold text-[var(--app-accent-700)]" href="/app/tracker">
+          View tracker
+        </Link>
+      </div>
+      <div className="mt-5 divide-y divide-[var(--app-border)]">
+        {applications.length ? (
+          applications.map((app) => (
+            <div key={app.id} className="grid grid-cols-[1fr_auto] gap-4 py-4">
+              <div className="min-w-0">
+                <p className="truncate text-[14px] font-black text-[var(--app-text-primary)]">{app.job_title}</p>
+                <p className="mt-1 truncate text-[13px] text-[var(--app-text-secondary)]">{app.company}</p>
+              </div>
+              <div className="text-right">
+                <p className="rounded-full bg-[var(--app-bg-muted)] px-3 py-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+                  {statusLabel(app.status)}
+                </p>
+                <p className="mt-2 text-[11px] text-[var(--app-text-tertiary)]">{formatUpdated(app.updated_at)}</p>
+              </div>
             </div>
-            <h1 className="mt-1 text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-              Dashboard
-            </h1>
-            <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-              {profile.email ? (
-                <>
-                  Signed in as <span className="font-semibold text-[var(--app-text-primary)]">{profile.email}</span> ·{" "}
-                  <span className="font-semibold text-[var(--app-text-primary)]">{personaLabel(profile.persona)}</span>
-                  {profile.plan_tier ? (
-                    <>
-                      {" "}
-                      · Plan:{" "}
-                      <span className="font-semibold text-[var(--app-text-primary)]">{profile.plan_tier}</span>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                "Personalizing your workspace…"
-              )}
-            </p>
-            <p className="mt-2 max-w-2xl text-pretty text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
-              Discover roles, prepare outreach, review every draft, and track each application in one place.
-            </p>
-          </div>
-          <div className="w-full max-w-xl lg:w-[420px]">
-            <JobPipelineHint variant="dashboard" />
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-[var(--app-space-md)] sm:grid-cols-3">
-        <MetricTile label="Applications" value={String(applicationsTotal)} detail="Tracked" variant="blue" />
-        <MetricTile label="Pending review" value={String(pendingApprovals)} detail="Needs review" variant="amber" />
-        <MetricTile
-          label="Résumé index"
-          value={`${resumePct}%`}
-          detail={workspaceSummary?.resume_status ?? "Unset"}
-          variant="green"
-        />
-      </div>
-
-      {profile.email &&
-      (!profile.plan_tier ||
-        !["ultimate", "Ultimate"].includes(String(profile.plan_tier))) ? (
-        <div className="app-surface flex flex-wrap items-center justify-between gap-3 rounded-[var(--app-radius-lg)] bg-[var(--app-badge-blue-bg)] px-4 py-3 text-[13px] text-[#0C447C]">
-          <span>
-            {profile.plan_tier ? (
-              <>
-                You are on <strong>{String(profile.plan_tier)}</strong>. Compare Standard, Pro, and Ultimate when billing is
-                connected.
-              </>
-            ) : (
-              <>Pick a plan when you are ready — Standard, Pro, or Ultimate — from billing.</>
-            )}
-          </span>
-          <Link
-            href="/app/billing"
-            className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 text-[12px] font-semibold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96]"
-          >
-            View plans
-          </Link>
-        </div>
-      ) : null}
-
-      <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-3">
-        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
-          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-            Account signals
-          </div>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-            Based on your résumé status, application pipeline, and recent job discovery activity.
+          ))
+        ) : (
+          <p className="py-8 text-[13px] leading-6 text-[var(--app-text-secondary)]">
+            No applications have been tracked yet. Save a role from Job Discovery to start the pipeline.
           </p>
-          <div className="mt-3 flex flex-col gap-3">
-            <AppProgress label="Résumé readiness (indexing)" tone="success" value={resumePct} />
-            <AppProgress
-              label="Pipeline momentum (% submitted)"
-              tone="warning"
-              value={pipePct}
-            />
-            <AppProgress label="Discovery activity (14d)" tone="info" value={discPct} />
-          </div>
-        </div>
-
-        <div className="lg:col-span-2">
-          {pendingCard ? (
-            <AppApprovalCard
-              actionsSlot={
-                <Link
-                  href="/app/approvals"
-                  className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-[var(--app-radius-pill)] border border-transparent bg-[var(--app-accent)] px-3 text-[12px] font-medium leading-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-accent-hover)] active:scale-[0.96]"
-                >
-                  Open approval dashboard
-                </Link>
-              }
-              badgeLabel="Pending"
-              badgeVariant="amber"
-              snippet={pendingCard.snippet}
-              subtitle={pendingCard.subtitle}
-              title={pendingCard.title}
-            />
-          ) : (
-            <AppApprovalCard
-              badgeLabel="Queue"
-              badgeVariant="gray"
-              snippet="When an outreach draft is waiting for your review, the excerpt appears here. Generate drafts from applications in your tracker or approval dashboard."
-              subtitle="Human-in-the-loop"
-              title="No pending outreach in queue"
-            />
-          )}
-        </div>
+        )}
       </div>
+    </section>
+  );
+}
 
-      <DashboardResumePanel />
-
-      <div className="grid gap-[var(--app-space-lg)] lg:grid-cols-2">
-        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
-          <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">Your focus</div>
-          <p className="mt-1 text-[14px] leading-6 text-[var(--app-text-secondary)]">
-            These defaults come from your career stage — you can edit them in onboarding anytime.
+function RecommendedRoles({ jobs }: { jobs: FeedJob[] }) {
+  return (
+    <section className="dashboard-card rounded-[24px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-0)]">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[18px] font-black tracking-[-0.02em]">Recommended roles</h2>
+        <Link className="text-[13px] font-bold text-[var(--app-accent-700)]" href="/app/discovery">
+          Open discovery
+        </Link>
+      </div>
+      <div className="mt-5 divide-y divide-[var(--app-border)]">
+        {jobs.length ? (
+          jobs.slice(0, 3).map((row) => (
+            <div key={row.job.id} className="py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate text-[14px] font-black text-[var(--app-text-primary)]">{row.job.title}</p>
+                  <p className="mt-1 truncate text-[13px] text-[var(--app-text-secondary)]">{row.job.company}</p>
+                </div>
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--app-accent)_12%,white)] px-3 py-1 text-[11px] font-black text-[var(--app-accent-700)]">
+                  {Math.round(row.score)}%
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="py-8 text-[13px] leading-6 text-[var(--app-text-secondary)]">
+            Recommendations will appear after jobs are ingested and your resume is indexed.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {focus.length ? (
-              focus.map((g) => (
-                <AppBadge key={g} variant="gray">
-                  {goalLabel(g)}
-                </AppBadge>
-              ))
-            ) : (
-              <span className="text-[13px] text-[var(--app-text-secondary)]">No goals selected yet.</span>
-            )}
-          </div>
-        </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
-        <div className="app-surface rounded-[var(--app-radius-lg)] p-5">
-          <div className="text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
-            Recommended next steps
-          </div>
-          <ul className="mt-4 space-y-2 text-[13px] text-[var(--app-text-secondary)]">
-            <li>
-              Go to <span className="font-semibold text-[var(--app-text-primary)]">Discovery</span> and shortlist roles.
-            </li>
-            <li>
-              Generate outreach from a role, then approve in{" "}
-              <Link className="font-semibold text-[var(--app-accent)] hover:underline" href="/app/approvals">
-                Approvals
+async function loadDashboardData() {
+  const base = getApiBaseUrl();
+  const headers = await getBackendAuthHeaders();
+  const [summaryRes, feedRes] = await Promise.all([
+    fetch(`${base}/me/dashboard-summary`, { headers, cache: "no-store" }),
+    fetch(`${base}/jobs/feed?limit=3`, { headers, cache: "no-store" }),
+  ]);
+
+  return {
+    summary: summaryRes.ok ? ((await summaryRes.json().catch(() => null)) as DashboardSummary | null) : null,
+    jobs: feedRes.ok ? ((await feedRes.json().catch(() => [])) as FeedJob[]) : [],
+  };
+}
+
+export default async function DashboardPage() {
+  let summary: DashboardSummary | null = null;
+  let jobs: FeedJob[] = [];
+
+  try {
+    const data = await loadDashboardData();
+    summary = data.summary;
+    jobs = data.jobs;
+  } catch {
+    summary = null;
+    jobs = [];
+  }
+
+  const byStatus = summary?.applications_by_status ?? {};
+  const total = summary?.applications_total ?? 0;
+  const pending = summary?.pending_approval_count ?? 0;
+  const submitted = byStatus.SUBMITTED ?? 0;
+  const trend =
+    summary?.applications_trend?.length
+      ? summary.applications_trend
+      : ["1-4", "5-8", "9-12", "13-16", "17-20", "21-24", "25-28", "29-31"].map((label) => ({
+          label,
+          discovered: 0,
+          pending: 0,
+          submitted: 0,
+          failed: 0,
+        }));
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="min-w-0 space-y-5">
+        <section className="dashboard-card rounded-[28px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-1)]">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--app-text-tertiary)]">
+                Workspace overview
+              </p>
+              <h2 className="mt-2 max-w-2xl text-[30px] font-black leading-tight tracking-[-0.045em] text-[var(--app-text-primary)]">
+                Track applications, resume readiness, and role recommendations from one place.
+              </h2>
+            </div>
+            <div className="flex gap-2">
+              <Link className="ch-primary-button" href="/app/discovery">
+                Find roles
               </Link>
-              .
-            </li>
-            <li>Ask Copilot for a 7-day sprint plan tailored to your persona.</li>
-          </ul>
+              <Link className="ch-icon-button" href="/app/tracker" aria-label="Open tracker">
+                ↗
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <KpiCard label="Applications" value={total} detail="Total roles currently tracked." href="/app/tracker" />
+          <KpiCard label="Pending review" value={pending} detail="Drafts or applications waiting for a decision." href="/app/approvals" />
+          <KpiCard label="Submitted" value={submitted} detail="Applications marked as submitted." href="/app/tracker" />
         </div>
+
+        <ApplicationsChart points={trend} />
       </div>
+
+      <aside className="space-y-5">
+        <ResumeReadiness value={summary?.resume_readiness ?? 0} status={summary?.resume_status} />
+        <PipelineBreakdown byStatus={byStatus} total={total} />
+        <RecentApplications applications={summary?.recent_applications ?? []} />
+        <RecommendedRoles jobs={jobs} />
+      </aside>
     </div>
   );
 }

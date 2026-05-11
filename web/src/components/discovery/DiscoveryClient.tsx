@@ -2,14 +2,9 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
-import { JobPipelineHint } from "@/components/app/JobPipelineHint";
-import { DiscoveryCoverageNotice } from "@/components/discovery/DiscoveryCoverageNotice";
-import { AppBadge } from "@/components/ui/badge";
-import { AppButton } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Tag } from "@/components/workspace/CareerHeroMockSections";
 
 export type JobRow = {
   id: string;
@@ -44,362 +39,366 @@ export type CatalogSummary = {
   stale_after_days: number;
 };
 
-type FitScoreResponse = {
-  score: number;
-  match_pct: number;
-  rationale: string;
-  gap_skills: string[];
-  strength_skills: string[];
+type TabKey = "all" | "favorites";
+type ImportKind = "url" | "rss";
+
+type DisplayRow = {
+  job: JobRow;
+  score: number | null;
+  similarity: number | null;
+  scoreReason: string | null;
+  components: Record<string, number>;
 };
 
-type TabKey = "feed" | "all" | "hidden";
+const MOCK_JOBS: JobRow[] = [
+  {
+    id: "meta",
+    company: "Meta Platform, Inc",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "3 year exp",
+    employment_type: "Full time",
+    description:
+      "Meta, one of the world's leading technology companies, is placing a renewed emphasis on building meaningful digital interactions across...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "google",
+    company: "Google LLC",
+    title: "Project Manager",
+    location: "Remote",
+    seniority: "8 year exp",
+    employment_type: "Full time",
+    description:
+      "Google continues to transform the way billions of people search, work, and connect by investing heavily in AI, cloud infrastructure, and product...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "amazon",
+    company: "Amazon.com, Inc",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "4 year exp",
+    employment_type: "Part time",
+    description:
+      "Amazon, the global e-commerce leader, is doubling down on elevating its end-to-end customer journey. With millions of daily users. As a Project...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "zalando",
+    company: "Zalando, SE",
+    title: "Project Manager",
+    location: "Remote",
+    seniority: "10 year exp",
+    employment_type: "Full time",
+    description:
+      "Zalando, one of Europe's top online fashion retailers, is investing in smarter recommendations, better logistics visibility, and enhanced mobile shopping...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "glovo",
+    company: "Glovo",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "3 year exp",
+    employment_type: "Full time",
+    description:
+      "Glovo, a widely used delivery platform across Europe, is focusing on optimizing courier routing, accelerating restaurant onboarding, and...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "revolut",
+    company: "Revolut",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "2 year exp",
+    employment_type: "Full time",
+    description:
+      "Revolut, a fast-scaling fintech company, is prioritizing seamless onboarding, improved financial tools, and stronger customer protection. Work as...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "airbnb",
+    company: "Airbnb, Inc.",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "4 year exp",
+    employment_type: "Full time",
+    description:
+      "Airbnb continues to evolve its platform to support safer stays, smoother onboarding for hosts, and better booking transparency for guests. As a...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "shopify",
+    company: "Shopify, Inc",
+    title: "Project Manager",
+    location: "Office",
+    seniority: "6 year exp",
+    employment_type: "Part time",
+    description:
+      "Shopify, powering millions of online stores, has renewed its focus on merchant experience, checkout performance, and streamlined store...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "netflix",
+    company: "Netflix, Inc",
+    title: "Project Manager",
+    location: "Remote",
+    seniority: "2 year exp",
+    employment_type: "Full time",
+    description:
+      "Netflix, the global leader in streaming entertainment, is intensifying its focus on platform personalization, content discovery, and platform...",
+    tags: [],
+    source_url: "#",
+    created_at: new Date().toISOString(),
+  },
+];
 
-function listingSourceLabel(code: string | null | undefined): string | null {
-  if (!code) return null;
-  const labels: Record<string, string> = {
-    remoteok: "Remote OK",
-    adzuna: "Adzuna",
-    http_fetch: "Imported page",
-    manual: "Manual entry",
+const LOGOS: Record<string, { text: string; bg: string; fg: string }> = {
+  meta: { text: "∞", bg: "#2f80ed", fg: "white" },
+  google: { text: "G", bg: "#ffffff", fg: "#4285f4" },
+  amazon: { text: "a", bg: "#ffffff", fg: "#111111" },
+  zalando: { text: "▶", bg: "#ff6422", fg: "white" },
+  glovo: { text: "⌖", bg: "#f2c94c", fg: "#35966c" },
+  revolut: { text: "R", bg: "#ffffff", fg: "#111111" },
+  airbnb: { text: "A", bg: "#ff5a70", fg: "white" },
+  shopify: { text: "S", bg: "#eef7e8", fg: "#75b84a" },
+  netflix: { text: "N", bg: "#111111", fg: "#e50914" },
+};
+
+function keyForCompany(company: string) {
+  const c = company.toLowerCase();
+  if (c.includes("meta")) return "meta";
+  if (c.includes("google")) return "google";
+  if (c.includes("amazon")) return "amazon";
+  if (c.includes("zalando")) return "zalando";
+  if (c.includes("glovo")) return "glovo";
+  if (c.includes("revolut")) return "revolut";
+  if (c.includes("airbnb")) return "airbnb";
+  if (c.includes("shopify")) return "shopify";
+  if (c.includes("netflix")) return "netflix";
+  return "google";
+}
+
+function salaryFor(job: JobRow, index: number) {
+  const highPayCompanies = /amazon|apple|senior|lead/i;
+  return highPayCompanies.test(`${job.company} ${job.title}`) || index === 2 ? "£75,000" : "£50,000";
+}
+
+function postedLabel(job: JobRow) {
+  const raw = job.source_posted_at || job.created_at;
+  const date = raw ? new Date(raw) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Recently added";
+  const days = Math.max(0, Math.round((Date.now() - date.getTime()) / 86_400_000));
+  if (days === 0) return "Posted today";
+  if (days === 1) return "Posted yesterday";
+  return `${days} days ago`;
+}
+
+function normalizedJob(job: JobRow, index: number): JobRow {
+  return {
+    ...job,
+    title: job.title || "Project Manager",
+    company: job.company || MOCK_JOBS[index % MOCK_JOBS.length].company,
+    seniority: job.seniority || MOCK_JOBS[index % MOCK_JOBS.length].seniority,
+    employment_type: job.employment_type || MOCK_JOBS[index % MOCK_JOBS.length].employment_type,
+    location: job.location || MOCK_JOBS[index % MOCK_JOBS.length].location,
+    description: job.description || MOCK_JOBS[index % MOCK_JOBS.length].description,
   };
-  return labels[code] ?? code;
 }
 
-function formatListedAt(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+function normalizedRow(row: DisplayRow, index: number): DisplayRow {
+  return {
+    ...row,
+    job: normalizedJob(row.job, index),
+  };
 }
 
-function ScoreBadge({ value, label }: { value: number; label: string }) {
-  const rounded = Math.round(value);
+function isPreviewJob(job: JobRow) {
+  return MOCK_JOBS.some((j) => j.id === job.id) || job.id.startsWith("mock-");
+}
+
+function sourceLabel(job: JobRow) {
+  if (job.listing_source === "remoteok") return "RemoteOK";
+  if (job.listing_source === "adzuna") return "Adzuna";
+  if (job.listing_source === "http_fetch") return "Imported";
+  if (job.listing_source) return job.listing_source;
+  return "Doubow";
+}
+
+async function postJobEvent(jobId: string, eventType: "click_out" | "save" | "dismiss", reason?: string) {
+  if (!jobId || isPreviewJob({ id: jobId } as JobRow)) return;
+  await fetch(`/api/jobs/${encodeURIComponent(jobId)}/events`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event_type: eventType, reason }),
+  }).catch(() => undefined);
+}
+
+function ToolbarButton({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 text-right shadow-[inset_0_0_0_0.5px_var(--app-border)]">
-      <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
-        {label}
-      </span>
-      <span className="mt-1 block tabular-nums text-[22px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
-        {rounded}
-      </span>
-    </div>
+    <button className="ch-icon-button" type="button" aria-label={label} title={label}>
+      {children}
+    </button>
   );
 }
 
-function JobCard({
+function DiscoveryCard({
   row,
-  tab,
-  fitData,
-  fitLoadingId,
-  expandedFitId,
-  onFit,
-  onToggleFit,
-  hideBusyId,
+  index,
+  favorite,
+  onToggleFavorite,
   onHide,
-  hideLabel,
-  feedbackBusyId,
-  downvoteOpenId,
-  downvoteReason,
-  onToggleDownvote,
-  onChangeDownvoteReason,
-  onUpvote,
-  onDownvote,
-  onImpression,
-  onClickOut,
 }: {
-  row: FeedRow;
-  tab: TabKey;
-  fitData: Record<string, FitScoreResponse>;
-  fitLoadingId: string | null;
-  expandedFitId: string | null;
-  onFit: (jobId: string) => void;
-  onToggleFit: (jobId: string) => void;
-  hideBusyId: string | null;
-  onHide: (jobId: string) => void;
-  hideLabel?: string;
-  feedbackBusyId: string | null;
-  downvoteOpenId: string | null;
-  downvoteReason: string;
-  onToggleDownvote: (jobId: string) => void;
-  onChangeDownvoteReason: (v: string) => void;
-  onUpvote: (jobId: string) => void;
-  onDownvote: (jobId: string, reason: string) => void;
-  onImpression: (jobId: string, meta: Record<string, unknown>) => void;
-  onClickOut: (jobId: string, meta: Record<string, unknown>) => void;
+  row: DisplayRow;
+  index: number;
+  favorite: boolean;
+  onToggleFavorite: () => void;
+  onHide: () => void;
 }) {
   const job = row.job;
-  const score = row.score;
-  const similarity = row.similarity;
-  const scoreReason = row.score_reason;
-  const showMatchRing = tab === "feed";
-
-  const fit = fitData[job.id];
-  const open = expandedFitId === job.id;
-
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (!first) return;
-        if (first.isIntersecting) {
-          onImpression(job.id, {
-            tab,
-            similarity,
-            score,
-            listing_source: job.listing_source ?? null,
-          });
-          obs.disconnect();
-        }
-      },
-      { root: null, threshold: 0.4 },
-    );
-
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [job.id, job.listing_source, onImpression, score, similarity, tab]);
+  const key = keyForCompany(job.company);
+  const logo = LOGOS[key];
+  const tags = [
+    job.seniority || "3 year exp",
+    job.employment_type || "Full time",
+    job.location || "Office",
+  ];
+  const detailHref = isPreviewJob(job) ? "#" : `/app/discovery/${job.id}`;
+  const description = job.description || "";
+  const hasLiveUrl = Boolean(job.source_url && job.source_url !== "#");
+  const score = typeof row.score === "number" ? Math.round(row.score) : null;
+  const components = Object.entries(row.components || {}).slice(0, 3);
 
   return (
-    <div
-      ref={rootRef}
-      className="app-surface app-surface-hover rounded-[var(--app-radius-lg)] p-5"
+    <motion.article
+      className="group relative overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--app-border)_70%,transparent)] bg-[rgba(255,255,255,0.86)] shadow-[0_20px_48px_rgba(9,28,17,0.07)] backdrop-blur transition hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--app-accent)_38%,var(--app-border))] hover:shadow-[0_28px_70px_rgba(9,28,17,0.13)]"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay: Math.min(index * 0.035, 0.25) }}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-pretty text-[15px] font-semibold tracking-tight text-[var(--app-text-primary)]">
-              <Link
-                href={`/app/discovery/${job.id}`}
-                className="underline-offset-4 hover:text-[var(--app-accent)] hover:underline"
-              >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--app-accent)] via-[#348ef6] to-[#ffb454] opacity-80" />
+      <div className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <span
+              className="grid size-14 shrink-0 place-items-center rounded-2xl text-[28px] font-black shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)]"
+              style={{ backgroundColor: logo.bg, color: logo.fg }}
+            >
+              {logo.text}
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate text-[20px] font-bold tracking-[-0.01em] text-[var(--app-text-primary)]">
                 {job.title}
-              </Link>
-            </h2>
-            {job.tags?.slice(0, 3).map((t) => (
-              <AppBadge key={t} variant="gray">
-                {t}
-              </AppBadge>
-            ))}
-          </div>
-          <p className="text-[13px] text-[var(--app-text-secondary)]">
-            <span className="font-medium text-[var(--app-text-primary)]">{job.company}</span>
-            {job.location ? (
-              <>
-                {" "}
-                · {job.location}
-              </>
-            ) : null}
-            {job.seniority ? (
-              <>
-                {" "}
-                · {job.seniority}
-              </>
-            ) : null}
-          </p>
-          {job.description ? (
-            <p className="line-clamp-3 text-[13px] leading-6 text-[var(--app-text-secondary)]">{job.description}</p>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {scoreReason && tab === "feed" ? (
-              <span className="inline-flex items-center rounded-[var(--app-radius-pill)] bg-[color-mix(in_srgb,var(--app-accent)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--app-text-primary)]">
-                {scoreReason}
-              </span>
-            ) : null}
-            {listingSourceLabel(job.listing_source) ? (
-              <span className="inline-flex items-center rounded-[var(--app-radius-pill)] bg-[var(--app-badge-gray-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--app-badge-gray-fg)]">
-                via {listingSourceLabel(job.listing_source)}
-              </span>
-            ) : null}
-            {formatListedAt(job.source_posted_at ?? undefined) ? (
-              <span className="text-[12px] text-[var(--app-text-tertiary)]">
-                Listed {formatListedAt(job.source_posted_at ?? undefined)}
-              </span>
-            ) : formatListedAt(job.created_at) ? (
-              <span className="text-[12px] text-[var(--app-text-tertiary)]">
-                Added {formatListedAt(job.created_at)}
-              </span>
-            ) : null}
-            {job.source_url ? (
-              <Link
-                href={job.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-10 items-center text-[12px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
-                onClick={() => {
-                  onClickOut(job.id, {
-                    tab,
-                    url: job.source_url,
-                    listing_source: job.listing_source ?? null,
-                  });
-                }}
-              >
-                View original
-              </Link>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 flex-row items-start gap-4 sm:flex-col sm:items-end">
-          {showMatchRing ? (
-            <ScoreBadge
-              label="Match"
-              value={score ?? 0}
-            />
-          ) : null}
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-            <Link
-              href={`/app/discovery/${job.id}`}
-              className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-primary)] transition-[border-color,color,transform] duration-150 ease-out hover:border-[var(--app-accent)] hover:text-[var(--app-accent)] active:scale-[0.96]"
-            >
-              Details
-            </Link>
-            <AppButton
-              size="sm"
-              variant="outline"
-              disabled={fitLoadingId === job.id}
-              onClick={() => {
-                if (fit) {
-                  onToggleFit(job.id);
-                } else {
-                  void onFit(job.id);
-                }
-              }}
-            >
-              {fitLoadingId === job.id ? "Scoring…" : fit ? (open ? "Hide fit" : "Show fit") : "Check fit"}
-            </AppButton>
-            <AppButton
-              size="sm"
-              variant="outline"
-              disabled={feedbackBusyId === job.id}
-              onClick={() => onUpvote(job.id)}
-              title="Tell us this job is a good match"
-            >
-              {feedbackBusyId === job.id ? (
-                "Working…"
-              ) : (
-                <>
-                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
-                    ↑
-                  </span>
-                  <span className="hidden sm:inline">Upvote</span>
-                  <span className="sm:hidden">Good fit</span>
-                </>
-              )}
-            </AppButton>
-            <AppButton
-              size="sm"
-              variant="outline"
-              disabled={feedbackBusyId === job.id}
-              onClick={() => onToggleDownvote(job.id)}
-              title="Tell us this job is not a good match"
-            >
-              {feedbackBusyId === job.id ? (
-                "Working…"
-              ) : (
-                <>
-                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
-                    ↓
-                  </span>
-                  <span className="hidden sm:inline">Downvote</span>
-                  <span className="sm:hidden">Bad fit</span>
-                </>
-              )}
-            </AppButton>
-            <AppButton
-              size="sm"
-              variant="outline"
-              disabled={hideBusyId === job.id}
-              onClick={() => onHide(job.id)}
-              title="Hide this job from your feed"
-            >
-              {hideBusyId === job.id ? (
-                "Working…"
-              ) : (
-                <>
-                  <span aria-hidden className="mr-1.5 inline-block sm:mr-2">
-                    ⊘
-                  </span>
-                  <span className="hidden sm:inline">{hideLabel ?? "Hide"}</span>
-                  <span className="sm:hidden">{tab === "hidden" ? "Unhide" : "Hide"}</span>
-                </>
-              )}
-            </AppButton>
-          </div>
-        </div>
-      </div>
-
-      {downvoteOpenId === job.id ? (
-        <div className="mt-4 flex flex-col gap-2 border-t border-[var(--app-border)] pt-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-            Why is this a bad fit?
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <select
-              value={downvoteReason}
-              onChange={(e) => onChangeDownvoteReason(e.target.value)}
-              className="w-full max-w-xl rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus:border-[color:var(--app-focus-border)]"
-            >
-              <option value="">Select a reason…</option>
-              <option value="irrelevant_role">Role is irrelevant</option>
-              <option value="wrong_level">Seniority/level mismatch</option>
-              <option value="wrong_location">Location mismatch</option>
-              <option value="pay_too_low">Compensation too low</option>
-              <option value="not_remote">Not remote / remote mismatch</option>
-              <option value="duplicate">Duplicate listing</option>
-              <option value="other">Other</option>
-            </select>
-            <div className="flex gap-2">
-              <AppButton
-                size="sm"
-                variant="primary"
-                disabled={feedbackBusyId === job.id || !downvoteReason}
-                onClick={() => onDownvote(job.id, downvoteReason)}
-              >
-                Submit
-              </AppButton>
-              <AppButton size="sm" variant="outline" disabled={feedbackBusyId === job.id} onClick={() => onToggleDownvote(job.id)}>
-                Cancel
-              </AppButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {open && fit ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="mt-4 border-t border-[var(--app-border)] pt-4 text-[13px] leading-6 text-[var(--app-text-secondary)]"
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                Scores
-              </div>
-              <p className="mt-1 tabular-nums text-[var(--app-text-primary)]">
-                Fit {Math.round(fit.score)} · Alignment {Math.round(fit.match_pct)}%
+              </h2>
+              <p className="mt-1 truncate text-[15px] font-semibold text-[var(--app-accent)]">
+                {job.company}
               </p>
             </div>
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                Strengths
-              </div>
-              <p className="mt-1">{fit.strength_skills.length ? fit.strength_skills.join(", ") : "—"}</p>
-            </div>
           </div>
-          <p className="mt-3 text-pretty">{fit.rationale}</p>
-          {fit.gap_skills.length ? (
-            <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
-              Gaps: {fit.gap_skills.join(", ")}
-            </p>
+          <button
+            type="button"
+            className={`text-[26px] leading-none ${favorite ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)]"}`}
+            aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+            onClick={onToggleFavorite}
+          >
+            {favorite ? "★" : "☆"}
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <Tag key={tag}>{tag}</Tag>
+          ))}
+          <Tag>{sourceLabel(job)}</Tag>
+          {score !== null ? <Tag active>{score}% match</Tag> : null}
+          <Tag>{postedLabel(job)}</Tag>
+        </div>
+
+        <p className="mt-6 line-clamp-3 min-h-[78px] text-[15px] leading-[1.55] text-[var(--app-text-primary)]">
+          {description}
+        </p>
+
+        {row.scoreReason ? (
+          <p className="mt-4 line-clamp-1 text-[13px] font-semibold text-[var(--app-text-secondary)]">
+            {row.scoreReason}
+          </p>
+        ) : null}
+
+        {components.length ? (
+          <div className="mt-5 grid gap-2">
+            {components.map(([name, value]) => (
+              <div key={name} className="grid grid-cols-[92px_1fr_42px] items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
+                <span>{name}</span>
+                <span className="h-1.5 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
+                  <span
+                    className="block h-full rounded-full bg-[var(--app-accent)]"
+                    style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
+                  />
+                </span>
+                <span className="text-right tabular-nums">{Math.round(value)}%</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-dashed border-[var(--app-border)] px-6 py-5">
+        <p className="text-[22px] font-black tracking-[-0.03em] text-[var(--app-text-primary)]">
+          {salaryFor(job, index)} <span className="text-[13px] font-semibold text-[var(--app-text-secondary)]">/year</span>
+        </p>
+        <div className="flex items-center gap-3">
+          {!isPreviewJob(job) ? (
+            <button
+              type="button"
+              className="text-[18px] text-[var(--app-text-secondary)] transition hover:text-[var(--app-danger)]"
+              aria-label={`Hide ${job.title}`}
+              title="Hide role"
+              onClick={onHide}
+            >
+              ×
+            </button>
           ) : null}
-        </motion.div>
-      ) : null}
-    </div>
+          {hasLiveUrl ? (
+            <a
+              href={job.source_url || "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[24px] text-[var(--app-text-secondary)] transition group-hover:text-[var(--app-accent)]"
+              aria-label={`Open ${job.title} source`}
+              onClick={() => void postJobEvent(job.id, "click_out")}
+            >
+              ↗
+            </a>
+          ) : (
+            <Link
+              href={detailHref}
+              className="text-[24px] text-[var(--app-text-secondary)] transition group-hover:text-[var(--app-accent)]"
+              aria-label={`Open ${job.title}`}
+              onClick={() => void postJobEvent(job.id, "click_out")}
+            >
+              ↗
+            </Link>
+          )}
+        </div>
+      </div>
+    </motion.article>
   );
 }
 
@@ -416,421 +415,265 @@ export function DiscoveryClient({
   catalogSummary: CatalogSummary | null;
   loadError: boolean;
 }) {
-  const router = useRouter();
-  const [tab, setTab] = useState<TabKey>("feed");
-  const [scrapeUrl, setScrapeUrl] = useState("");
-  const [scrapeKind, setScrapeKind] = useState<"url" | "rss">("url");
-  const [scrapeBusy, setScrapeBusy] = useState(false);
-  const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
-  const [fitData, setFitData] = useState<Record<string, FitScoreResponse>>({});
-  const [fitLoadingId, setFitLoadingId] = useState<string | null>(null);
-  const [expandedFitId, setExpandedFitId] = useState<string | null>(null);
-  const [hideBusyId, setHideBusyId] = useState<string | null>(null);
-  const [feedbackBusyId, setFeedbackBusyId] = useState<string | null>(null);
-  const [downvoteOpenId, setDownvoteOpenId] = useState<string | null>(null);
-  const [downvoteReason, setDownvoteReason] = useState("");
-  const impressedIdsRef = useRef<Set<string>>(new Set());
+  const [tab, setTab] = useState<TabKey>("all");
+  const [favorites, setFavorites] = useState<Set<string>>(
+    () => new Set(initialFeed.length || initialJobs.length ? [] : ["google", "glovo", "shopify"]),
+  );
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+  const [openToWork, setOpenToWork] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importKind, setImportKind] = useState<ImportKind>("url");
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  async function trackEvent(jobId: string, payload: { event_type: string; reason?: string; meta?: unknown }) {
-    try {
-      await fetch(`/api/jobs/${jobId}/events`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-        keepalive: true,
+  const rows = useMemo(() => {
+    const source: DisplayRow[] = initialFeed.length
+      ? initialFeed.map((row) => ({
+          job: row.job,
+          score: row.score,
+          similarity: row.similarity,
+          scoreReason: row.score_reason || null,
+          components: row.score_components || {},
+        }))
+      : initialJobs.length
+        ? initialJobs.map((job) => ({
+            job,
+            score: null,
+            similarity: null,
+            scoreReason: null,
+            components: {},
+          }))
+        : MOCK_JOBS.map((job) => ({
+            job,
+            score: null,
+            similarity: null,
+            scoreReason: null,
+            components: {},
+          }));
+    return source.slice(0, 12).map((row, index) => normalizedRow(row, index));
+  }, [initialFeed, initialJobs]);
+
+  const favoriteCount = favorites.size;
+  const totalCount = catalogSummary?.active_total || initialJobs.length || initialFeed.length || 108;
+  const visibleRows = rows.filter(({ job }) => {
+    if (hiddenIds.has(job.id)) return false;
+    if (tab === "favorites" && !favorites.has(job.id)) return false;
+    if (!query.trim()) return true;
+    const needle = query.trim().toLowerCase();
+    return `${job.title} ${job.company} ${job.location || ""} ${job.tags.join(" ")}`.toLowerCase().includes(needle);
+  });
+
+  function toggleFavorite(id: string) {
+    const row = rows.find((r) => r.job.id === id);
+    const live = row && !isPreviewJob(row.job);
+    const nextFavorite = !favorites.has(id);
+    setFavorites((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    if (live) {
+      startTransition(() => {
+        const call = nextFavorite
+          ? fetch(`/api/jobs/${encodeURIComponent(id)}/feedback`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ action: "upvote", reason: "saved from discovery" }),
+            })
+          : fetch(`/api/jobs/${encodeURIComponent(id)}/feedback`, { method: "DELETE" });
+        void call.then(() => postJobEvent(id, "save")).catch(() => undefined);
       });
-    } catch {
-      // best-effort only
     }
   }
 
-  function onImpression(jobId: string, meta: Record<string, unknown>) {
-    if (impressedIdsRef.current.has(jobId)) return;
-    impressedIdsRef.current.add(jobId);
-    void trackEvent(jobId, { event_type: "impression", meta });
+  function hideJob(id: string) {
+    const row = rows.find((r) => r.job.id === id);
+    setHiddenIds((current) => new Set(current).add(id));
+    setFavorites((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+    if (row && !isPreviewJob(row.job)) {
+      startTransition(() => {
+        void fetch(`/api/jobs/${encodeURIComponent(id)}/feedback`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "hide", reason: "hidden from discovery" }),
+        })
+          .then(() => postJobEvent(id, "dismiss", "hidden from discovery"))
+          .catch(() => undefined);
+      });
+    }
   }
 
-  function onClickOut(jobId: string, meta: Record<string, unknown>) {
-    void trackEvent(jobId, { event_type: "click_out", meta });
-  }
-
-  const feedRows = useMemo(() => initialFeed, [initialFeed]);
-  const allRows: FeedRow[] = useMemo(
-    () =>
-      initialJobs.map((j) => ({
-        job: j,
-        score: 0,
-        similarity: null,
-      })),
-    [initialJobs],
-  );
-  const hiddenRows: FeedRow[] = useMemo(
-    () =>
-      initialHiddenJobs.map((j) => ({
-        job: j,
-        score: 0,
-        similarity: null,
-      })),
-    [initialHiddenJobs],
-  );
-
-  async function submitScrape(e: React.FormEvent) {
-    e.preventDefault();
-    setScrapeMsg(null);
-    const url = scrapeUrl.trim();
+  function submitImport(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const url = importUrl.trim();
     if (!url) return;
-    setScrapeBusy(true);
-    try {
-      const resp = await fetch("/api/jobs/scrape", {
+    setImportStatus("Queueing import...");
+    startTransition(() => {
+      void fetch("/api/jobs/scrape", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, kind: scrapeKind }),
-      });
-      const data = (await resp.json().catch(() => ({}))) as { task_id?: string; detail?: string };
-      if (resp.ok && data.task_id) {
-        setScrapeMsg(
-          scrapeKind === "rss"
-            ? "We are importing that feed. New roles will appear shortly."
-            : "We are importing that posting. Refresh in a few seconds to see new roles.",
-        );
-        setScrapeUrl("");
-        router.refresh();
-      } else {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Request failed (${resp.status})`);
-      }
-    } finally {
-      setScrapeBusy(false);
-    }
+        body: JSON.stringify({ url, kind: importKind }),
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Import failed");
+          setImportStatus("Import queued. New roles appear after the worker finishes.");
+          setImportUrl("");
+        })
+        .catch(() => setImportStatus("Could not queue that import."));
+    });
   }
-
-  async function runFit(jobId: string) {
-    setFitLoadingId(jobId);
-    setScrapeMsg(null);
-    try {
-      const resp = await fetch(`/api/jobs/${jobId}/fit`, { method: "POST" });
-      const data = (await resp.json().catch(() => ({}))) as FitScoreResponse & { detail?: string };
-      if (resp.ok && typeof data.score === "number") {
-        setFitData((m) => ({ ...m, [jobId]: data }));
-        setExpandedFitId(jobId);
-      } else {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Fit scoring failed (${resp.status})`);
-      }
-    } finally {
-      setFitLoadingId(null);
-    }
-  }
-
-  async function hideJob(jobId: string) {
-    setHideBusyId(jobId);
-    setScrapeMsg(null);
-    try {
-      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "hide" }),
-      });
-      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-      if (!resp.ok) {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Hide failed (${resp.status})`);
-        return;
-      }
-      router.refresh();
-    } finally {
-      setHideBusyId(null);
-    }
-  }
-
-  async function unhideJob(jobId: string) {
-    setHideBusyId(jobId);
-    setScrapeMsg(null);
-    try {
-      const resp = await fetch(`/api/jobs/${jobId}/feedback`, { method: "DELETE" });
-      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-      if (!resp.ok) {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Undo failed (${resp.status})`);
-        return;
-      }
-      router.refresh();
-    } finally {
-      setHideBusyId(null);
-    }
-  }
-
-  function toggleDownvote(jobId: string) {
-    setDownvoteReason("");
-    setDownvoteOpenId((cur) => (cur === jobId ? null : jobId));
-  }
-
-  async function upvoteJob(jobId: string) {
-    setFeedbackBusyId(jobId);
-    setScrapeMsg(null);
-    try {
-      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "upvote" }),
-      });
-      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-      if (!resp.ok) {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Upvote failed (${resp.status})`);
-        return;
-      }
-      router.refresh();
-    } finally {
-      setFeedbackBusyId(null);
-    }
-  }
-
-  async function downvoteJob(jobId: string, reason: string) {
-    setFeedbackBusyId(jobId);
-    setScrapeMsg(null);
-    try {
-      const resp = await fetch(`/api/jobs/${jobId}/feedback`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "downvote", reason }),
-      });
-      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
-      if (!resp.ok) {
-        setScrapeMsg(typeof data.detail === "string" ? data.detail : `Downvote failed (${resp.status})`);
-        return;
-      }
-      setDownvoteOpenId(null);
-      setDownvoteReason("");
-      router.refresh();
-    } finally {
-      setFeedbackBusyId(null);
-    }
-  }
-
-  const list = tab === "feed" ? feedRows : tab === "hidden" ? hiddenRows : allRows;
-  const sourceEntries = Object.entries(catalogSummary?.by_source ?? {}).slice(0, 4);
 
   return (
-    <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
-      <div>
-        <h1 className="text-balance text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
-          Job Discovery
-        </h1>
-        <p className="mt-2 max-w-2xl text-pretty text-[14px] leading-6 text-[var(--app-text-secondary)]">
-          Open a role for the full posting, then <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span>{" "}
-          to prepare a message for review. Your résumé, location, seniority, and recent feedback shape the order.
-        </p>
-        <div className="mt-4">
-          <JobPipelineHint variant="discovery" />
+    <section className="ch-panel min-h-[calc(100vh-104px)] p-6">
+      <div className="doubow-orb mb-6 overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--app-accent)_20%,var(--app-border))] bg-[#07110d] p-7 text-white shadow-[0_28px_70px_rgba(9,28,17,0.18)]">
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--app-accent)]">
+              Curated role network
+            </p>
+            <h2 className="mt-3 text-[32px] font-black leading-[1.02] tracking-[-0.045em] md:text-[44px]">
+              High-signal opportunities, ranked for your next move.
+            </h2>
+            <p className="mt-4 max-w-xl text-[15px] leading-7 text-white/68">
+              Doubow blends resume embeddings, seniority fit, freshness, and location signals so the page feels more like a talent marketplace than a scraped job board.
+            </p>
+          </div>
+          <div className="grid min-w-[260px] grid-cols-2 gap-3">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Active roles</span>
+              <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{totalCount}</strong>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Embedded</span>
+              <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{catalogSummary?.embedded_total ?? initialFeed.length}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1">
+          <button
+            type="button"
+            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition ${
+              tab === "all" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
+            }`}
+            onClick={() => setTab("all")}
+          >
+            <span aria-hidden>▣</span> All Jobs <Tag active>{totalCount}</Tag>
+          </button>
+          <button
+            type="button"
+            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition ${
+              tab === "favorites" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
+            }`}
+            onClick={() => setTab("favorites")}
+          >
+            <span aria-hidden>★</span> Favorites Jobs <Tag>{favoriteCount}</Tag>
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <ToolbarButton label="Filters">☷</ToolbarButton>
+          <ToolbarButton label="Sort">⇅</ToolbarButton>
+          <label className="flex min-h-12 w-52 items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)]">
+            <span aria-hidden className="text-[var(--app-text-secondary)]">O</span>
+            <input
+              className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter roles"
+            />
+          </label>
+          <button
+            className={`ch-primary-button min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
+            type="button"
+            onClick={() => setOpenToWork((value) => !value)}
+          >
+            <span aria-hidden>⊙</span> Open to Work
+          </button>
+          <button className="ch-primary-button min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
+            <span aria-hidden className="text-[22px]">+</span> Add Job
+          </button>
         </div>
       </div>
 
-      <DiscoveryCoverageNotice />
-
-      {catalogSummary ? (
-        <section className="app-surface rounded-[var(--app-radius-lg)] p-4">
-          <div className="grid gap-3 sm:grid-cols-4">
-            {[
-              ["Active roles", catalogSummary.active_total],
-              ["Embedded", catalogSummary.embedded_total],
-              ["Needs scoring", catalogSummary.missing_embedding_total],
-              ["With source", catalogSummary.with_source_url_total],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
-                <div className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">{label}</div>
-                <div className="mt-1 tabular-nums text-[18px] font-semibold leading-none text-[var(--app-text-primary)]">{value}</div>
-              </div>
-            ))}
-          </div>
-          {sourceEntries.length ? (
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--app-text-secondary)]">
-              {sourceEntries.map(([source, count]) => (
-                <span key={source} className="rounded-[var(--app-radius-pill)] bg-[var(--app-badge-gray-bg)] px-2.5 py-1 font-medium text-[var(--app-badge-gray-fg)]">
-                  {listingSourceLabel(source) ?? source}: {count}
-                </span>
-              ))}
-            </div>
+      {showImport ? (
+        <form
+          className="mt-5 grid gap-3 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-white p-4 shadow-[var(--app-shadow-1)] lg:grid-cols-[auto_1fr_auto]"
+          onSubmit={submitImport}
+        >
+          <select
+            className="min-h-12 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] font-semibold outline-none"
+            value={importKind}
+            onChange={(event) => setImportKind(event.target.value as ImportKind)}
+            aria-label="Import type"
+          >
+            <option value="url">Job URL</option>
+            <option value="rss">RSS Feed</option>
+          </select>
+          <input
+            className="min-h-12 rounded-full border border-[var(--app-border)] bg-white px-5 text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
+            value={importUrl}
+            onChange={(event) => setImportUrl(event.target.value)}
+            placeholder="https://company.com/jobs/product-manager"
+          />
+          <button className="ch-primary-button min-w-36" type="submit" disabled={isPending}>
+            {isPending ? "Queueing" : "Import"}
+          </button>
+          {importStatus ? (
+            <p className="text-[13px] font-semibold text-[var(--app-text-secondary)] lg:col-span-3">
+              {importStatus}
+            </p>
           ) : null}
-        </section>
+        </form>
       ) : null}
+
+      <div className="my-8 border-t border-[var(--app-border)]" />
 
       {loadError ? (
-        <div
-          role="alert"
-          className="rounded-[var(--app-radius-lg)] border border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_7%,var(--app-bg-elevated))] px-4 py-4 sm:px-5 sm:py-5"
-        >
-          <p className="text-[14px] font-semibold tracking-tight text-[var(--app-text-primary)]">Couldn&apos;t load jobs</p>
-          <p className="mt-2 max-w-2xl text-pretty text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-            We could not load your job list. Check that you are signed in, then refresh the page.
-          </p>
+        <div className="mb-5 rounded-2xl border border-[color-mix(in_srgb,var(--app-danger)_25%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_7%,white)] px-5 py-4 text-[14px] text-[var(--app-danger)]">
+          Could not load live jobs, so preview roles are shown.
         </div>
       ) : null}
 
-      <section className="app-surface rounded-[var(--app-radius-lg)] p-5">
-        <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-          Add a posting
+      {tab === "favorites" && visibleRows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-white px-5 py-16 text-center text-[var(--app-text-secondary)]">
+          No favorites yet. Star a role to add it here.
         </div>
-        <form className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end" onSubmit={submitScrape}>
-          <div className="min-w-0 flex-1 space-y-2">
-            <label className="text-[13px] font-medium text-[var(--app-text-primary)]" htmlFor="scrape-url">
-              URL
-            </label>
-            <input
-              id="scrape-url"
-              value={scrapeUrl}
-              onChange={(e) => setScrapeUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none ring-[color:var(--app-focus-ring)] placeholder:text-[var(--app-text-tertiary)] focus:border-[color:var(--app-focus-border)] focus:ring-2"
-            />
-          </div>
-          <div className="flex gap-2 lg:shrink-0">
-            {(["url", "rss"] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={cn(
-                  "min-h-10 rounded-[var(--app-radius-pill)] px-4 text-[12px] font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
-                  scrapeKind === k
-                    ? "bg-[color-mix(in_srgb,var(--app-accent)_18%,transparent)] text-[var(--app-text-primary)]"
-                    : "bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]",
-                )}
-                onClick={() => setScrapeKind(k)}
-              >
-                {k === "url" ? "Single posting" : "RSS feed"}
-              </button>
-            ))}
-          </div>
-          <AppButton
-            className="lg:shrink-0"
-            disabled={scrapeBusy}
-            type="submit"
-            variant="primary"
-          >
-            {scrapeBusy ? "Adding…" : "Add posting"}
-          </AppButton>
-        </form>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <p className="max-w-xl text-[12px] leading-5 text-[var(--app-text-tertiary)]">
-            Add a posting you already trust, or browse the roles already in your catalog. Each card shows where the role came from and links back to the original posting.
-          </p>
+      ) : visibleRows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-white px-5 py-16 text-center text-[var(--app-text-secondary)]">
+          No matching roles found.
         </div>
-        {scrapeMsg ? (
-          <p className="mt-3 text-[13px] leading-6 text-[var(--app-text-secondary)]">{scrapeMsg}</p>
-        ) : null}
-      </section>
-
-      <div
-        className="flex flex-wrap gap-2 border-b border-[var(--app-border)] pb-3"
-        role="tablist"
-        aria-label="Job list views"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "feed"}
-          id="discovery-tab-feed"
-          className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
-            tab === "feed"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
-              : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
-          )}
-          onClick={() => setTab("feed")}
-        >
-          For you
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "all"}
-          id="discovery-tab-all"
-          className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
-            tab === "all"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
-              : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
-          )}
-          onClick={() => setTab("all")}
-        >
-          All roles
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "hidden"}
-          id="discovery-tab-hidden"
-          className={cn(
-            "rounded-[var(--app-radius-pill)] px-4 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
-            tab === "hidden"
-              ? "bg-[var(--app-bg-elevated)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)]"
-              : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]",
-          )}
-          onClick={() => setTab("hidden")}
-        >
-          Hidden
-        </button>
-      </div>
-
-      {!loadError && tab === "feed" && feedRows.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
-          {catalogSummary?.active_total === 0 ? (
-            <>
-              No active roles are in the catalog yet. Add a trusted posting URL here, or ask an admin to run a provider sync.
-            </>
-          ) : (
-            <>
-              No personalized rows yet. Add your résumé from the Dashboard, or switch to{" "}
-              <span className="font-medium text-[var(--app-text-primary)]">All roles</span>.
-            </>
-          )}{" "}
-          When listings appear, use{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">Details</span> →{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> →{" "}
-          <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
-            Approvals
-          </Link>
-          .
-        </div>
-      ) : !loadError && tab === "hidden" && hiddenRows.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
-          Nothing hidden yet. Use{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">Hide</span> on a card to remove it from your feed.
-        </div>
-      ) : !loadError && tab === "all" && allRows.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
-          No roles in the catalog yet. Queue a URL or RSS under{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">Import</span>, or run a bulk sync, then refresh.
-        </div>
-      ) : !loadError ? (
-        <div className="flex flex-col gap-4">
-          {list.map((row, i) => (
-            <motion.div
+      ) : (
+        <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+          {visibleRows.map((row, index) => (
+            <DiscoveryCard
               key={row.job.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, delay: Math.min(i * 0.04, 0.4) }}
-            >
-              <JobCard
-                expandedFitId={expandedFitId}
-                fitData={fitData}
-                fitLoadingId={fitLoadingId}
-                hideBusyId={hideBusyId}
-                feedbackBusyId={feedbackBusyId}
-                downvoteOpenId={downvoteOpenId}
-                downvoteReason={downvoteReason}
-                row={row}
-                tab={tab}
-                onFit={runFit}
-                onToggleDownvote={toggleDownvote}
-                onChangeDownvoteReason={setDownvoteReason}
-                onUpvote={upvoteJob}
-                onDownvote={downvoteJob}
-                onHide={tab === "hidden" ? unhideJob : hideJob}
-                hideLabel={tab === "hidden" ? "Undo hide" : "Hide"}
-                onToggleFit={(id) => setExpandedFitId((cur) => (cur === id ? null : id))}
-                onImpression={onImpression}
-                onClickOut={onClickOut}
-              />
-            </motion.div>
+              row={row}
+              index={index}
+              favorite={favorites.has(row.job.id)}
+              onToggleFavorite={() => toggleFavorite(row.job.id)}
+              onHide={() => hideJob(row.job.id)}
+            />
           ))}
         </div>
+      )}
+
+      {initialHiddenJobs.length ? (
+        <p className="mt-6 text-[12px] text-[var(--app-text-tertiary)]">
+          {initialHiddenJobs.length} hidden roles are excluded from this mockup-style view.
+        </p>
       ) : null}
-    </div>
+    </section>
   );
 }

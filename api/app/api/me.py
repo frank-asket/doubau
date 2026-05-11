@@ -12,6 +12,8 @@ from app.api.deps import CurrentUserDep, DbDep
 from app.api.schemas import (
     CheckInCreate,
     CheckInOut,
+    DashboardSummaryOut,
+    DashboardTrendPoint,
     JdFitRequest,
     MilestoneCreate,
     MilestoneOut,
@@ -320,6 +322,74 @@ def workspace_summary(db: DbDep, current_user: CurrentUserDep) -> WorkspaceSumma
     )
 
 
+def _resume_readiness(status: str | None) -> int:
+    if status == ResumeStatus.EMBEDDED:
+        return 100
+    if status == ResumeStatus.PARSED:
+        return 72
+    if status == ResumeStatus.UPLOADED:
+        return 40
+    if status == ResumeStatus.FAILED:
+        return 12
+    return 0
+
+
+def _trend_bucket(dt: datetime, *, start: datetime) -> int:
+    return max(0, min(7, int((dt - start).days // 4)))
+
+
+@router.get("/dashboard-summary", response_model=DashboardSummaryOut)
+def dashboard_summary(db: DbDep, current_user: CurrentUserDep) -> DashboardSummaryOut:
+    base = workspace_summary(db, current_user)
+    now = datetime.utcnow()
+    start = now - timedelta(days=31)
+    labels = ["1-4", "5-8", "9-12", "13-16", "17-20", "21-24", "25-28", "29-31"]
+    trend = [DashboardTrendPoint(label=label) for label in labels]
+
+    apps = db.scalars(
+        select(Application)
+        .where(Application.user_id == current_user.id)
+        .where(Application.created_at >= start)
+        .order_by(Application.created_at.asc())
+    ).all()
+    for app in apps:
+        bucket = trend[_trend_bucket(app.created_at.replace(tzinfo=None), start=start)]
+        status = app.status.value if hasattr(app.status, "value") else str(app.status)
+        if status in (ApplicationStatus.DISCOVERED, ApplicationStatus.SCORING, ApplicationStatus.DRAFTED):
+            bucket.discovered += 1
+        elif status in (ApplicationStatus.PENDING_APPROVAL, ApplicationStatus.APPROVED):
+            bucket.pending += 1
+        elif status == ApplicationStatus.SUBMITTED:
+            bucket.submitted += 1
+        elif status in (ApplicationStatus.FAILED, ApplicationStatus.RETRY):
+            bucket.failed += 1
+
+    recent = db.scalars(
+        select(Application)
+        .where(Application.user_id == current_user.id)
+        .order_by(desc(Application.updated_at), desc(Application.created_at))
+        .limit(5)
+    ).all()
+
+    return DashboardSummaryOut(
+        **base.model_dump(),
+        resume_readiness=_resume_readiness(base.resume_status),
+        applications_trend=trend,
+        recent_applications=[
+            {
+                "id": str(app.id),
+                "company": app.company,
+                "job_title": app.job_title,
+                "status": app.status.value if hasattr(app.status, "value") else str(app.status),
+                "source_url": app.source_url,
+                "created_at": app.created_at,
+                "updated_at": app.updated_at,
+            }
+            for app in recent
+        ],
+    )
+
+
 @router.post("/jd-fit", response_model=FitScoreOut)
 def jd_fit(db: DbDep, current_user: CurrentUserDep, payload: JdFitRequest) -> FitScoreOut:
     resume = db.scalar(
@@ -440,4 +510,3 @@ def create_check_in(
     db.commit()
     db.refresh(row)
     return CheckInOut.model_validate(row)
-

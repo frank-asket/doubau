@@ -1,63 +1,62 @@
 "use client";
 
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-
-import { fetchApplications, fetchDrafts } from "@/lib/applications-fetch";
-import { queryKeys } from "@/lib/query-keys";
-
+import { Gauge, ProgressLine } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
+const sections = [
+  ["Headline", 7, "green"],
+  ["Summary", 2, "red"],
+  ["Experience", 5, "pink"],
+  ["Education", 10, "green"],
+  ["Other", 6, "pink"],
+];
+
 export function LinkedinAnalysisClient() {
-  const draftsQ = useQuery({
-    queryKey: queryKeys.applicationDrafts,
-    queryFn: fetchDrafts,
-  });
-  const appsQ = useQuery({
-    queryKey: queryKeys.applications,
-    queryFn: fetchApplications,
-  });
-
-  const appById = new Map((appsQ.data ?? []).map((a) => [a.id, a]));
-  const liDrafts = (draftsQ.data ?? []).filter((d) => d.channel === "linkedin");
-
   return (
-    <ProductPageChrome
-      title="LinkedIn analysis"
-      description="LinkedIn outreach drafts generated with your applications (same dual-channel bundle as generate_draft)."
-    >
-      {draftsQ.isLoading || appsQ.isLoading ? (
-        <p className="text-[13px] text-[var(--app-text-secondary)]">Loading drafts…</p>
-      ) : draftsQ.isError || appsQ.isError ? (
-        <p className="text-[13px] text-[var(--app-badge-red-fg)]">Could not load drafts.</p>
-      ) : liDrafts.length === 0 ? (
-        <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 text-[13px] text-[var(--app-text-secondary)]">
-          No LinkedIn drafts yet. Generate drafts for an application, then review them in{" "}
-          <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] hover:underline">
-            approvals
-          </Link>
-          .
+    <ProductPageChrome title="LinkedIn Analysis">
+      <div className="grid gap-4 lg:grid-cols-[390px_1fr]">
+        <aside className="ch-panel flex flex-col p-7">
+          <Gauge value={50} label="Overall score" icon="👍" />
+          <div className="my-8 border-t border-[var(--app-border)]" />
+          <div className="space-y-4">
+            {sections.map(([label, score, tone]) => (
+              <button key={label} className="flex min-h-12 w-full items-center justify-between rounded-full bg-[var(--app-bg-muted)] px-5 text-left font-semibold" type="button">
+                <span className={label === "Headline" ? "text-[var(--app-accent)]" : ""}>{label}</span>
+                <span className={tone === "red" ? "text-[var(--app-danger)]" : tone === "pink" ? "text-[#e879d2]" : "text-[var(--app-success)]"}>{score}/10</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-auto pt-10">
+            <button className="ch-primary-button w-full" type="button">Analyze Profile</button>
+          </div>
+        </aside>
+
+        <section className="ch-panel p-7">
+          <h2 className="text-[20px] font-bold">Headline: <span className="text-[var(--app-success)]">7/10</span></h2>
+          <div className="my-5 border-t border-dashed border-[var(--app-border)]" />
+          <p className="text-[15px]"><b>Current Headline:</b> <i>Helping brands grow through words | Content Creator & Strategist</i></p>
+          {[
+            ["Critique", "The tone is friendly, but lacks specifics. No mention of industries, key skills, or experience level. Doesn't highlight measurable impact."],
+            ["Suggestions & Tips", "Add industry focus, target audience, and specific outcomes. Recruiters should understand your value in one scan."],
+            ["Example Headlines", "Content Marketing Strategist | 5+ Years Driving Growth for SaaS & B2B Brands | SEO + Copywriting"],
+          ].map(([title, body]) => (
+            <article key={title} className="ch-soft-card mt-6 p-5">
+              <h3 className="font-bold">{title}</h3>
+              <p className="mt-3 text-[15px] leading-6 text-[var(--app-text-secondary)]">{body}</p>
+            </article>
+          ))}
+        </section>
+      </div>
+
+      <section className="ch-panel p-6">
+        <h2 className="text-[20px] font-bold">LinkedIn Profile URL</h2>
+        <p className="mt-2 text-[var(--app-text-secondary)]">Enter your LinkedIn profile URL</p>
+        <div className="mt-5 flex gap-3">
+          <input className="h-14 flex-1 rounded-full border border-[var(--app-border)] px-6 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]" placeholder="https://www.linkedin.com/in/username" />
+          <button className="ch-primary-button" type="button">Run</button>
         </div>
-      ) : (
-        <ul className="space-y-3">
-          {liDrafts.map((d) => {
-            const app = appById.get(d.application_id);
-            return (
-              <li
-                key={d.id}
-                className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-4"
-              >
-                <div className="text-[14px] font-medium text-[var(--app-text-primary)]">
-                  {app ? `${app.company} — ${app.job_title}` : "Application"}
-                </div>
-                <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-                  {d.content}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        <div className="mt-8"><ProgressLine value={64} /></div>
+      </section>
     </ProductPageChrome>
   );
 }

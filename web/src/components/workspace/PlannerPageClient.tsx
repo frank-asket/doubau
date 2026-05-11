@@ -1,51 +1,97 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 
-import { useWorkspaceSummary } from "@/hooks/useWorkspaceSummary";
-
-import { WorkspaceInsightsPanel } from "./WorkspaceInsightsPanel";
+import { MetricCard, ProgressLine, SegmentedTabs, Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
+const tasks = [
+  ["Software Engineer", "Full-stack development role focusing on web applications", 33, "React"],
+  ["AWS Solutions Architect Associate", "Cloud architecture certification", 50, "Cloud"],
+  ["Senior Software Portfolio", "Showcase production-ready work", 75, "Career"],
+];
+
 export function PlannerPageClient() {
-  const q = useWorkspaceSummary();
+  const [view, setView] = useState("List");
 
   return (
-    <ProductPageChrome
-      title="Career planner"
-      description="Prioritize what to do next using live counts from your DouBow workspace — résumé readiness, pipeline depth, and approvals backlog."
-    >
-      <WorkspaceInsightsPanel intro="These signals refresh from GET /me/workspace-summary via the Next.js BFF." />
-
-      <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-          Suggested order
-        </div>
-        <ol className="mt-3 list-decimal space-y-2 pl-5">
-          <li>
-            Clear pending approvals{" "}
-            {q.data && q.data.pending_approval_count > 0 ? (
-              <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] hover:underline">
-                ({q.data.pending_approval_count} waiting)
-              </Link>
-            ) : (
-              "(none right now)"
-            )}
-          </li>
-          <li>
-            Refresh matches in{" "}
-            <Link href="/app/discovery" className="font-medium text-[var(--app-accent)] hover:underline">
-              Job discovery
-            </Link>
-          </li>
-          <li>
-            Track outcomes in the{" "}
-            <Link href="/app/tracker" className="font-medium text-[var(--app-accent)] hover:underline">
-              tracker
-            </Link>
-          </li>
-        </ol>
+    <ProductPageChrome title="Career Planner">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MetricCard title="Planned Tasks" value="10" unit="(tasks)" delta="+13%" icon="⌛">
+          Your planned tasks increased by <b>13%</b> in the last 30 days.
+        </MetricCard>
+        <MetricCard title="In Progress Tasks" value="5" unit="(tasks)" delta="-8%" tone="red" icon="◔">
+          Your in-progress tasks decreased by <b>8%</b> in the last 30 days.
+        </MetricCard>
+        <MetricCard title="Completed Tasks" value="10" unit="(tasks)" delta="+10%" icon="✓">
+          Your completed tasks increased by <b>10%</b> in the last 30 days.
+        </MetricCard>
       </div>
+
+      <section className="ch-panel p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-xl">
+            <SegmentedTabs items={["List", "Kanban", "Calendar"]} active={view} />
+          </div>
+          <div className="flex gap-3">
+            <button className="ch-icon-button" type="button" aria-label="Filters">≡</button>
+            <button className="ch-icon-button" type="button" aria-label="Import">⇧</button>
+            <button className="ch-primary-button" type="button" onClick={() => setView(view === "List" ? "Kanban" : "List")}>
+              + Add Milestone
+            </button>
+          </div>
+        </div>
+
+        {view === "List" ? (
+          <div className="mt-8 space-y-5">
+            <div className="flex items-center gap-3 text-[20px] font-bold">
+              <span>▾</span> In Progress <Tag>5</Tag> <span className="text-[var(--app-text-tertiary)]">...</span>
+            </div>
+            {tasks.map(([title, desc, pct, tag]) => (
+              <article key={title} className="rounded-2xl border border-[var(--app-border)] bg-white p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-[18px] font-bold text-[var(--app-text-primary)]">▾ {title}</h3>
+                    <p className="mt-2 text-[15px] text-[var(--app-text-secondary)]">{desc}</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[14px] text-[var(--app-text-primary)]">
+                    <span>⌃</span>
+                    <span>□ Due: 30/06/2025</span>
+                    <span>...</span>
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-4">
+                  <ProgressLine value={Number(pct)} />
+                  <span className="font-bold">{pct}%</span>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Tag>{tag}</Tag>
+                  <Tag>Node.js</Tag>
+                  <Tag>TypeScript</Tag>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {["Planned", "In Progress", "Completed"].map((column, idx) => (
+              <section key={column} className="rounded-2xl bg-[var(--app-bg-muted)] p-5">
+                <h3 className="text-[20px] font-bold">{column} <span className="ml-2 text-[13px] text-[var(--app-text-secondary)]">{idx === 1 ? 5 : 10}</span></h3>
+                <div className="mt-5 space-y-4">
+                  {tasks.slice(0, idx === 1 ? 1 : 3).map(([title, desc], i) => (
+                    <article key={`${column}-${title}-${i}`} className="rounded-xl bg-white p-4 shadow-[var(--app-shadow-0)]">
+                      <div className="flex justify-between text-[13px]"><span>□ Due: 30/06/2025</span><span>...</span></div>
+                      <h4 className="mt-3 font-bold">▸ {title}</h4>
+                      <p className="mt-2 text-[13px] leading-5 text-[var(--app-text-secondary)]">{desc}</p>
+                      <div className="mt-4"><ProgressLine value={idx === 2 ? 100 : i * 25} /></div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </section>
     </ProductPageChrome>
   );
 }

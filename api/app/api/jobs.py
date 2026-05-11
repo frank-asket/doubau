@@ -466,6 +466,8 @@ def _resume_embedding_vector(db: Session, user_id: UUID) -> list[float] | None:
     )
     if doc is None:
         return None
+    if doc.embedding_model != settings.openai_embedding_model:
+        return None
     if doc.embedding_vector is not None:
         return list(doc.embedding_vector)
     if isinstance(doc.embedding, list):
@@ -561,6 +563,7 @@ def feed(
         stmt = (
             select(Job, dist_expr.label("dist"))
             .where(Job.embedding_vector.is_not(None))
+            .where(Job.embedding_model == settings.openai_embedding_model)
             .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
             .where(Job.is_stale.is_(False))
             .where(

@@ -36,6 +36,7 @@ function ChevronIcon({ className }: { className?: string }) {
 export type AppNavItem = {
   href: string;
   label: string;
+  icon?: string;
   /** One-line purpose — shallow IA without extra navigation depth. */
   subtitle?: string;
 };
@@ -63,34 +64,35 @@ function NavLinkStack({
   submenu?: boolean;
 }) {
   return (
-    <ul
-      className={
-        submenu ? "space-y-0.5 border-l border-white/[0.08] pl-2" : "space-y-0.5"
-      }
-    >
-      {items.map(({ href, label, subtitle }) => {
+    <ul className={submenu ? "space-y-1 border-l border-white/[0.08] pl-2" : "space-y-1"}>
+      {items.map(({ href, label, subtitle, icon }) => {
         const active = navActive(pathname, href);
         return (
           <li key={`${href}:${label}`}>
             <Link
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative block min-h-10 rounded-md px-3 py-2 transition-[background-color,color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
+              className={`relative flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out hover:translate-x-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
                 active
-                  ? "bg-[var(--app-sidebar-active-bg)] text-white shadow-[inset_3px_0_0_var(--app-accent)]"
+                  ? "bg-[var(--app-sidebar-active-bg)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_rgba(32,209,125,0.16)]"
                   : "text-[var(--app-sidebar-muted)] hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/80"
               }`}
             >
-              <span className={`block text-[12.5px] leading-tight ${active ? "font-medium" : ""}`}>{label}</span>
-              {subtitle ? (
-                <span
-                  className={`mt-0.5 block text-[10.5px] leading-snug ${
-                    active ? "text-white/55" : "text-white/35"
-                  }`}
-                >
-                  {subtitle}
-                </span>
-              ) : null}
+              <span className={`grid size-7 shrink-0 place-items-center rounded-xl text-[15px] ${active ? "bg-[rgba(32,209,125,0.14)]" : "bg-white/[0.04]"}`} aria-hidden>
+                {icon ?? "•"}
+              </span>
+              <span className="min-w-0">
+                <span className={`block truncate text-[14px] leading-tight ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
+                {subtitle ? (
+                  <span
+                    className={`mt-0.5 hidden text-[10.5px] leading-snug ${
+                      active ? "text-white/55" : "text-white/35"
+                    }`}
+                  >
+                    {subtitle}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           </li>
         );
@@ -145,7 +147,7 @@ function SidebarSection({ section, pathname }: { section: AppNavSection; pathnam
   }
 
   return (
-    <div className="rounded-md border border-white/[0.06] bg-white/[0.02] p-1">
+    <div>
       <button
         type="button"
         id={sectionHeadingId}
@@ -160,8 +162,8 @@ function SidebarSection({ section, pathname }: { section: AppNavSection; pathnam
           if (hasActiveChild) return;
           setManualOpen((o) => !o);
         }}
-        className={`flex w-full items-center justify-between gap-2 rounded px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45 transition-colors hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
-          hasActiveChild ? "cursor-default text-white/55" : ""
+        className={`flex w-full items-center justify-between gap-2 rounded-2xl px-3 py-2 text-left text-[14px] font-semibold text-white/55 transition-colors hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
+          hasActiveChild ? "bg-[var(--app-sidebar-active-bg)] text-[var(--app-accent)]" : ""
         }`}
       >
         <span>{section.title}</span>
@@ -170,7 +172,7 @@ function SidebarSection({ section, pathname }: { section: AppNavSection; pathnam
         />
       </button>
       {expanded ? (
-        <div id={submenuId} role="region" aria-labelledby={sectionHeadingId} className="mt-1 pb-1">
+        <div id={submenuId} role="region" aria-labelledby={sectionHeadingId} className="mt-2 pb-1 pl-5">
           <NavLinkStack pathname={pathname} items={section.items} submenu />
         </div>
       ) : null}

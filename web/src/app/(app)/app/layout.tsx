@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
@@ -9,6 +8,7 @@ import {
   type AppNavSection,
 } from "@/components/app/AppSidebarNav";
 import { AppThemeShell } from "@/components/app/AppThemeShell";
+import { AppTopbar } from "@/components/app/AppTopbar";
 import { AppSetupReminder, type AppSetupReminderKind } from "@/components/app/AppSetupReminder";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
@@ -21,6 +21,7 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/dashboard",
         label: "Dashboard",
+        icon: "⌂",
         subtitle: "Your job search at a glance",
       },
     ],
@@ -32,12 +33,14 @@ const NAV_SECTIONS: AppNavSection[] = [
     items: [
       {
         href: "/app/discovery",
-        label: "Find jobs",
+        label: "Job Discovery",
+        icon: "●",
         subtitle: "Browse roles that match your goals",
       },
       {
         href: "/app/tracker",
-        label: "Applications",
+        label: "Job Tracker",
+        icon: "▣",
         subtitle: "Track every role from saved to submitted",
       },
       {
@@ -47,12 +50,14 @@ const NAV_SECTIONS: AppNavSection[] = [
       },
       {
         href: "/app/salary-benchmark",
-        label: "Salary guide",
+        label: "Salary Benchmark",
+        icon: "$",
         subtitle: "Compare pay ranges before you apply",
       },
       {
         href: "/app/sponsorship-hub",
-        label: "Visa sponsorship",
+        label: "Sponsorship Hub",
+        icon: "▣",
         subtitle: "Check sponsors and visa fit",
       },
       {
@@ -69,27 +74,32 @@ const NAV_SECTIONS: AppNavSection[] = [
     items: [
       {
         href: "/app/career-profile",
-        label: "Career profile",
+        label: "Career Profile",
+        icon: "◦",
         subtitle: "Set your goals, skills, and preferences",
       },
       {
         href: "/app/pathfinder",
-        label: "Career paths",
+        label: "Career Pathfinder",
+        icon: "◇",
         subtitle: "Explore roles that fit your next move",
       },
       {
         href: "/app/career-steps",
-        label: "Action plan",
+        label: "Career Steps",
+        icon: "☑",
         subtitle: "Follow a step-by-step growth plan",
       },
       {
         href: "/app/planner",
-        label: "Career planner",
+        label: "Career Planner",
+        icon: "□",
         subtitle: "Plan milestones and weekly priorities",
       },
       {
         href: "/app/career-success",
-        label: "Progress",
+        label: "Career Success",
+        icon: "✓",
         subtitle: "Track skills, goals, and momentum",
       },
     ],
@@ -101,17 +111,20 @@ const NAV_SECTIONS: AppNavSection[] = [
     items: [
       {
         href: "/app/copilot",
-        label: "Career coach",
+        label: "Career Copilot",
+        icon: "✦",
         subtitle: "Get guidance for strategy and next steps",
       },
       {
         href: "/app/cv-builder",
-        label: "CV builder",
+        label: "CV Builder",
+        icon: "▤",
         subtitle: "Build and refine your résumé",
       },
       {
         href: "/app/ats-optimizer",
-        label: "CV match check",
+        label: "ATS Optimizer",
+        icon: "◎",
         subtitle: "Compare your résumé with a job post",
       },
       {
@@ -121,12 +134,14 @@ const NAV_SECTIONS: AppNavSection[] = [
       },
       {
         href: "/app/career-health",
-        label: "Career health",
+        label: "Career Health",
+        icon: "◌",
         subtitle: "Check your readiness and weekly focus",
       },
       {
         href: "/app/linkedin-analysis",
-        label: "LinkedIn review",
+        label: "LinkedIn Analysis",
+        icon: "in",
         subtitle: "Improve your profile and positioning",
       },
       {
@@ -158,7 +173,8 @@ const NAV_SECTIONS: AppNavSection[] = [
       },
       {
         href: "/app/discussion",
-        label: "Community",
+        label: "Discussion Board",
+        icon: "▣",
         subtitle: "Questions, stories, and shared advice",
       },
       {
@@ -251,29 +267,40 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppProviders>
-    <AppThemeShell className="flex flex-row">
+    <AppThemeShell className="flex flex-row bg-[var(--app-bg-page)]">
       <aside
-        className="hidden min-h-screen w-[var(--app-sidebar-w)] shrink-0 flex-col border-r border-white/[0.06] px-4 py-8 md:flex"
-        style={{ backgroundColor: "var(--app-sidebar)" }}
+        className="relative hidden min-h-screen w-[var(--app-sidebar-w)] shrink-0 flex-col overflow-hidden px-5 py-5 md:flex"
+        style={{
+          background:
+            "radial-gradient(circle at 18% 8%, rgba(32,209,125,0.18), transparent 30%), linear-gradient(180deg, #07110d 0%, #091712 52%, #030705 100%)",
+        }}
       >
-        <Link href="/app/dashboard" className="inline-flex shrink-0 items-center gap-2 px-2 font-semibold">
-          <DouBowLogo variant="white" text="DouBow" size={26} />
+        <div className="pointer-events-none absolute bottom-20 left-[-90px] h-48 w-48 rounded-full border border-white/10" />
+        <div className="pointer-events-none absolute right-[-70px] top-28 h-40 w-40 rounded-full bg-[rgba(32,209,125,0.08)] blur-2xl" />
+        <Link href="/app/dashboard" className="relative inline-flex shrink-0 items-center gap-2 px-2 py-3 font-semibold">
+          <DouBowLogo variant="white" text="Doubow" size={24} />
         </Link>
-        <div className="mt-8 min-h-0 flex-1 overflow-y-auto">
+        <div className="relative mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-3 text-[12px] leading-5 text-white/62">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--app-accent)]">
+            Talent cockpit
+          </span>
+          AI-powered job discovery, career planning, and application operations.
+        </div>
+        <div className="relative mt-6 min-h-0 flex-1 overflow-y-auto">
           <AppSidebarNav sections={NAV_SECTIONS} />
+        </div>
+        <div className="relative space-y-2 border-t border-white/[0.08] pt-5 text-[14px] font-medium text-[var(--app-sidebar-muted)]">
+          <Link className="flex min-h-11 items-center gap-3 rounded-xl px-3 hover:bg-white/[0.05] hover:text-white/80" href="/app/settings">
+            <span aria-hidden>⚙</span> Settings
+          </Link>
+          <span className="flex min-h-11 items-center gap-3 rounded-xl px-3">
+            <span aria-hidden>↩</span> Log Out
+          </span>
         </div>
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--app-bg-page)]">
-        <header
-          className="sticky top-0 z-20 flex h-[var(--app-topbar-h)] shrink-0 items-center justify-between border-b-[0.5px] border-[var(--app-border)] bg-[color-mix(in_srgb,var(--app-bg-elevated)_94%,transparent)] px-4 backdrop-blur md:px-6"
-        >
-          <Link href="/app/dashboard" className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--app-text-primary)] md:hidden">
-            <DouBowLogo variant="black" text="DouBow" size={24} />
-          </Link>
-          <div className="hidden text-[13px] font-semibold text-[var(--app-text-primary)] md:block">Workspace</div>
-          <UserButton />
-        </header>
+        <AppTopbar />
         <nav
           aria-label="Primary workspace"
           className="sticky top-[var(--app-topbar-h)] z-10 flex gap-2 overflow-x-auto border-b-[0.5px] border-[var(--app-border)] bg-[color-mix(in_srgb,var(--app-bg-page)_96%,transparent)] px-4 py-2 backdrop-blur md:hidden"
@@ -288,7 +315,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+        <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-3">
           <AppSetupReminder kind={setupReminder} />
           {children}
         </div>

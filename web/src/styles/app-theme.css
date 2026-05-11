@@ -1,5 +1,5 @@
 /**
- * DouBow product shell — Phase 4 DS: navy sidebar, white surfaces, accent #1A5CFF (userflow spec).
+ * Doubow product shell — enterprise talent network polish.
  * Scoped with `.theme-app` so marketing (`hirslams.css`) stays on lime tokens.
  */
 
@@ -7,37 +7,36 @@
   color-scheme: light;
 
   /* ── Core palette ── */
-  --app-sidebar: #0f1117;
-  /* Primary CTA / links — aligned with product flow spec (.tmp userflow HTML #1a5cff) */
-  --app-accent: #1a5cff;
-  --app-accent-hover: #1548d9;
-  --app-accent-700: #0c3cad;
+  --app-sidebar: #07110d;
+  --app-accent: #20d17d;
+  --app-accent-hover: #18b96d;
+  --app-accent-700: #087d4b;
 
   /* Blue scale (accent-aligned) */
-  --app-blue-50: #e8eeff;
-  --app-blue-100: #d0dfff;
-  --app-blue-200: #a8c4ff;
-  --app-blue-300: #7aa6ff;
-  --app-blue-500: #1a5cff;
-  --app-blue-600: #1548d9;
+  --app-blue-50: #eef7ff;
+  --app-blue-100: #d9edff;
+  --app-blue-200: #b7dcff;
+  --app-blue-300: #84c2ff;
+  --app-blue-500: #348ef6;
+  --app-blue-600: #176fda;
 
   /* Surfaces */
-  --app-bg-page: #f8f9fc;
-  --app-bg-muted: #eef1f7;
+  --app-bg-page: #f4f7f2;
+  --app-bg-muted: #eef3ec;
   --app-bg-elevated: #ffffff;
 
   /* Text */
-  --app-text-primary: #1a1d2e;
-  --app-text-secondary: #6b7280;
-  --app-text-tertiary: #9ca3af;
-  --app-text-info: #2563eb;
+  --app-text-primary: #111612;
+  --app-text-secondary: #66736b;
+  --app-text-tertiary: #94a098;
+  --app-text-info: #176fda;
 
   /* Borders (DS: 0.5px feel → use 1px at sm sizes; token matches HTML) */
-  --app-border: #e4e8f0;
-  --app-border-strong: #d1d5db;
+  --app-border: #dfe7dd;
+  --app-border-strong: #cdd9cb;
 
   /* Semantic */
-  --app-success: #22c55e;
+  --app-success: #20d17d;
   --app-danger: #ef4444;
   --app-warning: #f59e0b;
   --app-info: #1a5cff;
@@ -46,9 +45,9 @@
 
   /* Sidebar (dark rail) */
   --app-sidebar-fg: #ffffff;
-  --app-sidebar-muted: rgba(255, 255, 255, 0.5);
-  --app-sidebar-hover-bg: rgba(255, 255, 255, 0.05);
-  --app-sidebar-active-bg: #1e2b4a;
+  --app-sidebar-muted: rgba(239, 255, 246, 0.58);
+  --app-sidebar-hover-bg: rgba(32, 209, 125, 0.08);
+  --app-sidebar-active-bg: rgba(32, 209, 125, 0.14);
 
   /* Badge backgrounds + foregrounds */
   --app-badge-blue-bg: #e8eeff;
@@ -83,14 +82,14 @@
   --app-radius-sm: 4px;
   --app-radius-badge: 6px;
   --app-radius-md: 8px;
-  --app-radius-lg: 12px;
-  --app-radius-xl: 16px;
+  --app-radius-lg: 16px;
+  --app-radius-xl: 20px;
   --app-radius-pill: 999px;
 
   /* Elevation */
-  --app-shadow-0: 0 1px 0 rgba(15, 17, 23, 0.02);
-  --app-shadow-1: 0 1px 0 rgba(15, 17, 23, 0.03), 0 12px 28px rgba(16, 24, 40, 0.06);
-  --app-shadow-2: 0 1px 0 rgba(15, 17, 23, 0.04), 0 18px 48px rgba(16, 24, 40, 0.1);
+  --app-shadow-0: 0 1px 0 rgba(20, 24, 32, 0.02);
+  --app-shadow-1: 0 1px 0 rgba(12, 22, 16, 0.03), 0 20px 48px rgba(9, 28, 17, 0.07);
+  --app-shadow-2: 0 1px 0 rgba(12, 22, 16, 0.04), 0 28px 70px rgba(9, 28, 17, 0.13);
 
   /* Typography scale */
   --app-text-display: 32px;
@@ -107,11 +106,14 @@
   --app-focus-border: rgba(26, 92, 255, 0.48);
 
   /* Shell */
-  --app-topbar-h: 56px;
-  --app-sidebar-w: 220px;
-  --app-content-max: 1180px;
+  --app-topbar-h: 76px;
+  --app-sidebar-w: 256px;
+  --app-content-max: 100%;
 
-  background-color: var(--app-bg-page);
+  background:
+    radial-gradient(circle at 72% -10%, rgba(32, 209, 125, 0.2), transparent 34%),
+    radial-gradient(circle at 8% 8%, rgba(52, 142, 246, 0.1), transparent 28%),
+    linear-gradient(180deg, #f8fbf5 0%, var(--app-bg-page) 44%, #eef4ed 100%);
   color: var(--app-text-primary);
 
   /**
@@ -137,8 +139,167 @@
 
 .theme-app .app-surface {
   border: 0.5px solid var(--app-border);
-  background: var(--app-bg-elevated);
+  background: color-mix(in srgb, var(--app-bg-elevated) 94%, transparent);
   box-shadow: var(--app-shadow-0);
+  backdrop-filter: blur(16px);
+}
+
+.theme-app .ch-panel {
+  border: 1px solid var(--app-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 253, 248, 0.92)),
+    radial-gradient(circle at 100% 0%, rgba(32, 209, 125, 0.08), transparent 26%);
+  border-radius: 28px;
+  box-shadow: var(--app-shadow-1);
+  backdrop-filter: blur(20px);
+}
+
+.theme-app .ch-soft-card {
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 248, 241, 0.82) 100%),
+    radial-gradient(circle at 100% 0%, rgba(32, 209, 125, 0.12), transparent 32%);
+  border-radius: 22px;
+}
+
+.theme-app .ch-pill {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--app-radius-pill);
+  background: rgba(7, 17, 13, 0.055);
+  padding: 0 12px;
+  color: var(--app-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.theme-app .ch-primary-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--app-radius-pill);
+  border: 1px solid rgba(7, 17, 13, 0.12);
+  background: #08120e;
+  padding: 0 22px;
+  color: #effff6;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 16px 34px rgba(8, 18, 14, 0.16);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.theme-app .ch-primary-button:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 50%, rgba(7, 17, 13, 0.12));
+  background: #0f231a;
+  box-shadow: 0 20px 42px rgba(8, 18, 14, 0.2);
+}
+
+.theme-app .ch-primary-button:active {
+  transform: scale(0.98);
+}
+
+.theme-app .ch-icon-button {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--app-text-secondary);
+  box-shadow: var(--app-shadow-0);
+}
+
+.theme-app .ch-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef1f5;
+}
+
+.theme-app .ch-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--app-success);
+}
+
+.theme-app .doubow-orb {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-app .doubow-orb::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(32, 209, 125, 0.24) 0 2px, transparent 2px 100%),
+    radial-gradient(circle at 62% 42%, rgba(32, 209, 125, 0.28), transparent 36%);
+  background-size: 18px 18px, auto;
+  transform: rotate(-12deg);
+  opacity: 0.55;
+}
+
+.theme-app .dashboard-card {
+  animation: dashboard-card-in 360ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.theme-app .dashboard-meter {
+  transform-origin: left;
+  animation: dashboard-meter-in 520ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.theme-app .dashboard-stack {
+  transform-origin: bottom;
+  animation: dashboard-stack-in 560ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes dashboard-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-meter-in {
+  from {
+    opacity: 0.72;
+    transform: scaleX(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes dashboard-stack-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-app .dashboard-card,
+  .theme-app .dashboard-meter,
+  .theme-app .dashboard-stack {
+    animation: none;
+  }
 }
 
 .theme-app .app-surface-hover {
