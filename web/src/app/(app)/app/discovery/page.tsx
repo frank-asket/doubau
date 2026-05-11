@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
-import { DiscoveryClient, type FeedRow, type JobRow } from "@/components/discovery/DiscoveryClient";
+import {
+  DiscoveryClient,
+  type CatalogSummary,
+  type FeedRow,
+  type JobRow,
+} from "@/components/discovery/DiscoveryClient";
 
 export const metadata: Metadata = {
   title: "Job Discovery",
@@ -15,20 +20,23 @@ export default async function DiscoveryPage() {
   let feed: FeedRow[] = [];
   let jobs: JobRow[] = [];
   let hidden: JobRow[] = [];
+  let catalogSummary: CatalogSummary | null = null;
   let loadError = false;
 
   try {
     const headers = await getBackendAuthHeaders();
-    const [feedRes, jobsRes, hiddenRes] = await Promise.all([
+    const [feedRes, jobsRes, hiddenRes, summaryRes] = await Promise.all([
       fetch(`${base}/jobs/feed?limit=50`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs?limit=50&sort_by=created_at&order=desc`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs/hidden?limit=50`, { headers, cache: "no-store" }),
+      fetch(`${base}/jobs/catalog/summary`, { headers, cache: "no-store" }),
     ]);
 
     feed = feedRes.ok ? ((await feedRes.json()) as FeedRow[]) : [];
     jobs = jobsRes.ok ? ((await jobsRes.json()) as JobRow[]) : [];
     hidden = hiddenRes.ok ? ((await hiddenRes.json()) as JobRow[]) : [];
-    loadError = !feedRes.ok || !jobsRes.ok || !hiddenRes.ok;
+    catalogSummary = summaryRes.ok ? ((await summaryRes.json()) as CatalogSummary) : null;
+    loadError = !feedRes.ok || !jobsRes.ok || !hiddenRes.ok || !summaryRes.ok;
   } catch {
     /* ECONNREFUSED etc. when API is down — render UI with empty lists instead of RSC 500 */
     loadError = true;
@@ -39,6 +47,7 @@ export default async function DiscoveryPage() {
       initialFeed={feed}
       initialJobs={jobs}
       initialHiddenJobs={hidden}
+      catalogSummary={catalogSummary}
       loadError={loadError}
     />
   );

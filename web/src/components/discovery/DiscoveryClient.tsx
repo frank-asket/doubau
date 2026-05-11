@@ -34,6 +34,16 @@ export type FeedRow = {
   score_components?: Record<string, number>;
 };
 
+export type CatalogSummary = {
+  active_total: number;
+  embedded_total: number;
+  missing_embedding_total: number;
+  with_source_url_total: number;
+  by_source: Record<string, number>;
+  by_location: Record<string, number>;
+  stale_after_days: number;
+};
+
 type FitScoreResponse = {
   score: number;
   match_pct: number;
@@ -397,11 +407,13 @@ export function DiscoveryClient({
   initialFeed,
   initialJobs,
   initialHiddenJobs,
+  catalogSummary,
   loadError,
 }: {
   initialFeed: FeedRow[];
   initialJobs: JobRow[];
   initialHiddenJobs: JobRow[];
+  catalogSummary: CatalogSummary | null;
   loadError: boolean;
 }) {
   const router = useRouter();
@@ -592,6 +604,7 @@ export function DiscoveryClient({
   }
 
   const list = tab === "feed" ? feedRows : tab === "hidden" ? hiddenRows : allRows;
+  const sourceEntries = Object.entries(catalogSummary?.by_source ?? {}).slice(0, 4);
 
   return (
     <div className="mx-auto flex w-full max-w-[var(--app-content-max)] flex-col gap-[var(--app-space-lg)]">
@@ -609,6 +622,33 @@ export function DiscoveryClient({
       </div>
 
       <DiscoveryCoverageNotice />
+
+      {catalogSummary ? (
+        <section className="app-surface rounded-[var(--app-radius-lg)] p-4">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              ["Active roles", catalogSummary.active_total],
+              ["Embedded", catalogSummary.embedded_total],
+              ["Needs scoring", catalogSummary.missing_embedding_total],
+              ["With source", catalogSummary.with_source_url_total],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-[var(--app-radius-md)] bg-[var(--app-bg-muted)] px-3 py-2 shadow-[inset_0_0_0_0.5px_var(--app-border)]">
+                <div className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">{label}</div>
+                <div className="mt-1 tabular-nums text-[18px] font-semibold leading-none text-[var(--app-text-primary)]">{value}</div>
+              </div>
+            ))}
+          </div>
+          {sourceEntries.length ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--app-text-secondary)]">
+              {sourceEntries.map(([source, count]) => (
+                <span key={source} className="rounded-[var(--app-radius-pill)] bg-[var(--app-badge-gray-bg)] px-2.5 py-1 font-medium text-[var(--app-badge-gray-fg)]">
+                  {listingSourceLabel(source) ?? source}: {count}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {loadError ? (
         <div
@@ -729,8 +769,17 @@ export function DiscoveryClient({
 
       {!loadError && tab === "feed" && feedRows.length === 0 ? (
         <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-dashed border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-5 py-10 text-center text-pretty text-[13px] leading-7 text-[var(--app-text-secondary)]">
-          No personalized rows yet. Add your résumé from the Dashboard, import jobs here, or switch to{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">All roles</span>. When listings appear, use{" "}
+          {catalogSummary?.active_total === 0 ? (
+            <>
+              No active roles are in the catalog yet. Add a trusted posting URL here, or ask an admin to run a provider sync.
+            </>
+          ) : (
+            <>
+              No personalized rows yet. Add your résumé from the Dashboard, or switch to{" "}
+              <span className="font-medium text-[var(--app-text-primary)]">All roles</span>.
+            </>
+          )}{" "}
+          When listings appear, use{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Details</span> →{" "}
           <span className="font-medium text-[var(--app-text-primary)]">Generate outreach</span> →{" "}
           <Link href="/app/approvals" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">

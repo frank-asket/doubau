@@ -72,3 +72,14 @@ def test_jobs_feed_path_not_shadowed_by_get_job() -> None:
     r = client.get("/jobs/feed?limit=5", headers=headers)
     assert r.status_code == 200, r.text
     assert isinstance(r.json(), list)
+
+
+def test_jobs_catalog_summary_path_not_shadowed_by_get_job() -> None:
+    client = TestClient(app)
+    token, _ = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = client.get("/jobs/catalog/summary", headers=headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "active_total" in body
+    assert "by_source" in body
