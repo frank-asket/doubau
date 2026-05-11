@@ -4,10 +4,8 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import delete, text
 from sqlalchemy.exc import OperationalError
-
-from sqlalchemy import delete
 
 from app.db import SessionLocal, engine
 from app.main import app
@@ -64,7 +62,10 @@ def test_get_job_by_id() -> None:
 
 
 def test_jobs_feed_path_not_shadowed_by_get_job() -> None:
-    """Regression: GET /jobs/{job_id} must not be registered before /jobs/feed or 'feed' is parsed as UUID → 422."""
+    """Regression: GET /jobs/{job_id} must not shadow /jobs/feed.
+
+    If /jobs/{job_id} is registered first, "feed" is parsed as UUID and returns 422.
+    """
     client = TestClient(app)
     token, _ = _signup(client)
     headers = {"Authorization": f"Bearer {token}"}

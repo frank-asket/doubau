@@ -9,7 +9,10 @@ from langchain_core.tools import StructuredTool
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.agents.interview_rag import load_job_description_for_application, retrieve_resume_context_for_role
+from app.agents.interview_rag import (
+    load_job_description_for_application,
+    retrieve_resume_context_for_role,
+)
 from app.agents.outreach import (
     generate_email_draft_content,
     generate_interview_prep_content,
@@ -163,12 +166,18 @@ def build_copilot_tools(db: Session, user_id: UUID) -> list[StructuredTool]:
         StructuredTool.from_function(
             generate_outreach_drafts,
             name="generate_outreach_drafts",
-            description="Generate email and LinkedIn drafts; transitions application to PENDING_APPROVAL when valid.",
+            description=(
+                "Generate email and LinkedIn drafts; transitions application to PENDING_APPROVAL "
+                "when valid."
+            ),
         ),
         StructuredTool.from_function(
             run_interview_prep,
             name="run_interview_prep",
-            description="Return interview prep JSON (themes, questions, talking points) for an application UUID.",
+            description=(
+                "Return interview prep JSON (themes, questions, talking points) for an application "
+                "UUID."
+            ),
         ),
         StructuredTool.from_function(
             search_jobs,

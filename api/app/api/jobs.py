@@ -585,7 +585,10 @@ def feed(
 
 @router.get("/{job_id}", response_model=JobOut)
 def get_job(job_id: UUID, db: DbDep, current_user: CurrentUserDep) -> JobOut:
-    """Single job for detail view (registered after /feed and /hidden so those paths are not captured)."""
+    """Single job for detail view.
+
+    Registered after /feed and /hidden so those paths are not captured.
+    """
     job = db.get(Job, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")

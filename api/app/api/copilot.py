@@ -10,7 +10,11 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.agents.copilot_runner import build_copilot_executor, executor_output_text, tuples_to_messages
+from app.agents.copilot_runner import (
+    build_copilot_executor,
+    executor_output_text,
+    tuples_to_messages,
+)
 from app.api.deps import CurrentUserDep, DbDep, user_from_token_payload
 from app.db import SessionLocal
 from app.models.copilot_session import CopilotMessage, CopilotSession
@@ -115,15 +119,21 @@ async def copilot_ws(websocket: WebSocket) -> None:
                         {
                             "type": "error",
                             "detail": (
-                                "Career Copilot is not configured. Set DOUBOW_OPENAI_API_KEY (or OPENAI_API_KEY), "
+                                "Career Copilot is not configured. Set DOUBOW_OPENAI_API_KEY "
+                                "(or OPENAI_API_KEY), "
                                 "or configure DOUBOW_OPENROUTER_API_KEY + DOUBOW_OPENROUTER_*."
                             ),
                         }
                     )
                     continue
 
-                def _run() -> str:
-                    result = ex.invoke({"input": msg.text, "chat_history": chat_history})
+                # Bind loop variables for asyncio.to_thread() helper (ruff B023).
+                _ex = ex
+                _text = msg.text
+                _history = chat_history
+
+                def _run(executor=_ex, text=_text, history=_history) -> str:
+                    result = executor.invoke({"input": text, "chat_history": history})
                     return executor_output_text(result)
 
                 try:
@@ -138,7 +148,9 @@ async def copilot_ws(websocket: WebSocket) -> None:
 
                 chunk_size = 48
                 for i in range(0, len(assistant_text), chunk_size):
-                    await websocket.send_json({"type": "delta", "text": assistant_text[i : i + chunk_size]})
+                    await websocket.send_json(
+                        {"type": "delta", "text": assistant_text[i : i + chunk_size]}
+                    )
                 await websocket.send_json({"type": "done"})
     except WebSocketDisconnect:
         return

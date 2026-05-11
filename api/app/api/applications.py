@@ -7,7 +7,10 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.agents.interview_rag import load_job_description_for_application, retrieve_resume_context_for_role
+from app.agents.interview_rag import (
+    load_job_description_for_application,
+    retrieve_resume_context_for_role,
+)
 from app.agents.outreach import (
     generate_email_draft_content,
     generate_interview_prep_content,
@@ -230,7 +233,12 @@ def patch_draft(
         agent_name="outreach_user_edit",
         prompt_parts=(str(d.id), d.channel, prev[:2000], user_edit_val[:8000]),
         raw_output=json.dumps(
-            {"draft_id": str(d.id), "channel": d.channel, "previous_len": len(prev), "new_len": len(d.content)}
+            {
+                "draft_id": str(d.id),
+                "channel": d.channel,
+                "previous_len": len(prev),
+                "new_len": len(d.content),
+            }
         ),
         latency_ms=None,
         user_edit=user_edit_val,
@@ -375,7 +383,8 @@ async def applications_ws(websocket: WebSocket) -> None:
     """Push notifications when pipeline state changes (approve, reject, draft edit, generate).
 
     Clients subscribe with the same Clerk JWT as REST (`token` or `access_token` query param).
-    Server compares a snapshot signature every ~2s and emits ``applications_changed`` when it differs.
+    Server compares a snapshot signature every ~2s and emits ``applications_changed`` when it
+    differs.
     """
     await websocket.accept()
     token = websocket.query_params.get("token") or websocket.query_params.get("access_token")

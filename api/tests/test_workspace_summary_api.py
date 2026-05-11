@@ -4,8 +4,8 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
 from app.db import engine
 from app.main import app

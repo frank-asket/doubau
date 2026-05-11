@@ -78,7 +78,13 @@ def retrieve_resume_context_for_role(
 
     try:
         client = OpenAI(api_key=settings.openai_api_key)
-        inputs = [query_text, *[truncate_for_embedding(c, settings.embedding_max_input_chars) for c in chunks]]
+        inputs = [
+            query_text,
+            *[
+                truncate_for_embedding(c, settings.embedding_max_input_chars)
+                for c in chunks
+            ],
+        ]
         resp = client.embeddings.create(model=settings.openai_embedding_model, input=inputs)
         vectors = [d.embedding for d in sorted(resp.data, key=lambda x: x.index)]
         qvec = vectors[0]

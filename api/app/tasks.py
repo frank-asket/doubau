@@ -13,8 +13,8 @@ import httpx
 import redis
 from celery.signals import task_failure
 from sqlalchemy import func, select, update
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.agents.outreach import generate_email_draft_content, generate_linkedin_draft_content
 from app.celery_app import celery_app
@@ -30,8 +30,8 @@ from app.llm.logging import record_llm_interaction
 from app.models.application import Application, ApplicationStatus
 from app.models.job import Job
 from app.models.outreach_draft import DraftStatus, OutreachDraft
-from app.models.user import User
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.models.user import User
 from app.resume.claude_structure import claude_structure_resume_text
 from app.resume.embeddings import EmbeddingError, embed_resume_text
 from app.resume.llm_structure import (
@@ -487,7 +487,10 @@ def send_notification(user_id: str, message: str) -> dict[str, Any]:
 
 
 def _smtp_send_text(*, to_addr: str, subject: str, body: str) -> None:
-    """Send plain-text mail via SMTP (Amazon SES: use regional ``email-smtp.<region>.amazonaws.com``)."""
+    """Send plain-text mail via SMTP.
+
+    Amazon SES: use regional ``email-smtp.<region>.amazonaws.com``.
+    """
     import smtplib
     from email.message import EmailMessage
 
@@ -559,7 +562,9 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
                 return {
                     "application_id": application_id,
                     "status": "skipped_not_submitted",
-                    "detail": "Sender only runs for SUBMITTED applications (after APPROVED submit).",
+                    "detail": (
+                        "Sender only runs for SUBMITTED applications (after APPROVED submit)."
+                    ),
                 }
 
             user = db.get(User, app.user_id)

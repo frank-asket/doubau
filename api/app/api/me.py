@@ -23,8 +23,8 @@ from app.api.schemas import (
 from app.core.settings import settings
 from app.models.application import Application, ApplicationStatus
 from app.models.check_in import CheckIn
-from app.models.milestone import Milestone
 from app.models.job_match_event import JobMatchEvent
+from app.models.milestone import Milestone
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.storage.s3 import ensure_bucket, s3_client
@@ -430,7 +430,11 @@ def create_check_in(
         mood=payload.mood,
         energy=payload.energy,
         workload=payload.workload,
-        notes=(payload.notes.strip() if isinstance(payload.notes, str) and payload.notes.strip() else None),
+        notes=(
+            payload.notes.strip()
+            if isinstance(payload.notes, str) and payload.notes.strip()
+            else None
+        ),
     )
     db.add(row)
     db.commit()

@@ -20,7 +20,7 @@ class CopilotSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
-    messages: Mapped[list["CopilotMessage"]] = relationship(
+    messages: Mapped[list[CopilotMessage]] = relationship(
         back_populates="session",
         cascade="all, delete-orphan",
         order_by="CopilotMessage.created_at",

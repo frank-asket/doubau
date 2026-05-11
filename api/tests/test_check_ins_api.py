@@ -36,7 +36,11 @@ def test_check_in_roundtrip() -> None:
     token, _ = _signup(client)
     headers = {"Authorization": f"Bearer {token}", "content-type": "application/json"}
 
-    r1 = client.post("/me/check-ins", headers=headers, json={"mood": 4, "energy": 3, "notes": "Good day"})
+    r1 = client.post(
+        "/me/check-ins",
+        headers=headers,
+        json={"mood": 4, "energy": 3, "notes": "Good day"},
+    )
     assert r1.status_code == 200, r1.text
     body = r1.json()
     assert body["mood"] == 4

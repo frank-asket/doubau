@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="DOUBOW_", extra="ignore")
 
     environment: str = "local"
-    # Comma-separated or JSON array — NOT a bare hostname without scheme unless you use comma form (we add https).
+    # Comma-separated or JSON array. If you use comma form, bare hostnames get https://
+    # (localhost/127.* become http://).
     cors_allow_origins: str = "http://localhost:3000"
 
     # Leave blank by default so hosting platforms that inject DATABASE_URL (e.g. Railway/Heroku)
@@ -116,7 +117,8 @@ class Settings(BaseSettings):
     embedding_max_input_chars: int = 30_000
 
     # Phase 3 — outbound email (SMTP). When unset, dispatch logs intent without sending mail.
-    # Amazon SES: host ``email-smtp.<region>.amazonaws.com``; use IAM SMTP credentials from SES console.
+    # Amazon SES: host ``email-smtp.<region>.amazonaws.com``; use IAM SMTP credentials from the
+    # SES console.
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
@@ -227,7 +229,14 @@ class Settings(BaseSettings):
             return None
         return v
 
-    @field_validator("smtp_host", "smtp_user", "smtp_password", "smtp_from", "linkedin_dispatch_webhook_url", mode="before")
+    @field_validator(
+        "smtp_host",
+        "smtp_user",
+        "smtp_password",
+        "smtp_from",
+        "linkedin_dispatch_webhook_url",
+        mode="before",
+    )
     @classmethod
     def empty_smtp_optional_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():

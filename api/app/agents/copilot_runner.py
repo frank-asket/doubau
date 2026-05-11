@@ -37,8 +37,11 @@ def build_copilot_executor(db: Session, user_id: UUID) -> AgentExecutor | None:
         [
             (
                 "system",
-                "You are Career Copilot for Doubow: applications, drafts, interview prep, and jobs. "
-                "Use tools for facts; keep answers short and actionable.",
+                (
+                    "You are Career Copilot for Doubow: applications, drafts, interview prep, and "
+                    "jobs. "
+                    "Use tools for facts; keep answers short and actionable."
+                ),
             ),
             MessagesPlaceholder("chat_history"),
             ("human", "{input}"),

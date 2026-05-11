@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { getApiBaseUrl, getBackendAuthBearerOnly } from "../../../_server";
+import { clerkTokenMissingResponse, getApiBaseUrl, getBackendAuthBearerOnly } from "../../../_server";
 
 export async function GET() {
+  const headers = await getBackendAuthBearerOnly();
+  if (!("authorization" in headers)) {
+    return clerkTokenMissingResponse();
+  }
   const resp = await fetch(`${getApiBaseUrl()}/me/resume/latest`, {
-    headers: await getBackendAuthBearerOnly(),
+    headers,
     cache: "no-store",
   });
 
