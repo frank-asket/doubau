@@ -48,6 +48,7 @@ export function EmployerLogoDevPanel({
     if (!enabled || !domain) {
       setPayload(null);
       setBlocked(null);
+      setLoading(false);
       return;
     }
 
@@ -61,25 +62,47 @@ export function EmployerLogoDevPanel({
         const r = await fetch(`/api/employers/logo-dev/describe?domain=${encodeURIComponent(domain)}`, {
           cache: "no-store",
         });
-        const json = (await r.json().catch(() => ({}))) as LogoDevDescribeJson;
+        const raw = (await r.json().catch(() => null)) as unknown;
         if (cancelled) return;
-        if (json.ok) {
-          setPayload(json.data);
+
+        const json = raw as Partial<LogoDevDescribeJson>;
+        if (json && typeof json === "object" && json.ok === true && json.data && typeof json.data === "object") {
+          const d = json.data as Partial<EmployerBrandPayload>;
+          if (
+            typeof d.name === "string" &&
+            typeof d.domain === "string" &&
+            d.source === "logo.dev" &&
+            (d.description === null || typeof d.description === "string") &&
+            (d.indexed_at === null || typeof d.indexed_at === "string") &&
+            d.socials &&
+            typeof d.socials === "object" &&
+            !Array.isArray(d.socials) &&
+            Array.isArray(d.colors_hex)
+          ) {
+            setPayload(d as EmployerBrandPayload);
+            return;
+          }
+        }
+
+        if (json && typeof json === "object" && json.ok === false && typeof json.reason === "string") {
+          if (json.reason === "not_signed_in") {
+            setBlocked("Sign in to load employer brand data.");
+            return;
+          }
+          if (json.reason === "not_configured") {
+            setBlocked("Brand directory is not enabled on this deployment.");
+            return;
+          }
+          if (json.reason === "upstream" && r.status === 404) {
+            setBlocked("No brand profile found for this domain in Logo.dev yet.");
+            return;
+          }
+          const msg = typeof json.message === "string" ? json.message : "Could not load brand data.";
+          setBlocked(msg);
           return;
         }
-        if (json.reason === "not_signed_in") {
-          setBlocked("Sign in to load employer brand data.");
-          return;
-        }
-        if (json.reason === "not_configured") {
-          setBlocked("Brand directory is not enabled on this deployment.");
-          return;
-        }
-        if (json.reason === "upstream" && r.status === 404) {
-          setBlocked("No brand profile found for this domain in Logo.dev yet.");
-          return;
-        }
-        setBlocked(json.message || "Could not load brand data.");
+
+        setBlocked("Could not load brand data.");
       } catch {
         if (!cancelled) setBlocked("Brand data is temporarily unavailable.");
       } finally {
@@ -143,9 +166,9 @@ export function EmployerLogoDevPanel({
         <div>
           <div className="mb-1.5 text-[11px] font-medium text-[var(--app-text-tertiary)]">Brand colors</div>
           <div className="flex flex-wrap gap-2">
-            {payload.colors_hex.slice(0, 6).map((hex) => (
+            {payload.colors_hex.slice(0, 6).map((hex, i) => (
               <span
-                key={hex}
+                key={`${hex}-${i}`}
                 title={hex}
                 className="inline-flex items-center gap-1.5 rounded-full border border-[var(--app-border)] bg-[var(--app-bg-muted)] py-1 pl-1 pr-2 text-[11px] font-medium tabular-nums text-[var(--app-text-secondary)]"
               >

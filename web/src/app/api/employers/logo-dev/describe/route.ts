@@ -86,19 +86,30 @@ export async function GET(req: Request) {
         parsed && typeof parsed === "object" && parsed !== null && "message" in parsed
           ? String((parsed as { message?: unknown }).message)
           : text.slice(0, 200) || `Logo.dev returned HTTP ${resp.status}.`;
+      const statusOut = resp.status === 404 ? 404 : 502;
       return NextResponse.json(
         {
           ok: false as const,
           reason: "upstream",
           message: msg,
         } satisfies LogoDevDescribeJson,
-        { status: resp.status === 404 ? 404 : 502 },
+        { status: statusOut },
       );
     }
 
-    const raw = (parsed ?? {}) as RawDescribe;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return NextResponse.json(
+        {
+          ok: false as const,
+          reason: "upstream",
+          message: "Logo.dev returned an empty or invalid JSON body.",
+        } satisfies LogoDevDescribeJson,
+        { status: 502 },
+      );
+    }
+    const raw = parsed as RawDescribe;
     const colorsHex = Array.isArray(raw.colors)
-      ? raw.colors.map((c) => (typeof c?.hex === "string" ? c.hex.trim() : "")).filter(Boolean)
+      ? raw.colors.map((c: { hex?: string }) => (typeof c?.hex === "string" ? c.hex.trim() : "")).filter(Boolean)
       : [];
     const socials =
       raw.socials && typeof raw.socials === "object" && !Array.isArray(raw.socials)
