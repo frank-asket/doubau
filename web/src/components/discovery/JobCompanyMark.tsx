@@ -1,6 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+
+/** Logo.dev publishable token (https://www.logo.dev/docs). Alias for older env name. */
+function logoDevPublishableKey(): string {
+  return (
+    (process.env.NEXT_PUBLIC_LOGO_DEV_KEY ?? "").trim() ||
+    (process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY ?? "").trim()
+  );
+}
 
 /** Parse a listing URL and return a bare hostname (no www), or null. */
 export function hostnameFromSourceUrl(url: string | null | undefined): string | null {
@@ -99,7 +108,7 @@ export function buildCompanyLogoCandidates(host: string): string[] {
   const safe = host.trim().toLowerCase().replace(/[^a-z0-9.-]/g, "");
   if (!safe || !safe.includes(".")) return [];
   const enc = encodeURIComponent(safe);
-  const token = (process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY ?? "").trim();
+  const token = logoDevPublishableKey();
   const out: string[] = [];
   if (token) {
     out.push(`https://img.logo.dev/${safe}?token=${encodeURIComponent(token)}&size=128`);
@@ -146,14 +155,13 @@ export function JobCompanyMark({
   const initials = companyInitials(company);
   const src: string | undefined =
     candidates.length > 0 && attempt < candidates.length ? candidates[attempt] : undefined;
-  const showLogo = Boolean(src);
 
   const box =
     size === "hero"
-      ? `grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.1)] ${className}`
+      ? `relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.1)] ${className}`
       : size === "detail"
-        ? `grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[var(--app-radius-md)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)] ${className}`
-        : `grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)] ${className}`;
+        ? `relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[var(--app-radius-md)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)] ${className}`
+        : `relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)] ${className}`;
 
   const textCls =
     size === "hero"
@@ -170,14 +178,15 @@ export function JobCompanyMark({
       role="img"
       aria-label={`${company} logo`}
     >
-      {showLogo ? (
-        <img
-          key={src}
+      {src ? (
+        <Image
+          key={`${attempt}-${src}`}
           src={src}
           alt=""
           width={pxSize}
           height={pxSize}
-          className="size-full bg-white object-contain p-1.5"
+          sizes={`${pxSize}px`}
+          className="bg-white object-contain p-1.5"
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
