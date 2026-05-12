@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
+import { AppIcon } from "@/components/ui/app-icon";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -99,7 +100,7 @@ function KpiCard({
         <strong className="tabular-nums text-[34px] font-black leading-none tracking-[-0.045em] text-[var(--app-text-primary)]">
           {value}
         </strong>
-        {href ? <span className="text-[18px] font-bold text-[var(--app-accent-700)]">›</span> : null}
+        {href ? <AppIcon name="chevron-right" className="size-5 text-[var(--app-accent-700)]" /> : null}
       </div>
       <p className="mt-4 min-h-10 text-[13px] leading-5 text-[var(--app-text-secondary)]">{detail}</p>
     </article>
@@ -369,7 +370,7 @@ export default async function DashboardPage() {
                 Find roles
               </Link>
               <Link className="ch-icon-button" href="/app/tracker" aria-label="Open tracker">
-                ↗
+                <AppIcon name="arrow-up-right" className="size-5" />
               </Link>
             </div>
           </div>

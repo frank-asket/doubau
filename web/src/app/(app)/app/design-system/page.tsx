@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { AppIcon } from "@/components/ui/app-icon";
+
 const SYSTEMS = [
   {
     id: "doubow",
@@ -49,9 +51,9 @@ export default function DesignSystemPage() {
               </a>
               <a
                 href="/app/dashboard"
-                className="text-sm font-medium text-[var(--app-accent)] hover:text-[var(--app-accent-hover)]"
+                className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent-hover)] active:scale-[0.96]"
               >
-                ← Back to workspace
+                <AppIcon name="chevron-right" className="size-4 rotate-180" /> Back to workspace
               </a>
             </div>
           </div>

@@ -57,8 +57,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 **Later (custom domain + “real” production):** Clerk **Production** (`pk_live_…` / `sk_live_…`) does **not** support `*.vercel.app`. After you buy a domain, add it in Vercel → **Domains**, then create or switch to a Clerk **Production** app and register that hostname per [Clerk deployments](https://clerk.com/docs/deployments/overview).
 
-**Clerk Billing (optional):** Enable Billing in the Clerk Dashboard and create plans. Web env (see also `/app/billing`):
+**Clerk Billing (optional):** Enable Billing in the Clerk Dashboard and create plans (this project expects **Free** / **Business** — keys **`free_user`** / **`business`**). Web env (see also `/app/billing`):
 
-- **`NEXT_PUBLIC_CLERK_PLAN_STANDARD_MONTH`** / **`_YEAR`**, same for **`PRO`** and **`ULTIMATE`** — plan IDs from Clerk. Shorthand: **`NEXT_PUBLIC_CLERK_PLAN_STANDARD`**, **`_PRO`**, **`_ULTIMATE`** for monthly-only.
+- **`NEXT_PUBLIC_CLERK_PLAN_FREE_MONTH`** / **`NEXT_PUBLIC_CLERK_PLAN_FREE_YEAR`** — Clerk plan IDs for the Free plan (`cplan_…`).
+- **`NEXT_PUBLIC_CLERK_PLAN_BUSINESS_MONTH`** / **`NEXT_PUBLIC_CLERK_PLAN_BUSINESS_YEAR`** — Clerk plan IDs for Business (trial/delay billing is configured in Clerk).
+- **Shorthand** when you use a single Clerk price period: **`NEXT_PUBLIC_CLERK_PLAN_FREE`** and **`NEXT_PUBLIC_CLERK_PLAN_BUSINESS`** (same id is used for monthly/yearly checkout until you split env vars).
+- **Legacy env names** (`NEXT_PUBLIC_CLERK_PLAN_STANDARD_*`, **`_PRO_*`**, **`_ULTIMATE_*`**, and shorthand **`_STANDARD`** / **`_PRO`** / **`_ULTIMATE`**) still map to Free / Business for older deployments.
 - **`NEXT_PUBLIC_BILLING_CHECKOUT_URL`** — default `/app/billing/checkout`; use an absolute **https** URL for Stripe Payment Links or another PSP (query params `plan`, `interval`, `source` are appended).
 - **`NEXT_PUBLIC_BILLING_PORTAL_URL`** — default `/app/billing/portal` (Clerk subscription drawer). Success/cancel return URLs: **`/billing?checkout=success`** and **`/billing?checkout=cancel`** redirect to **`/app/billing`**.

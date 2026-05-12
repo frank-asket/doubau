@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
+import { AppIcon } from "@/components/ui/app-icon";
 import { fetchApplications, fetchDrafts } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -53,9 +54,9 @@ export function CoverLetterClient() {
                   </div>
                   <Link
                     href="/app/approvals"
-                    className="text-[12px] font-medium text-[var(--app-accent)] hover:underline"
+                    className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]"
                   >
-                    Open approvals →
+                    Open approvals <AppIcon name="chevron-right" className="size-4" />
                   </Link>
                 </div>
                 <p className="mt-2 line-clamp-4 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
+
 type Tone = "green" | "red" | "blue" | "pink";
 
 const toneColor: Record<Tone, string> = {
@@ -30,7 +32,7 @@ export function MetricCard({
   unit,
   delta,
   tone = "green",
-  icon = "●",
+  icon = "circle",
   children,
 }: {
   title: string;
@@ -38,7 +40,7 @@ export function MetricCard({
   unit?: string;
   delta?: string;
   tone?: Tone;
-  icon?: string;
+  icon?: AppIconName;
   children?: ReactNode;
 }) {
   return (
@@ -46,7 +48,7 @@ export function MetricCard({
       <h2 className="text-[17px] font-bold text-[var(--app-text-primary)]">{title}</h2>
       <div className="mt-7 flex items-center gap-4">
         <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--app-blue-50)] text-[var(--app-accent)]">
-          {icon}
+          <AppIcon name={icon} className="size-5" />
         </span>
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="tabular-nums text-[32px] font-bold tracking-tight text-[var(--app-text-primary)]">
@@ -72,7 +74,7 @@ export function MetricCard({
   );
 }
 
-export function Gauge({ value, label, icon = "●" }: { value: number; label: string; icon?: string }) {
+export function Gauge({ value, label, icon = "circle" }: { value: number; label: string; icon?: AppIconName }) {
   const deg = Math.max(0, Math.min(100, value)) * 3.6;
   return (
     <div
@@ -83,7 +85,7 @@ export function Gauge({ value, label, icon = "●" }: { value: number; label: st
     >
       <div className="grid size-36 place-items-center rounded-full bg-white text-center">
         <div>
-          <div className="text-[24px]">{icon}</div>
+          <AppIcon name={icon} className="mx-auto size-6 text-[var(--app-accent)]" />
           <div className="tabular-nums text-[32px] font-bold text-[var(--app-text-primary)]">{value}</div>
           <div className="text-[14px] text-[var(--app-text-secondary)]">{label}</div>
         </div>
@@ -163,7 +165,7 @@ export function JobPickCard({ favorite = false }: { favorite?: boolean }) {
             <p className="text-[13px] font-semibold text-[var(--app-accent)]">HAYS</p>
           </div>
         </div>
-        <span className="text-[22px] text-[var(--app-accent)]">{favorite ? "★" : "☆"}</span>
+        <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5 text-[var(--app-accent)]" />
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Tag>3 year exp</Tag>
@@ -181,14 +183,14 @@ export function JobPickCard({ favorite = false }: { favorite?: boolean }) {
 export function BottomActions() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Link className="ch-soft-card flex min-h-12 items-center justify-center font-semibold text-[var(--app-accent)]" href="/app/planner">
-        Next: Create Career Roadmap ›
+      <Link className="ch-soft-card flex min-h-12 items-center justify-center gap-2 font-semibold text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out active:scale-[0.96]" href="/app/planner">
+        Next: Create Career Roadmap <AppIcon name="chevron-right" className="size-4" />
       </Link>
-      <Link className="ch-soft-card flex min-h-12 items-center justify-center font-semibold text-[var(--app-accent)]" href="/app/skill-gap-analysis">
-        Next: Analyze Skill Gaps ›
+      <Link className="ch-soft-card flex min-h-12 items-center justify-center gap-2 font-semibold text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out active:scale-[0.96]" href="/app/skill-gap-analysis">
+        Next: Analyze Skill Gaps <AppIcon name="chevron-right" className="size-4" />
       </Link>
-      <Link className="ch-soft-card flex min-h-12 items-center justify-center font-semibold text-[var(--app-accent)]" href="/app/copilot">
-        Next: Get AI Guidance ›
+      <Link className="ch-soft-card flex min-h-12 items-center justify-center gap-2 font-semibold text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out active:scale-[0.96]" href="/app/copilot">
+        Next: Get Guidance <AppIcon name="chevron-right" className="size-4" />
       </Link>
     </div>
   );

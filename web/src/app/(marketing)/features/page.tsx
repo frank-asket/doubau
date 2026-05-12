@@ -66,7 +66,7 @@ export default function FeaturesPage() {
           />
           <Feature
             title="Application tracker"
-            description="A state machine-backed pipeline: Applied → Interview → Offer."
+            description="A state machine-backed pipeline from Applied to Interview to Offer."
           />
           <Feature
             title="Career Copilot"
@@ -91,10 +91,10 @@ export default function FeaturesPage() {
           </div>
           <div className="grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-2">
             <div className="rounded-2xl border border-[var(--border)] bg-black/5 dark:bg-white/5 p-4">
-              DISCOVERED → SCORING → DRAFTED
+              DISCOVERED / SCORING / DRAFTED
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-black/5 dark:bg-white/5 p-4">
-              PENDING_APPROVAL → APPROVED → SUBMITTED
+              PENDING_APPROVAL / APPROVED / SUBMITTED
             </div>
           </div>
         </div>
@@ -102,4 +102,3 @@ export default function FeaturesPage() {
     </main>
   );
 }
-

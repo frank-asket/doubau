@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { AppIcon } from "@/components/ui/app-icon";
+
 type Variant = "discovery" | "job" | "approvals" | "dashboard";
 
 type StepKey = "discovery" | "job" | "draft" | "approvals";
@@ -74,7 +76,7 @@ export function JobPipelineHint({ variant }: { variant: Variant }) {
             {node}
             {showChevron ? (
               <span aria-hidden className="text-[11px] text-[var(--app-text-tertiary)] sm:text-[12px]">
-                →
+                <AppIcon name="chevron-right" className="size-3.5" />
               </span>
             ) : null}
           </span>

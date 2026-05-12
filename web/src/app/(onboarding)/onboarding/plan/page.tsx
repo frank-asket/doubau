@@ -4,11 +4,21 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { OnboardingStepFrame } from "@/components/onboarding/OnboardingStepFrame";
+import { parsePlanTier } from "@/lib/billing";
 
 const tiers = [
-  { id: "standard", name: "Standard", price: "£15/mo", detail: "Core coaching and profile support." },
-  { id: "pro", name: "Pro", price: "£25/mo", detail: "More drafting, matching, and workflow capacity." },
-  { id: "ultimate", name: "Ultimate", price: "£50/mo", detail: "Priority processing and advanced analytics." },
+  {
+    id: "free",
+    name: "Free",
+    price: "£0/mo",
+    detail: "Discovery, tracker, and approvals — matches Clerk plan key free_user.",
+  },
+  {
+    id: "business",
+    name: "Business",
+    price: "Paid · trial in Clerk",
+    detail: "Higher limits and full workspace features (30-day delayed billing for new customers in Clerk).",
+  },
 ];
 
 type Profile = {
@@ -19,20 +29,20 @@ type Profile = {
 function recommendedTier(persona: string | null | undefined): string {
   switch (persona) {
     case "student":
-      return "standard";
+      return "free";
     case "employed_exploring":
-      return "standard";
+      return "free";
     case "career_switcher":
-      return "pro";
+      return "business";
     case "active_search":
     default:
-      return "pro";
+      return "business";
   }
 }
 
 export default function OnboardingPlanPage() {
   const router = useRouter();
-  const [tier, setTier] = useState<string>("pro");
+  const [tier, setTier] = useState<string>("free");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommended, setRecommended] = useState<string | null>(null);
@@ -49,7 +59,7 @@ export default function OnboardingPlanPage() {
         if (cancelled) return;
 
         if (typeof data.plan_tier === "string" && data.plan_tier) {
-          setTier(data.plan_tier);
+          setTier(parsePlanTier(data.plan_tier));
           setRecommended(recommendedTier(data.persona));
           return;
         }
@@ -99,7 +109,7 @@ export default function OnboardingPlanPage() {
       stepLabel="Step 5 of 5"
     >
       <form onSubmit={onFinish} className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {tiers.map((t) => {
             const checked = tier === t.id;
             const rec = recommended === t.id;

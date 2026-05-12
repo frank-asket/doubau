@@ -15,7 +15,7 @@ const options = [
 
 type Profile = {
   persona?: string | null;
-  goals?: { focus?: string[] } | null;
+  goals?: Record<string, unknown> | null;
 };
 
 function defaultsForPersona(persona: string | null | undefined): string[] {
@@ -38,6 +38,7 @@ export default function OnboardingGoalsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prefilled, setPrefilled] = useState(false);
+  const [existingGoals, setExistingGoals] = useState<Record<string, unknown>>({});
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
@@ -50,7 +51,10 @@ export default function OnboardingGoalsPage() {
         const data = (await resp.json().catch(() => ({}))) as Profile;
         if (cancelled) return;
 
-        const existing = Array.isArray(data.goals?.focus) ? data.goals?.focus : null;
+        const goals = data.goals && typeof data.goals === "object" ? data.goals : {};
+        setExistingGoals(goals);
+
+        const existing = Array.isArray(goals.focus) ? goals.focus.filter((value): value is string => typeof value === "string") : null;
         if (existing && existing.length) {
           setSelected(existing);
           setPrefilled(true);
@@ -84,7 +88,7 @@ export default function OnboardingGoalsPage() {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          goals: { focus: selected },
+          goals: { ...existingGoals, focus: selected },
         }),
       });
       if (!resp.ok) {

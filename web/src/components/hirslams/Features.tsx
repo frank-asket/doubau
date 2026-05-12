@@ -91,7 +91,10 @@ export default function Features() {
                       <div />
                     </div>
                     <div className={styles.jobPills}>
-                      <span>● Full-time</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block size-1.5 rounded-full bg-current" />
+                        Full-time
+                      </span>
                       <span>Senior</span>
                     </div>
                     <div className={styles.jobFooter}>
@@ -194,4 +197,3 @@ export default function Features() {
     </section>
   );
 }
-

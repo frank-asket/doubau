@@ -199,10 +199,11 @@
 }
 
 .theme-app .ch-primary-button:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .theme-app .ch-icon-button {
+  position: relative;
   display: inline-flex;
   width: 44px;
   height: 44px;
@@ -213,6 +214,24 @@
   background: rgba(255, 255, 255, 0.82);
   color: var(--app-text-secondary);
   box-shadow: var(--app-shadow-0);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.theme-app .ch-icon-button:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 36%, var(--app-border));
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--app-text-primary);
+  box-shadow: var(--app-shadow-1);
+}
+
+.theme-app .ch-icon-button:active {
+  transform: scale(0.96);
+}
+
+.theme-app .ch-icon-button:focus-visible,
+.theme-app .ch-primary-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--app-focus-ring), var(--app-shadow-1);
 }
 
 .theme-app .ch-progress {
@@ -299,6 +318,12 @@
   .theme-app .dashboard-meter,
   .theme-app .dashboard-stack {
     animation: none;
+  }
+
+  .theme-app .ch-primary-button,
+  .theme-app .ch-icon-button,
+  .theme-app .app-surface-hover {
+    transition-duration: 1ms;
   }
 }
 

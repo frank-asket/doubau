@@ -8,35 +8,18 @@ import {
   useMinWidthXl,
   usePrefersReducedMotion,
 } from "@/hooks/use-sidebar-media";
+import { useCareerGrowthHoverPrefetch } from "@/components/providers/CareerGrowthProvider";
+import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
 function navActive(pathname: string, href: string) {
   if (pathname === href) return true;
   return pathname.startsWith(`${href}/`);
 }
 
-function ChevronIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
 export type AppNavItem = {
   href: string;
   label: string;
-  icon?: string;
+  icon?: AppIconName;
   /** One-line purpose — shallow IA without extra navigation depth. */
   subtitle?: string;
 };
@@ -72,14 +55,14 @@ function NavLinkStack({
             <Link
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out hover:translate-x-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
+              className={`relative flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out hover:translate-x-0.5 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
                 active
                   ? "bg-[var(--app-sidebar-active-bg)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_rgba(32,209,125,0.16)]"
                   : "text-[var(--app-sidebar-muted)] hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/80"
               }`}
             >
-              <span className={`grid size-7 shrink-0 place-items-center rounded-xl text-[15px] ${active ? "bg-[rgba(32,209,125,0.14)]" : "bg-white/[0.04]"}`} aria-hidden>
-                {icon ?? "•"}
+              <span className={`grid size-7 shrink-0 place-items-center rounded-xl ${active ? "bg-[rgba(32,209,125,0.14)]" : "bg-white/[0.04]"}`} aria-hidden>
+                <AppIcon name={icon ?? "circle"} className="size-4" />
               </span>
               <span className="min-w-0">
                 <span className={`block truncate text-[14px] leading-tight ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
@@ -102,6 +85,7 @@ function NavLinkStack({
 }
 
 function SidebarSection({ section, pathname }: { section: AppNavSection; pathname: string }) {
+  const prefetchCareerData = useCareerGrowthHoverPrefetch();
   const hasActiveChild = useMemo(
     () => section.items.some((i) => navActive(pathname, i.href)),
     [pathname, section.items],
@@ -158,6 +142,9 @@ function SidebarSection({ section, pathname }: { section: AppNavSection; pathnam
             ? "This section stays open while you’re on one of its pages."
             : undefined
         }
+        onPointerEnter={() => {
+          if (section.id === "career-growth") prefetchCareerData();
+        }}
         onClick={() => {
           if (hasActiveChild) return;
           setManualOpen((o) => !o);
@@ -167,9 +154,7 @@ function SidebarSection({ section, pathname }: { section: AppNavSection; pathnam
         }`}
       >
         <span>{section.title}</span>
-        <ChevronIcon
-          className={`shrink-0 text-white/45 ${chevronMotion} ${expanded ? "rotate-180" : ""}`}
-        />
+        <AppIcon name="chevron-down" className={`size-4 text-white/45 ${chevronMotion} ${expanded ? "rotate-180" : ""}`} />
       </button>
       {expanded ? (
         <div id={submenuId} role="region" aria-labelledby={sectionHeadingId} className="mt-2 pb-1 pl-5">

@@ -1,82 +1,252 @@
 "use client";
 
-import { ProgressLine, SegmentedTabs, Tag } from "./CareerHeroMockSections";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+import { AppIcon } from "@/components/ui/app-icon";
+import {
+  getResumeStructured,
+  goalFocusList,
+  labelForGoalId,
+  personaLabel,
+  readinessPercent,
+  resumeSkills,
+  type ProfileDto,
+  type ResumeLatestDto,
+} from "@/lib/career-data";
+import { queryKeys } from "@/lib/query-keys";
+
+import { ProgressLine, Tag } from "./CareerHeroMockSections";
+import { ProductPageChrome } from "./ProductPageChrome";
+
+type WorkspaceSummary = {
+  resume_status?: string | null;
+  current_role?: string | null;
+  location?: string | null;
+};
+
+const TABS = ["Personal Info", "Skills & Expertise", "Career Goals", "Work Style"] as const;
 
 export function CareerProfileClient() {
+  const [tab, setTab] = useState<string>("Personal Info");
+
+  const profileQ = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: async () => {
+      const r = await fetch("/api/me/profile", { cache: "no-store" });
+      if (!r.ok) throw new Error("profile");
+      return r.json() as ProfileDto;
+    },
+  });
+
+  const workspaceQ = useQuery({
+    queryKey: queryKeys.workspaceSummary,
+    queryFn: async () => {
+      const r = await fetch("/api/me/workspace/summary", { cache: "no-store" });
+      if (!r.ok) throw new Error("workspace");
+      return r.json() as WorkspaceSummary;
+    },
+  });
+
+  const resumeQ = useQuery({
+    queryKey: queryKeys.resumeLatest,
+    queryFn: async () => {
+      const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error("resume");
+      return r.json() as ResumeLatestDto;
+    },
+  });
+
+  const profile = profileQ.data;
+  const structured = useMemo(
+    () => getResumeStructured(resumeQ.data?.parsed_json ?? null),
+    [resumeQ.data?.parsed_json],
+  );
+  const skills = useMemo(() => resumeSkills(structured), [structured]);
+  const readiness = readinessPercent(workspaceQ.data?.resume_status ?? resumeQ.data?.status);
+  const focuses = goalFocusList(profile?.goals ?? null);
+
+  const summaryBlurb =
+    typeof structured?.summary === "string" && structured.summary.trim()
+      ? structured.summary.trim().slice(0, 420)
+      : null;
+
   return (
-    <div className="flex w-full flex-col gap-4">
+    <ProductPageChrome
+      title="Career profile"
+      description="Live data from your Doubow profile and latest parsed résumé."
+    >
       <section className="ch-panel p-6">
         <div className="mx-auto max-w-5xl">
-          <SegmentedTabs items={["Personal Info", "Skills & Expertise", "Career Goals", "Work Style"]} active="Skills & Expertise" />
+          <div className="flex flex-wrap gap-2">
+            {TABS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setTab(item)}
+                className={`min-h-10 rounded-full px-4 text-[14px] font-semibold transition ${
+                  item === tab
+                    ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]"
+                    : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="mt-6 grid grid-cols-[1fr_auto] items-center gap-4">
-          <ProgressLine value={50} />
-          <span className="text-[20px] font-bold">50%</span>
+          <ProgressLine value={readiness} />
+          <span className="text-[20px] font-bold tabular-nums">{readiness}%</span>
         </div>
+        <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">
+          Résumé pipeline readiness (embedding drives job matching).{" "}
+          <Link href="/app/cv-builder" className="font-medium text-[var(--app-accent)] hover:underline">
+            Manage CV
+          </Link>
+        </p>
       </section>
 
-      <section className="ch-panel p-7">
-        <h2 className="text-[18px] font-bold">Technical Skills</h2>
-        <div className="mt-4 flex gap-4">
-          <input className="h-14 flex-1 rounded-full border border-[var(--app-border)] px-6 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]" placeholder="Search technical skills..." />
-          <button className="ch-primary-button" type="button">+ Add Skill</button>
-        </div>
-        <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {[
-            ["React", 50, 80, ["Know how JSX works"], ["BASF Certified Agronomy Advisor"], ["Fertilizer Trial Program"]],
-            ["Kubernetes", 24, 100, ["Deploy apps with YAML", "Scale clusters efficiently"], ["No certification"], []],
-            ["Docker", 62, 90, ["Build lightweight containers"], ["Docker Certified Associate (DCA)"], ["No projects"]],
-          ].map(([name, current, target, goals, certs, projects]) => (
-            <article key={String(name)} className="ch-soft-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="grid size-12 place-items-center rounded-full bg-[#1d1d1f] text-white">◉</span>
-                  <h3 className="text-[20px] font-bold">{name}</h3>
-                </div>
-                <span className="text-[var(--app-text-secondary)]">×</span>
-              </div>
-              <div className="mt-5 flex gap-2"><Tag>1 year exp</Tag><Tag>Learning</Tag></div>
-              <div className="mt-6 space-y-5">
-                <div><div className="mb-2 flex justify-between font-semibold"><span>Current Proficiency</span><span>{String(current)}%</span></div><ProgressLine value={Number(current)} /></div>
-                <div><div className="mb-2 flex justify-between font-semibold"><span>Target Level</span><span>{String(target)}%</span></div><ProgressLine value={Number(target)} /></div>
-              </div>
-              {[
-                ["Learning Goals", goals as string[]],
-                ["Certifications", certs as string[]],
-                ["Relevant Projects", projects as string[]],
-              ].map(([label, items]) => (
-                <div key={String(label)} className="mt-6 border-t border-dashed border-[var(--app-border)] pt-5">
-                  <h4 className="font-bold">{label}</h4>
-                  <ul className="mt-2 space-y-1 text-[13px] text-[var(--app-text-secondary)]">
-                    {(items as string[]).length ? (items as string[]).map((item) => <li key={item}>- {item}</li>) : <li>- No projects</li>}
-                  </ul>
-                </div>
+      {profileQ.isLoading || workspaceQ.isLoading ? (
+        <p className="text-[13px] text-[var(--app-text-secondary)]">Loading profile…</p>
+      ) : profileQ.isError ? (
+        <p className="text-[13px] text-[var(--app-badge-red-fg)]">Could not load profile.</p>
+      ) : null}
+
+      {tab === "Personal Info" ? (
+        <section className="ch-panel p-7">
+          <h2 className="text-[18px] font-bold">Personal & role</h2>
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">Email</dt>
+              <dd className="mt-1 text-[15px] text-[var(--app-text-primary)]">{profile?.email ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">Current role</dt>
+              <dd className="mt-1 text-[15px] text-[var(--app-text-primary)]">{profile?.current_role?.trim() || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">Experience</dt>
+              <dd className="mt-1 text-[15px] text-[var(--app-text-primary)]">{profile?.years_experience?.trim() || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">Location</dt>
+              <dd className="mt-1 text-[15px] text-[var(--app-text-primary)]">{profile?.location?.trim() || "—"}</dd>
+            </div>
+          </dl>
+          {summaryBlurb ? (
+            <div className="mt-8 border-t border-dashed border-[var(--app-border)] pt-6">
+              <h3 className="font-bold">Professional summary</h3>
+              <p className="mt-3 text-[15px] leading-7 text-[var(--app-text-secondary)]">{summaryBlurb}</p>
+            </div>
+          ) : (
+            <p className="mt-8 text-[13px] text-[var(--app-text-secondary)]">
+              No structured summary yet — upload a résumé on{" "}
+              <Link href="/app/cv-builder" className="font-medium text-[var(--app-accent)] hover:underline">
+                CV Builder
+              </Link>{" "}
+              to populate this section.
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {tab === "Skills & Expertise" ? (
+        <section className="ch-panel p-7">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-[18px] font-bold">Skills from résumé</h2>
+            <span className="text-[12px] font-medium text-[var(--app-text-tertiary)]">
+              Status: {resumeQ.data?.status ?? "No upload"}
+            </span>
+          </div>
+          {resumeQ.isLoading ? (
+            <p className="mt-6 text-[13px] text-[var(--app-text-secondary)]">Loading résumé…</p>
+          ) : !skills.length ? (
+            <p className="mt-6 text-[13px] text-[var(--app-text-secondary)]">
+              Parsed skills will appear after your résumé is processed.{" "}
+              <Link href="/app/cv-builder" className="font-medium text-[var(--app-accent)] hover:underline">
+                Upload a CV
+              </Link>
+              .
+            </p>
+          ) : (
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {skills.map((name) => (
+                <article key={name} className="ch-soft-card p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                      <span className="grid size-12 place-items-center rounded-full bg-[#1d1d1f] text-white">
+                        <AppIcon name="layers" className="size-5" />
+                      </span>
+                      <h3 className="text-[17px] font-bold">{name}</h3>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    <Tag>On résumé</Tag>
+                  </div>
+                  <div className="mt-6">
+                    <div className="mb-2 flex justify-between text-[13px] font-semibold">
+                      <span>Profile signal</span>
+                      <span>{readiness}%</span>
+                    </div>
+                    <ProgressLine value={readiness} />
+                  </div>
+                  <p className="mt-4 text-[12px] text-[var(--app-text-tertiary)]">
+                    Skill list comes from your latest structured résumé parse — refine wording on your CV to update.
+                  </p>
+                </article>
               ))}
-            </article>
-          ))}
-        </div>
-      </section>
+            </div>
+          )}
+        </section>
+      ) : null}
 
-      <section className="ch-panel p-7">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-[28px] font-bold">Your Personality Type: INTJ <Tag>Architect</Tag></h2>
-          <div className="flex gap-4 font-semibold text-[var(--app-accent)]"><button type="button">Download Report</button><button type="button">Share Results</button></div>
-        </div>
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {[
-            ["Key Strengths", ["Strategic planning", "Complex problem solving", "Independent thinking", "High standards"]],
-            ["Work Style", ["Prefers independent work", "Focuses on long-term strategy", "Values efficiency and logic", "Driven by continuous improvement"]],
-            ["Communication", ["Direct and concise", "Focuses on facts and logic", "Prefers written communication", "Values intellectual discourse"]],
-          ].map(([title, items]) => (
-            <article key={String(title)} className="rounded-2xl border border-[var(--app-border)] bg-white p-6">
-              <h3 className="text-[20px] font-bold">{title}</h3>
-              <ul className="mt-5 space-y-3 text-[15px] text-[var(--app-text-secondary)]">
-                {(items as string[]).map((item) => <li key={item}>• {item}</li>)}
-              </ul>
+      {tab === "Career Goals" ? (
+        <section className="ch-panel p-7">
+          <h2 className="text-[18px] font-bold">Goals</h2>
+          <p className="mt-2 text-[13px] text-[var(--app-text-secondary)]">
+            Pulled from onboarding / profile <code className="text-[12px]">goals.focus</code>. Edit in{" "}
+            <Link href="/app/settings" className="font-medium text-[var(--app-accent)] hover:underline">
+              Settings
+            </Link>
+            .
+          </p>
+          {focuses.length ? (
+            <ul className="mt-6 flex flex-wrap gap-2">
+              {focuses.map((id) => (
+                <Tag key={id} active>
+                  {labelForGoalId(id)}
+                </Tag>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-6 text-[13px] text-[var(--app-text-secondary)]">No saved goals yet.</p>
+          )}
+        </section>
+      ) : null}
+
+      {tab === "Work Style" ? (
+        <section className="ch-panel p-7">
+          <h2 className="text-[18px] font-bold">Persona & preferences</h2>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            <article className="rounded-2xl border border-[var(--app-border)] bg-white p-6">
+              <h3 className="text-[16px] font-bold">Persona</h3>
+              <p className="mt-4 text-[15px] text-[var(--app-text-primary)]">{personaLabel(profile?.persona)}</p>
             </article>
-          ))}
-        </div>
-      </section>
-    </div>
+            <article className="rounded-2xl border border-[var(--app-border)] bg-white p-6 lg:col-span-2">
+              <h3 className="text-[16px] font-bold">Contact preferences</h3>
+              <p className="mt-4 text-[15px] leading-7 text-[var(--app-text-secondary)]">
+                {profile?.contact_preferences?.trim() || "—"}
+              </p>
+            </article>
+          </div>
+          <p className="mt-6 text-[12px] text-[var(--app-text-tertiary)]">
+            Preference quiz outputs (e.g. MBTI-style types) are not stored in Doubow yet — this section shows only saved profile fields.
+          </p>
+        </section>
+      ) : null}
+    </ProductPageChrome>
   );
 }

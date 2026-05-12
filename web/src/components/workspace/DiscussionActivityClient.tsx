@@ -1,5 +1,7 @@
 "use client";
 
+import { AppIcon } from "@/components/ui/app-icon";
+
 import { Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
@@ -21,7 +23,12 @@ export function DiscussionActivityClient() {
                   <span className="grid size-12 place-items-center rounded-full bg-[var(--app-blue-50)] text-[var(--app-accent)]">{author.slice(0, 1)}</span>
                   <h2 className="text-[18px] font-bold">{author}</h2>
                 </div>
-                <span className="text-[13px] text-[var(--app-text-secondary)]">1 day ago ⋮</span>
+                <span className="inline-flex items-center gap-2 text-[13px] text-[var(--app-text-secondary)]">
+                  1 day ago
+                  <button className="ch-icon-button size-8" type="button" aria-label={`More options for ${author}`}>
+                    <AppIcon name="more-horizontal" className="size-4" />
+                  </button>
+                </span>
               </div>
               <h3 className="mt-6 font-bold">{title}</h3>
               <p className="mt-3 text-[16px] leading-6 text-[var(--app-text-primary)]">{body}</p>
@@ -33,7 +40,9 @@ export function DiscussionActivityClient() {
               ) : null}
               <div className="mt-6 flex flex-wrap gap-2"><Tag>#career-change</Tag><Tag>#life-decision</Tag></div>
               <div className="mt-5 flex items-center gap-5 border-t border-dashed border-[var(--app-border)] pt-5 text-[13px] font-semibold text-[var(--app-text-secondary)]">
-                <span>👍 {likes}</span><span>◌ {replies}</span><button className="text-[var(--app-accent)]" type="button">Reply</button>
+                <span className="inline-flex items-center gap-1"><AppIcon name="star" className="size-4" /> {likes}</span>
+                <span className="inline-flex items-center gap-1"><AppIcon name="message-circle" className="size-4" /> {replies}</span>
+                <button className="inline-flex min-h-10 items-center rounded-full px-3 text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]" type="button">Reply</button>
               </div>
             </article>
           ))}
@@ -44,7 +53,13 @@ export function DiscussionActivityClient() {
             {posts.concat(posts).slice(0, 4).map(([author, title, body], idx) => (
               <article key={`${author}-${idx}`} className="ch-soft-card p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold">{author}</h3><span className="text-[13px] text-[var(--app-text-secondary)]">{idx + 10}h ⋮</span>
+                  <h3 className="font-bold">{author}</h3>
+                  <span className="inline-flex items-center gap-2 text-[13px] text-[var(--app-text-secondary)]">
+                    {idx + 10}h
+                    <button className="ch-icon-button size-8" type="button" aria-label={`More options for ${author}`}>
+                      <AppIcon name="more-horizontal" className="size-4" />
+                    </button>
+                  </span>
                 </div>
                 <p className="mt-4 text-[15px] leading-5">{title}<br />{body.slice(0, 86)}...</p>
                 <div className="mt-4 flex gap-2"><Tag>#career-advice</Tag><Tag>#job-search</Tag></div>

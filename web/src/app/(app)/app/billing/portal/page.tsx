@@ -4,6 +4,7 @@ import { SignInButton, useAuth } from "@clerk/nextjs";
 import { SubscriptionDetailsButton } from "@clerk/nextjs/experimental";
 import Link from "next/link";
 
+import { AppIcon } from "@/components/ui/app-icon";
 import { AppButton } from "@/components/ui/button";
 
 export default function BillingPortalPage() {
@@ -44,9 +45,9 @@ export default function BillingPortalPage() {
 
       <Link
         href="/app/billing"
-        className="text-[13px] font-medium text-[var(--app-accent)] hover:underline"
+        className="inline-flex min-h-10 w-fit items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]"
       >
-        ← Back to billing
+        <AppIcon name="chevron-right" className="size-4 rotate-180" /> Back to billing
       </Link>
     </div>
   );

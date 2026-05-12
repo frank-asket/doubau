@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
+import { AppIcon } from "@/components/ui/app-icon";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -38,7 +39,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     aria-hidden="true"
                     className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent-foreground)]"
                   >
-                    ✓
+                    <AppIcon name="check-circle" className="size-3.5" />
                   </span>
                   <span>
                     <span className="font-semibold">HITL enforcement</span> at the API layer — no “auto-apply” surprises.
@@ -49,7 +50,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     aria-hidden="true"
                     className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent-foreground)]"
                   >
-                    ✓
+                    <AppIcon name="check-circle" className="size-3.5" />
                   </span>
                   <span>
                     <span className="font-semibold">Résumé-grounded</span> scoring and drafting — less generic output.
@@ -60,10 +61,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     aria-hidden="true"
                     className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent-foreground)]"
                   >
-                    ✓
+                    <AppIcon name="check-circle" className="size-3.5" />
                   </span>
                   <span>
-                    <span className="font-semibold">One system</span> for discovery → approvals → tracker.
+                    <span className="font-semibold">One system</span> for discovery, approvals, and tracker.
                   </span>
                 </li>
               </ul>
@@ -118,4 +119,3 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

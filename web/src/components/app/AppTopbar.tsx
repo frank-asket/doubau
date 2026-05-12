@@ -3,6 +3,8 @@
 import { UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
+import { AppIcon } from "@/components/ui/app-icon";
+
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Welcome back, Robert!",
   "/app/career-profile": "Career Profile",
@@ -50,9 +52,7 @@ export function AppTopbar() {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <label className="relative hidden h-11 w-[320px] items-center gap-3 rounded-full border border-[var(--app-border)] bg-white/88 px-4 text-[14px] text-[var(--app-text-tertiary)] shadow-[var(--app-shadow-0)] lg:flex">
-            <span className="text-[18px]" aria-hidden>
-              O
-            </span>
+            <AppIcon name="search" className="size-5 text-[var(--app-text-secondary)]" />
             <span className="sr-only">Search</span>
             <input
               className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--app-text-tertiary)]"
@@ -64,11 +64,12 @@ export function AppTopbar() {
             </kbd>
           </label>
           <button className="ch-icon-button hidden md:inline-flex" type="button" aria-label="Notifications">
-            <span className="relative inline-flex size-2 rounded-full bg-[var(--app-accent)] shadow-[0_0_0_6px_rgba(32,209,125,0.12)]" aria-hidden />
+            <AppIcon name="bell" className="size-5" />
+            <span className="absolute right-3 top-3 inline-flex size-2 rounded-full bg-[var(--app-accent)] shadow-[0_0_0_6px_rgba(32,209,125,0.12)]" aria-hidden />
           </button>
           <UserButton />
-          <button className="hidden text-[14px] text-[var(--app-text-primary)] md:inline-flex" type="button" aria-label="User menu">
-            ▾
+          <button className="ch-icon-button hidden md:inline-flex" type="button" aria-label="User menu">
+            <AppIcon name="chevron-down" className="size-4" />
           </button>
         </div>
       </div>

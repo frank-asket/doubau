@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { type ReactNode, useMemo, useState, useTransition } from "react";
 
-import { Tag } from "@/components/workspace/CareerHeroMockSections";
+import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
 export type JobRow = {
   id: string;
@@ -50,125 +50,13 @@ type DisplayRow = {
   components: Record<string, number>;
 };
 
-const MOCK_JOBS: JobRow[] = [
-  {
-    id: "meta",
-    company: "Meta Platform, Inc",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "3 year exp",
-    employment_type: "Full time",
-    description:
-      "Meta, one of the world's leading technology companies, is placing a renewed emphasis on building meaningful digital interactions across...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "google",
-    company: "Google LLC",
-    title: "Project Manager",
-    location: "Remote",
-    seniority: "8 year exp",
-    employment_type: "Full time",
-    description:
-      "Google continues to transform the way billions of people search, work, and connect by investing heavily in AI, cloud infrastructure, and product...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "amazon",
-    company: "Amazon.com, Inc",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "4 year exp",
-    employment_type: "Part time",
-    description:
-      "Amazon, the global e-commerce leader, is doubling down on elevating its end-to-end customer journey. With millions of daily users. As a Project...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "zalando",
-    company: "Zalando, SE",
-    title: "Project Manager",
-    location: "Remote",
-    seniority: "10 year exp",
-    employment_type: "Full time",
-    description:
-      "Zalando, one of Europe's top online fashion retailers, is investing in smarter recommendations, better logistics visibility, and enhanced mobile shopping...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "glovo",
-    company: "Glovo",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "3 year exp",
-    employment_type: "Full time",
-    description:
-      "Glovo, a widely used delivery platform across Europe, is focusing on optimizing courier routing, accelerating restaurant onboarding, and...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "revolut",
-    company: "Revolut",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "2 year exp",
-    employment_type: "Full time",
-    description:
-      "Revolut, a fast-scaling fintech company, is prioritizing seamless onboarding, improved financial tools, and stronger customer protection. Work as...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "airbnb",
-    company: "Airbnb, Inc.",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "4 year exp",
-    employment_type: "Full time",
-    description:
-      "Airbnb continues to evolve its platform to support safer stays, smoother onboarding for hosts, and better booking transparency for guests. As a...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "shopify",
-    company: "Shopify, Inc",
-    title: "Project Manager",
-    location: "Office",
-    seniority: "6 year exp",
-    employment_type: "Part time",
-    description:
-      "Shopify, powering millions of online stores, has renewed its focus on merchant experience, checkout performance, and streamlined store...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "netflix",
-    company: "Netflix, Inc",
-    title: "Project Manager",
-    location: "Remote",
-    seniority: "2 year exp",
-    employment_type: "Full time",
-    description:
-      "Netflix, the global leader in streaming entertainment, is intensifying its focus on platform personalization, content discovery, and platform...",
-    tags: [],
-    source_url: "#",
-    created_at: new Date().toISOString(),
-  },
-];
+function Tag({ children, active = false }: { children: ReactNode; active?: boolean }) {
+  return (
+    <span className={`ch-pill ${active ? "bg-[var(--app-blue-50)] text-[var(--app-accent)]" : ""}`}>
+      {children}
+    </span>
+  );
+}
 
 const LOGOS: Record<string, { text: string; bg: string; fg: string }> = {
   meta: { text: "∞", bg: "#2f80ed", fg: "white" },
@@ -211,27 +99,27 @@ function postedLabel(job: JobRow) {
   return `${days} days ago`;
 }
 
-function normalizedJob(job: JobRow, index: number): JobRow {
+function normalizedJob(job: JobRow): JobRow {
   return {
     ...job,
-    title: job.title || "Project Manager",
-    company: job.company || MOCK_JOBS[index % MOCK_JOBS.length].company,
-    seniority: job.seniority || MOCK_JOBS[index % MOCK_JOBS.length].seniority,
-    employment_type: job.employment_type || MOCK_JOBS[index % MOCK_JOBS.length].employment_type,
-    location: job.location || MOCK_JOBS[index % MOCK_JOBS.length].location,
-    description: job.description || MOCK_JOBS[index % MOCK_JOBS.length].description,
+    title: job.title || "Untitled role",
+    company: job.company || "Unknown company",
+    seniority: job.seniority || "Experience not specified",
+    employment_type: job.employment_type || "Employment type not specified",
+    location: job.location || "Location not specified",
+    description: job.description || "No description was provided by the source.",
   };
 }
 
-function normalizedRow(row: DisplayRow, index: number): DisplayRow {
+function normalizedRow(row: DisplayRow): DisplayRow {
   return {
     ...row,
-    job: normalizedJob(row.job, index),
+    job: normalizedJob(row.job),
   };
 }
 
 function isPreviewJob(job: JobRow) {
-  return MOCK_JOBS.some((j) => j.id === job.id) || job.id.startsWith("mock-");
+  return job.id.startsWith("mock-");
 }
 
 function sourceLabel(job: JobRow) {
@@ -251,10 +139,10 @@ async function postJobEvent(jobId: string, eventType: "click_out" | "save" | "di
   }).catch(() => undefined);
 }
 
-function ToolbarButton({ label, children }: { label: string; children: React.ReactNode }) {
+function ToolbarButton({ label, icon }: { label: string; icon: AppIconName }) {
   return (
     <button className="ch-icon-button" type="button" aria-label={label} title={label}>
-      {children}
+      <AppIcon name={icon} className="size-5" />
     </button>
   );
 }
@@ -314,11 +202,11 @@ function DiscoveryCard({
           </div>
           <button
             type="button"
-            className={`text-[26px] leading-none ${favorite ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)]"}`}
+            className={`grid size-10 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_12%,white)] text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]"}`}
             aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
             onClick={onToggleFavorite}
           >
-            {favorite ? "★" : "☆"}
+            <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
           </button>
         </div>
 
@@ -367,12 +255,12 @@ function DiscoveryCard({
           {!isPreviewJob(job) ? (
             <button
               type="button"
-              className="text-[18px] text-[var(--app-text-secondary)] transition hover:text-[var(--app-danger)]"
+              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--app-danger)_8%,white)] hover:text-[var(--app-danger)] active:scale-[0.96]"
               aria-label={`Hide ${job.title}`}
               title="Hide role"
               onClick={onHide}
             >
-              ×
+              <AppIcon name="trash" className="size-4" />
             </button>
           ) : null}
           {hasLiveUrl ? (
@@ -380,20 +268,20 @@ function DiscoveryCard({
               href={job.source_url || "#"}
               target="_blank"
               rel="noreferrer"
-              className="text-[24px] text-[var(--app-text-secondary)] transition group-hover:text-[var(--app-accent)]"
+              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)] active:scale-[0.96]"
               aria-label={`Open ${job.title} source`}
               onClick={() => void postJobEvent(job.id, "click_out")}
             >
-              ↗
+              <AppIcon name="arrow-up-right" className="size-5" />
             </a>
           ) : (
             <Link
               href={detailHref}
-              className="text-[24px] text-[var(--app-text-secondary)] transition group-hover:text-[var(--app-accent)]"
+              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)] active:scale-[0.96]"
               aria-label={`Open ${job.title}`}
               onClick={() => void postJobEvent(job.id, "click_out")}
             >
-              ↗
+              <AppIcon name="arrow-up-right" className="size-5" />
             </Link>
           )}
         </div>
@@ -416,9 +304,7 @@ export function DiscoveryClient({
   loadError: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("all");
-  const [favorites, setFavorites] = useState<Set<string>>(
-    () => new Set(initialFeed.length || initialJobs.length ? [] : ["google", "glovo", "shopify"]),
-  );
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [openToWork, setOpenToWork] = useState(false);
@@ -445,18 +331,12 @@ export function DiscoveryClient({
             scoreReason: null,
             components: {},
           }))
-        : MOCK_JOBS.map((job) => ({
-            job,
-            score: null,
-            similarity: null,
-            scoreReason: null,
-            components: {},
-          }));
-    return source.slice(0, 12).map((row, index) => normalizedRow(row, index));
+        : [];
+    return source.slice(0, 12).map((row) => normalizedRow(row));
   }, [initialFeed, initialJobs]);
 
   const favoriteCount = favorites.size;
-  const totalCount = catalogSummary?.active_total || initialJobs.length || initialFeed.length || 108;
+  const totalCount = catalogSummary?.active_total || initialJobs.length || initialFeed.length;
   const visibleRows = rows.filter(({ job }) => {
     if (hiddenIds.has(job.id)) return false;
     if (tab === "favorites" && !favorites.has(job.id)) return false;
@@ -545,7 +425,7 @@ export function DiscoveryClient({
               High-signal opportunities, ranked for your next move.
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-7 text-white/68">
-              Doubow blends resume embeddings, seniority fit, freshness, and location signals so the page feels more like a talent marketplace than a scraped job board.
+              Doubow ranks active roles from connected providers using your resume, location, seniority, and recent activity.
             </p>
           </div>
           <div className="grid min-w-[260px] grid-cols-2 gap-3">
@@ -564,29 +444,29 @@ export function DiscoveryClient({
         <div className="flex w-full max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1">
           <button
             type="button"
-            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition ${
+            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.96] ${
               tab === "all" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
             }`}
             onClick={() => setTab("all")}
           >
-            <span aria-hidden>▣</span> All Jobs <Tag active>{totalCount}</Tag>
+            <AppIcon name="briefcase" className="size-4" /> All Jobs <Tag active>{totalCount}</Tag>
           </button>
           <button
             type="button"
-            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition ${
+            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.96] ${
               tab === "favorites" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
             }`}
             onClick={() => setTab("favorites")}
           >
-            <span aria-hidden>★</span> Favorites Jobs <Tag>{favoriteCount}</Tag>
+            <AppIcon name="star" className="size-4" /> Favorites Jobs <Tag>{favoriteCount}</Tag>
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <ToolbarButton label="Filters">☷</ToolbarButton>
-          <ToolbarButton label="Sort">⇅</ToolbarButton>
+          <ToolbarButton label="Filters" icon="filter" />
+          <ToolbarButton label="Sort" icon="analytics" />
           <label className="flex min-h-12 w-52 items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)]">
-            <span aria-hidden className="text-[var(--app-text-secondary)]">O</span>
+            <AppIcon name="search" className="size-5 text-[var(--app-text-secondary)]" />
             <input
               className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
               value={query}
@@ -599,10 +479,10 @@ export function DiscoveryClient({
             type="button"
             onClick={() => setOpenToWork((value) => !value)}
           >
-            <span aria-hidden>⊙</span> Open to Work
+            <AppIcon name="check-circle" className="size-5" /> Open to Work
           </button>
           <button className="ch-primary-button min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
-            <span aria-hidden className="text-[22px]">+</span> Add Job
+            <AppIcon name="plus" className="size-5" /> Add Job
           </button>
         </div>
       </div>
@@ -642,7 +522,7 @@ export function DiscoveryClient({
 
       {loadError ? (
         <div className="mb-5 rounded-2xl border border-[color-mix(in_srgb,var(--app-danger)_25%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_7%,white)] px-5 py-4 text-[14px] text-[var(--app-danger)]">
-          Could not load live jobs, so preview roles are shown.
+          Could not load live jobs. Try again in a moment, or import a job URL while the provider sync catches up.
         </div>
       ) : null}
 
@@ -652,7 +532,9 @@ export function DiscoveryClient({
         </div>
       ) : visibleRows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-white px-5 py-16 text-center text-[var(--app-text-secondary)]">
-          No matching roles found.
+          {query.trim()
+            ? "No matching roles found."
+            : "No live roles are available yet. Import a job URL or run a provider sync to populate Discovery."}
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
@@ -671,7 +553,7 @@ export function DiscoveryClient({
 
       {initialHiddenJobs.length ? (
         <p className="mt-6 text-[12px] text-[var(--app-text-tertiary)]">
-          {initialHiddenJobs.length} hidden roles are excluded from this mockup-style view.
+          {initialHiddenJobs.length} hidden roles are excluded from this view.
         </p>
       ) : null}
     </section>

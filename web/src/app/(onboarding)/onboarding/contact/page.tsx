@@ -266,7 +266,7 @@ export default function OnboardingContactPage() {
                   onClick={() => setContactPreferences(option)}
                   aria-pressed={checked}
                   className={[
-                    "min-h-11 rounded-[var(--app-radius-md)] border-[0.5px] px-3 text-left text-[13px] font-medium transition-[background-color,border-color,transform] duration-150 ease-out active:scale-[0.98]",
+                    "min-h-11 rounded-[var(--app-radius-md)] border-[0.5px] px-3 text-left text-[13px] font-medium transition-[background-color,border-color,transform] duration-150 ease-out active:scale-[0.96]",
                     checked
                       ? "border-[color-mix(in_srgb,var(--app-accent)_55%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_9%,var(--app-bg-elevated))] text-[var(--app-text-primary)]"
                       : "border-[var(--app-border)] text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]",

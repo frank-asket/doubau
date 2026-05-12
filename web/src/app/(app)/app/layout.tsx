@@ -9,9 +9,10 @@ import {
 } from "@/components/app/AppSidebarNav";
 import { AppThemeShell } from "@/components/app/AppThemeShell";
 import { AppTopbar } from "@/components/app/AppTopbar";
-import { AppSetupReminder, type AppSetupReminderKind } from "@/components/app/AppSetupReminder";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { CareerGrowthProvider } from "@/components/providers/CareerGrowthProvider";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
+import { AppIcon } from "@/components/ui/app-icon";
 
 const NAV_SECTIONS: AppNavSection[] = [
   {
@@ -21,7 +22,7 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/dashboard",
         label: "Dashboard",
-        icon: "⌂",
+        icon: "home",
         subtitle: "Your job search at a glance",
       },
     ],
@@ -34,31 +35,19 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/discovery",
         label: "Job Discovery",
-        icon: "●",
+        icon: "briefcase",
         subtitle: "Browse roles that match your goals",
       },
       {
         href: "/app/tracker",
         label: "Job Tracker",
-        icon: "▣",
+        icon: "layers",
         subtitle: "Track every role from saved to submitted",
       },
       {
         href: "/app/approvals",
         label: "Draft approvals",
         subtitle: "Review messages before they go out",
-      },
-      {
-        href: "/app/salary-benchmark",
-        label: "Salary Benchmark",
-        icon: "$",
-        subtitle: "Compare pay ranges before you apply",
-      },
-      {
-        href: "/app/sponsorship-hub",
-        label: "Sponsorship Hub",
-        icon: "▣",
-        subtitle: "Check sponsors and visa fit",
       },
       {
         href: "/app/analytics",
@@ -75,32 +64,56 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/career-profile",
         label: "Career Profile",
-        icon: "◦",
-        subtitle: "Set your goals, skills, and preferences",
-      },
-      {
-        href: "/app/pathfinder",
-        label: "Career Pathfinder",
-        icon: "◇",
-        subtitle: "Explore roles that fit your next move",
+        icon: "star",
+        subtitle: "Your narrative, strengths, and positioning",
       },
       {
         href: "/app/career-steps",
         label: "Career Steps",
-        icon: "☑",
+        icon: "clipboard-check",
         subtitle: "Follow a step-by-step growth plan",
+      },
+      {
+        href: "/app/pathfinder",
+        label: "Career Pathfinder",
+        icon: "arrow-up-right",
+        subtitle: "Explore directions that fit your goals",
       },
       {
         href: "/app/planner",
         label: "Career Planner",
-        icon: "□",
-        subtitle: "Plan milestones and weekly priorities",
+        icon: "layers",
+        subtitle: "Plan milestones and timelines",
       },
       {
         href: "/app/career-success",
         label: "Career Success",
-        icon: "✓",
-        subtitle: "Track skills, goals, and momentum",
+        icon: "check-circle",
+        subtitle: "Celebrate wins and progress",
+      },
+      {
+        href: "/app/career-health",
+        label: "Career Health",
+        icon: "analytics",
+        subtitle: "Balance, burnout signals, and sustainability",
+      },
+      {
+        href: "/app/salary-benchmark",
+        label: "Salary Benchmark",
+        icon: "star-filled",
+        subtitle: "Compare compensation for your role",
+      },
+      {
+        href: "/app/linkedin-analysis",
+        label: "LinkedIn Analysis",
+        icon: "upload",
+        subtitle: "Optimize your profile for discovery",
+      },
+      {
+        href: "/app/sponsorship-hub",
+        label: "Sponsorship Hub",
+        icon: "briefcase",
+        subtitle: "Visa sponsorship intel when it matters",
       },
     ],
   },
@@ -112,37 +125,19 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/copilot",
         label: "Career Copilot",
-        icon: "✦",
+        icon: "sparkle",
         subtitle: "Get guidance for strategy and next steps",
       },
       {
         href: "/app/cv-builder",
         label: "CV Builder",
-        icon: "▤",
+        icon: "file-text",
         subtitle: "Build and refine your résumé",
-      },
-      {
-        href: "/app/ats-optimizer",
-        label: "ATS Optimizer",
-        icon: "◎",
-        subtitle: "Compare your résumé with a job post",
       },
       {
         href: "/app/cover-letter",
         label: "Cover letters",
         subtitle: "Create tailored letters faster",
-      },
-      {
-        href: "/app/career-health",
-        label: "Career Health",
-        icon: "◌",
-        subtitle: "Check your readiness and weekly focus",
-      },
-      {
-        href: "/app/linkedin-analysis",
-        label: "LinkedIn Analysis",
-        icon: "in",
-        subtitle: "Improve your profile and positioning",
       },
       {
         href: "/app/interview-prep",
@@ -174,7 +169,7 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/discussion",
         label: "Discussion Board",
-        icon: "▣",
+        icon: "message-circle",
         subtitle: "Questions, stories, and shared advice",
       },
       {
@@ -206,67 +201,41 @@ type OnboardingProfile = {
   plan_tier?: string | null;
 };
 
-type LatestResume = {
-  id?: string;
-  status?: string | null;
-};
-
 function onboardingStepFor(profile: OnboardingProfile): string | null {
   if (!profile.persona) return "/onboarding/career";
-  if (!Array.isArray(profile.goals?.focus) || profile.goals.focus.length === 0) {
+  const goalsFocus = profile.goals?.focus;
+  if (!Array.isArray(goalsFocus) || goalsFocus.length === 0) {
     return "/onboarding/goals";
   }
   if (!profile.plan_tier) return "/onboarding/plan";
   return null;
 }
 
-async function getOnboardingRedirect(): Promise<string | null> {
+async function getOnboardingProfile(): Promise<OnboardingProfile | null> {
   try {
     const resp = await fetch(`${getApiBaseUrl()}/me/profile`, {
       headers: await getBackendAuthHeaders(),
       cache: "no-store",
     });
     if (!resp.ok) return null;
-    const profile = (await resp.json().catch(() => ({}))) as OnboardingProfile;
-    return onboardingStepFor(profile);
-  } catch {
-    return null;
-  }
-}
-
-function setupReminderForResume(resume: LatestResume | null): AppSetupReminderKind | null {
-  if (!resume?.id) return "resume_missing";
-  if (resume.status === "FAILED") return "resume_failed";
-  if (resume.status === "UPLOADED") return "resume_processing";
-  return null;
-}
-
-async function getSetupReminder(): Promise<AppSetupReminderKind | null> {
-  try {
-    const resp = await fetch(`${getApiBaseUrl()}/me/resume/latest`, {
-      headers: await getBackendAuthHeaders(),
-      cache: "no-store",
-    });
-    if (resp.status === 404) return "resume_missing";
-    if (!resp.ok) return null;
-    const resume = (await resp.json().catch(() => null)) as LatestResume | null;
-    return setupReminderForResume(resume);
+    return (await resp.json().catch(() => null)) as OnboardingProfile | null;
   } catch {
     return null;
   }
 }
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const onboardingPath = await getOnboardingRedirect();
+  const profile = await getOnboardingProfile();
+  const onboardingPath = profile ? onboardingStepFor(profile) : null;
   if (onboardingPath) {
     redirect(onboardingPath);
   }
 
-  const setupReminder = await getSetupReminder();
   const mobileItems = MOBILE_NAV_ITEMS;
 
   return (
     <AppProviders>
+    <CareerGrowthProvider>
     <AppThemeShell className="flex flex-row bg-[var(--app-bg-page)]">
       <aside
         className="relative hidden min-h-screen w-[var(--app-sidebar-w)] shrink-0 flex-col overflow-hidden px-5 py-5 md:flex"
@@ -284,17 +253,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--app-accent)]">
             Talent cockpit
           </span>
-          AI-powered job discovery, career planning, and application operations.
+          Job discovery, resume review, and application operations in one workspace.
         </div>
         <div className="relative mt-6 min-h-0 flex-1 overflow-y-auto">
           <AppSidebarNav sections={NAV_SECTIONS} />
         </div>
         <div className="relative space-y-2 border-t border-white/[0.08] pt-5 text-[14px] font-medium text-[var(--app-sidebar-muted)]">
-          <Link className="flex min-h-11 items-center gap-3 rounded-xl px-3 hover:bg-white/[0.05] hover:text-white/80" href="/app/settings">
-            <span aria-hidden>⚙</span> Settings
+          <Link className="flex min-h-11 items-center gap-3 rounded-xl px-3 transition-[background-color,color,transform] duration-150 ease-out hover:bg-white/[0.05] hover:text-white/80 active:scale-[0.96]" href="/app/settings">
+            <AppIcon name="settings" className="size-4" /> Settings
           </Link>
           <span className="flex min-h-11 items-center gap-3 rounded-xl px-3">
-            <span aria-hidden>↩</span> Log Out
+            <AppIcon name="log-out" className="size-4" /> Log Out
           </span>
         </div>
       </aside>
@@ -316,11 +285,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-3">
-          <AppSetupReminder kind={setupReminder} />
           {children}
         </div>
       </main>
     </AppThemeShell>
+    </CareerGrowthProvider>
     </AppProviders>
   );
 }

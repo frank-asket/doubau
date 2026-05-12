@@ -56,7 +56,7 @@ export default function Hero() {
         title: "Senior Product Manager",
         subtitle: "Career Tools",
         tags: ["Job Discovery", "Approval Gate"],
-        status: "● APPROVED required",
+        status: "APPROVED required",
         metric: "p95 < 300ms",
       },
       {
@@ -64,7 +64,7 @@ export default function Hero() {
         title: "Product Designer",
         subtitle: "Portfolio + ATS",
         tags: ["ATS Optimizer", "Cover Letters"],
-        status: "● APPROVED required",
+        status: "APPROVED required",
         metric: "Draft < 20s",
       },
       {
@@ -72,7 +72,7 @@ export default function Hero() {
         title: "Data Analyst",
         subtitle: "Interview Prep",
         tags: ["Tracker", "Copilot"],
-        status: "● APPROVED required",
+        status: "APPROVED required",
         metric: "Edits logged",
       },
     ],
@@ -164,7 +164,10 @@ export default function Hero() {
                 <span>{offer.tags[1]}</span>
               </div>
               <div className={styles.jobMeta}>
-                <span className={styles.jobStatus}>{offer.status}</span>
+                <span className={styles.jobStatus}>
+                  <span className="inline-block size-1.5 rounded-full bg-current" aria-hidden />
+                  {offer.status}
+                </span>
                 <span className={styles.jobSalary}>{offer.metric}</span>
               </div>
             </motion.div>
@@ -199,4 +202,3 @@ export default function Hero() {
     </section>
   );
 }
-

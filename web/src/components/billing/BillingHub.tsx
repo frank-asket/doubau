@@ -16,7 +16,7 @@ import {
   type PlanTier,
 } from "@/lib/billing";
 
-const TIERS: PlanTier[] = ["standard", "pro", "ultimate"];
+const TIERS: PlanTier[] = ["free", "business"];
 
 export function BillingHub() {
   const router = useRouter();
@@ -114,12 +114,13 @@ export function BillingHub() {
         )}
       </div>
 
-      <div className="grid gap-[var(--app-space-lg)] md:grid-cols-3">
+      <div className="grid gap-[var(--app-space-lg)] md:grid-cols-2">
         {TIERS.map((tier) => {
           const copy = PLAN_COPY[tier];
           const planId = clerkPlanIdFor(tier, interval);
           const price = interval === "month" ? copy.priceMonth : copy.priceYear;
           const deepLink = buildCheckoutHref(tier, interval, "billing");
+          const isFree = tier === "free";
 
           return (
             <div
@@ -134,7 +135,22 @@ export function BillingHub() {
               <div className="mt-4 text-[15px] font-semibold tabular-nums text-[var(--app-text-primary)]">{price}</div>
 
               <div className="mt-6 flex flex-col gap-2">
-                {planId ? (
+                {isFree ? (
+                  <>
+                    <AppButton
+                      className="w-full justify-center"
+                      variant="outline"
+                      type="button"
+                      onClick={() => router.push("/app/dashboard")}
+                    >
+                      Continue with Free
+                    </AppButton>
+                    <p className="text-center text-[11px] text-[var(--app-text-tertiary)]">
+                      No Clerk checkout — Free matches plan key <span className="font-mono">free_user</span> in your
+                      dashboard.
+                    </p>
+                  </>
+                ) : planId ? (
                   <CheckoutButton
                     planId={planId}
                     planPeriod={clerkPlanPeriodFromInterval(interval)}
@@ -143,27 +159,35 @@ export function BillingHub() {
                       router.refresh();
                     }}
                   >
-                    <AppButton className="w-full justify-center">Subscribe</AppButton>
+                    <AppButton className="w-full justify-center">Subscribe to Business</AppButton>
                   </CheckoutButton>
                 ) : (
-                  <AppButton
-                    className="w-full justify-center"
-                    variant="outline"
-                    type="button"
-                    onClick={() => router.push(deepLink)}
-                  >
-                    Open checkout
-                  </AppButton>
+                  <>
+                    <AppButton
+                      className="w-full justify-center"
+                      variant="outline"
+                      type="button"
+                      onClick={() => router.push(deepLink)}
+                    >
+                      Open checkout
+                    </AppButton>
+                    <p className="text-center text-[11px] text-[var(--app-text-tertiary)]">
+                      Set{" "}
+                      <code className="rounded bg-[var(--app-bg-page)] px-1 font-mono text-[10px]">
+                        NEXT_PUBLIC_CLERK_PLAN_BUSINESS_{interval === "month" ? "MONTH" : "YEAR"}
+                      </code>{" "}
+                      (or{" "}
+                      <code className="rounded bg-[var(--app-bg-page)] px-1 font-mono text-[10px]">
+                        NEXT_PUBLIC_CLERK_PLAN_BUSINESS
+                      </code>
+                      ), or use{" "}
+                      <Link className="text-[var(--app-accent)] hover:underline" href={deepLink}>
+                        checkout path
+                      </Link>
+                      .
+                    </p>
+                  </>
                 )}
-                {!planId ? (
-                  <p className="text-center text-[11px] text-[var(--app-text-tertiary)]">
-                    Set plan IDs in env, or use{" "}
-                    <Link className="text-[var(--app-accent)] hover:underline" href={deepLink}>
-                      hosted checkout path
-                    </Link>
-                    .
-                  </p>
-                ) : null}
               </div>
             </div>
           );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { AppIcon } from "@/components/ui/app-icon";
 import { AppButton } from "@/components/ui/button";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -161,9 +162,9 @@ export function SettingsProfileClient() {
             </AppButton>
             <Link
               href="/app/billing"
-              className="text-[13px] font-medium text-[var(--app-accent)] hover:underline"
+              className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]"
             >
-              Open billing & subscriptions →
+              Open billing & subscriptions <AppIcon name="chevron-right" className="size-4" />
             </Link>
           </div>
           {save.isError ? (

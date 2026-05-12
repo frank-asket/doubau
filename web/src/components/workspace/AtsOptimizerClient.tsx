@@ -1,5 +1,7 @@
 "use client";
 
+import { AppIcon } from "@/components/ui/app-icon";
+
 import { Gauge, Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
@@ -13,7 +15,9 @@ export function AtsOptimizerClient() {
             <p className="mt-2 text-[var(--app-text-secondary)]">Upload your CV in PDF format</p>
             <div className="mt-6 grid min-h-56 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-center">
               <div>
-                <div className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--app-blue-50)] text-[30px] text-[var(--app-accent)]">▤</div>
+                <div className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--app-blue-50)] text-[var(--app-accent)]">
+                  <AppIcon name="file-text" className="size-9" />
+                </div>
                 <p className="mt-5 font-bold">Drop or select file</p>
                 <p className="mt-2 text-[var(--app-text-secondary)]">Drop files here or click to <span className="text-[var(--app-accent)]">browse</span> through your machine.</p>
               </div>
@@ -27,7 +31,7 @@ export function AtsOptimizerClient() {
             <h2 className="text-[20px] font-bold">Job Description</h2>
             <p className="mt-2 text-[var(--app-text-secondary)]">Paste the job description to analyze</p>
             <textarea className="mt-5 min-h-56 w-full rounded-2xl border border-[var(--app-border)] p-5 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]" placeholder="Paste the job description here..." />
-            <button className="ch-primary-button mt-5" type="button">Analyse CV</button>
+            <button className="ch-primary-button mt-5" type="button"><AppIcon name="analytics" className="size-5" /> Analyse CV</button>
           </section>
         </main>
         <aside className="space-y-4">
@@ -57,7 +61,7 @@ export function AtsOptimizerClient() {
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <section className="ch-panel p-6">
-          <Gauge value={75} label="Match" icon="🔥" />
+          <Gauge value={75} label="Match" icon="analytics" />
           <h2 className="mt-8 text-[20px] font-bold">Keywords</h2>
           <p className="mt-3 text-[var(--app-text-secondary)]">Your resume has <b>6 out of 10</b> keywords that appear in the job description.</p>
         </section>

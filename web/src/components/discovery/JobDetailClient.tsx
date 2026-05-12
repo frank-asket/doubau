@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
+import { AppIcon } from "@/components/ui/app-icon";
 
 import type { JobRow } from "./DiscoveryClient";
 
@@ -141,15 +142,15 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/app/discovery"
-            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)] active:scale-[0.98]"
+            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)] active:scale-[0.96]"
           >
-            ← Back to discovery
+            <AppIcon name="chevron-right" className="size-4 rotate-180" /> Back to discovery
           </Link>
           <Link
             href="/app/approvals"
-            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--app-accent)_10%,transparent)] active:scale-[0.98]"
+            className="inline-flex items-center gap-1 rounded-[var(--app-radius-md)] px-3 py-1.5 text-[12px] font-medium text-[var(--app-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--app-accent)_10%,transparent)] active:scale-[0.96]"
           >
-            Approvals queue →
+            Approvals queue <AppIcon name="chevron-right" className="size-4" />
           </Link>
         </div>
         <div className="min-w-0 sm:max-w-[min(100%,420px)] sm:shrink">
@@ -184,7 +185,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   href={job.source_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-colors hover:bg-[var(--app-accent-hover)] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-[var(--app-radius-pill)] bg-[var(--app-accent)] px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-colors hover:bg-[var(--app-accent-hover)] active:scale-[0.96]"
                 >
                   View original
                 </a>
@@ -266,7 +267,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           <AppButton
             type="button"
             variant="primary"
-            className="w-full justify-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform active:scale-[0.99] disabled:active:scale-100"
+            className="w-full justify-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform active:scale-[0.96] disabled:active:scale-100"
             disabled={outreachBusy}
             aria-busy={outreachBusy}
             onClick={() => void generateOutreach()}
@@ -293,7 +294,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                 <AppButton
                   type="button"
                   variant="outline"
-                  className="mt-3 w-full justify-center transition-transform active:scale-[0.99]"
+                  className="mt-3 w-full justify-center transition-transform active:scale-[0.96]"
                   onClick={() => void loadFit()}
                 >
                   Check fit

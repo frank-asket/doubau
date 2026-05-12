@@ -22,12 +22,35 @@ type Props = {
 /**
  * In-app Clerk Billing checkout. Requires Clerk Billing plan IDs in env
  * (NEXT_PUBLIC_CLERK_PLAN_*). Success returns per Clerk; we recommend
- * Clerk Dashboard redirect URL → `/billing?checkout=success` (mapped to `/app/billing`).
+ * Clerk Dashboard redirect URL to `/billing?checkout=success` (mapped to `/app/billing`).
  */
 export function BillingCheckoutPanel({ tier, interval, source }: Props) {
   const router = useRouter();
   const planId = clerkPlanIdFor(tier, interval);
   const copy = PLAN_COPY[tier];
+
+  if (tier === "free") {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-8">
+        <h1 className="text-[length:var(--app-text-title)] font-semibold text-[var(--app-text-primary)]">
+          Free plan
+        </h1>
+        <p className="text-[14px] leading-6 text-[var(--app-text-secondary)]">
+          The Free tier does not use Clerk Checkout. Continue in the app — upgrade anytime from{" "}
+          <Link className="font-medium text-[var(--app-accent)] hover:underline" href="/app/billing">
+            Billing
+          </Link>
+          .
+        </p>
+        <Link
+          href="/app/dashboard"
+          className="inline-flex rounded-[var(--app-radius-pill)] border-[0.5px] border-solid border-[var(--app-border-strong)] bg-transparent px-4 py-[7px] text-[13px] font-medium text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
+        >
+          Go to dashboard
+        </Link>
+      </div>
+    );
+  }
 
   if (!planId) {
     return (
@@ -40,7 +63,7 @@ export function BillingCheckoutPanel({ tier, interval, source }: Props) {
           <code className="rounded bg-[var(--app-bg-page)] px-1.5 py-0.5 font-mono text-[12px]">
             NEXT_PUBLIC_CLERK_PLAN_{tier.toUpperCase()}_{interval === "month" ? "MONTH" : "YEAR"}
           </code>
-          . Create plans in the Clerk Dashboard → Billing.
+          . Create plans in the Clerk Dashboard under Billing.
         </p>
         <Link
           href="/app/billing"

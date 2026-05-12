@@ -115,7 +115,7 @@ export function CareerStepsClient() {
       description="Your milestone roadmap. Start from Career pathfinder for persona-aware context, then break outcomes into trackable steps here."
     >
       <div className="mb-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-        <span className="font-medium text-[var(--app-text-primary)]">Plan → apply:</span> refine direction in{" "}
+        <span className="font-medium text-[var(--app-text-primary)]">Plan, then apply:</span> refine direction in{" "}
         <Link href="/app/pathfinder" className="font-medium text-[var(--app-accent)] hover:underline">
           Career pathfinder
         </Link>

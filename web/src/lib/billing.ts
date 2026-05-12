@@ -1,6 +1,7 @@
 /** Billing routes & Clerk plan ID helpers (Clerk Billing — experimental SDK). */
 
-export type PlanTier = "standard" | "pro" | "ultimate";
+/** Aligns with Clerk Dashboard plan keys (`free_user`, `business`). */
+export type PlanTier = "free" | "business";
 /** Matches Clerk Billing `planPeriod` plus URL-friendly `year` alias. */
 export type BillingInterval = "month" | "year";
 
@@ -51,34 +52,57 @@ export function buildCheckoutHref(
   return `${path}?${q.toString()}`;
 }
 
-/** Resolve Clerk Dashboard plan id for CheckoutButton (month | year). */
+function trimEnv(v: string | undefined): string | undefined {
+  const t = v?.trim();
+  return t || undefined;
+}
+
+/**
+ * Resolve Clerk Dashboard plan id for CheckoutButton (month | year).
+ * Reads `NEXT_PUBLIC_CLERK_PLAN_*` for Free and Business; falls back to legacy
+ * Standard / Pro / Ultimate env names so older deployments keep working.
+ */
 export function clerkPlanIdFor(tier: PlanTier, interval: BillingInterval): string | undefined {
-  const envMap: Record<string, string | undefined> = {
-    "standard-month": process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD_MONTH,
-    "standard-year": process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD_YEAR,
-    "pro-month": process.env.NEXT_PUBLIC_CLERK_PLAN_PRO_MONTH,
-    "pro-year": process.env.NEXT_PUBLIC_CLERK_PLAN_PRO_YEAR,
-    "ultimate-month": process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE_MONTH,
-    "ultimate-year": process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE_YEAR,
+  const primary: Record<string, string | undefined> = {
+    "free-month": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_FREE_MONTH),
+    "free-year": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_FREE_YEAR),
+    "business-month": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_BUSINESS_MONTH),
+    "business-year": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_BUSINESS_YEAR),
   };
+
+  const legacy: Record<string, string | undefined> = {
+    "free-month": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD_MONTH),
+    "free-year": trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD_YEAR),
+    "business-month":
+      trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_PRO_MONTH) ||
+      trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE_MONTH),
+    "business-year":
+      trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_PRO_YEAR) ||
+      trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE_YEAR),
+  };
+
   const key = `${tier}-${interval}` as const;
-  const direct = envMap[key]?.trim();
-  if (direct) return direct;
-  // Fallback: single id per tier (assume monthly)
-  if (interval === "month") {
-    const fallback = {
-      standard: process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD?.trim(),
-      pro: process.env.NEXT_PUBLIC_CLERK_PLAN_PRO?.trim(),
-      ultimate: process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE?.trim(),
-    }[tier];
-    if (fallback) return fallback;
-  }
-  return undefined;
+  const merged = primary[key] || legacy[key];
+  if (merged) return merged;
+
+  // Single plan id for tier (Clerk plan id works for the period you configured).
+  const shorthand =
+    tier === "free"
+      ? trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_FREE) ||
+        trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_STANDARD)
+      : trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_BUSINESS) ||
+        trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_PRO) ||
+        trimEnv(process.env.NEXT_PUBLIC_CLERK_PLAN_ULTIMATE);
+
+  return shorthand;
 }
 
 export function parsePlanTier(v: string | null): PlanTier {
-  if (v === "standard" || v === "pro" || v === "ultimate") return v;
-  return "pro";
+  const x = v?.trim().toLowerCase();
+  if (!x) return "free";
+  if (x === "free" || x === "free_user" || x === "standard") return "free";
+  if (x === "business" || x === "pro" || x === "ultimate") return "business";
+  return "free";
 }
 
 export function parseBillingInterval(v: string | null): BillingInterval {
@@ -91,22 +115,17 @@ export const PLAN_COPY: Record<
   PlanTier,
   { name: string; blurb: string; priceMonth: string; priceYear: string }
 > = {
-  standard: {
-    name: "Standard",
-    blurb: "Core discovery and tracker for steady explorers.",
-    priceMonth: "£15/mo",
-    priceYear: "£150/yr",
+  free: {
+    name: "Free",
+    blurb: "Core discovery, tracker, and approvals — start without a subscription.",
+    priceMonth: "£0/mo",
+    priceYear: "£0/yr",
   },
-  pro: {
-    name: "Pro",
-    blurb: "Full pipeline, drafts, and Copilot for active search.",
-    priceMonth: "£25/mo",
-    priceYear: "£250/yr",
-  },
-  ultimate: {
-    name: "Ultimate",
-    blurb: "Maximum automation with premium support surfaces.",
-    priceMonth: "£50/mo",
-    priceYear: "£500/yr",
+  business: {
+    name: "Business",
+    blurb:
+      "Higher limits and full workspace features. New customers get delayed billing for the first 30 days (trial), per your Clerk Billing settings.",
+    priceMonth: "Trial · then monthly in Clerk",
+    priceYear: "Trial · then yearly in Clerk",
   },
 };
