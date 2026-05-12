@@ -353,18 +353,19 @@ def catalog_summary(db: DbDep, _: CurrentUserDep) -> CatalogSummaryOut:
         or 0
     )
 
-    # GROUP BY must include base columns (PG): coalesce(listing_source, …) with GROUP BY
-    # only the coalesce expression can still fail depending on SQLAlchemy compilation.
+    # Same SQL expression in SELECT and GROUP BY so partitions match labels (PG + counts).
+    source_key = func.coalesce(Job.listing_source, "unknown")
+    location_key = func.coalesce(Job.location, "Unspecified")
     source_rows = db.execute(
-        select(func.coalesce(Job.listing_source, "unknown"), func.count())
+        select(source_key, func.count())
         .where(*active_filters)
-        .group_by(Job.listing_source)
+        .group_by(source_key)
         .order_by(desc(func.count()))
     ).all()
     location_rows = db.execute(
-        select(func.coalesce(Job.location, "Unspecified"), func.count())
+        select(location_key, func.count())
         .where(*active_filters)
-        .group_by(Job.location)
+        .group_by(location_key)
         .order_by(desc(func.count()))
         .limit(12)
     ).all()
