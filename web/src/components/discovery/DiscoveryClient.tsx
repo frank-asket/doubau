@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState, useTransition } from "react";
 
+import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
 export type JobRow = {
@@ -141,9 +142,9 @@ async function postJobEvent(jobId: string, eventType: "click_out" | "save" | "di
 
 function ToolbarButton({ label, icon }: { label: string; icon: AppIconName }) {
   return (
-    <button className="ch-icon-button" type="button" aria-label={label} title={label}>
+    <ChromeIconButton aria-label={label} title={label}>
       <AppIcon name={icon} className="size-5" />
-    </button>
+    </ChromeIconButton>
   );
 }
 
@@ -474,16 +475,16 @@ export function DiscoveryClient({
               placeholder="Filter roles"
             />
           </label>
-          <button
-            className={`ch-primary-button min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
+          <ChromePrimaryButton
+            className={`min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
             type="button"
             onClick={() => setOpenToWork((value) => !value)}
           >
             <AppIcon name="check-circle" className="size-5" /> Open to Work
-          </button>
-          <button className="ch-primary-button min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
+          </ChromePrimaryButton>
+          <ChromePrimaryButton className="min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
             <AppIcon name="plus" className="size-5" /> Add Job
-          </button>
+          </ChromePrimaryButton>
         </div>
       </div>
 
@@ -507,9 +508,9 @@ export function DiscoveryClient({
             onChange={(event) => setImportUrl(event.target.value)}
             placeholder="https://company.com/jobs/product-manager"
           />
-          <button className="ch-primary-button min-w-36" type="submit" disabled={isPending}>
+          <ChromePrimaryButton className="min-w-36" type="submit" disabled={isPending}>
             {isPending ? "Queueing" : "Import"}
-          </button>
+          </ChromePrimaryButton>
           {importStatus ? (
             <p className="text-[13px] font-semibold text-[var(--app-text-secondary)] lg:col-span-3">
               {importStatus}

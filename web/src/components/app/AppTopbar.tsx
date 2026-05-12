@@ -3,6 +3,7 @@
 import { UserButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
+import { ChromeIconButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 
 const TITLES: Record<string, string> = {
@@ -83,14 +84,14 @@ export function AppTopbar() {
               ⌘K
             </kbd>
           </label>
-          <button className="ch-icon-button hidden md:inline-flex" type="button" aria-label="Notifications">
+          <ChromeIconButton className="relative hidden md:inline-flex" type="button" aria-label="Notifications">
             <AppIcon name="bell" className="size-5" />
             <span className="absolute right-3 top-3 inline-flex size-2 rounded-full bg-[var(--app-accent)] shadow-[0_0_0_6px_rgba(32,209,125,0.12)]" aria-hidden />
-          </button>
+          </ChromeIconButton>
           <UserButton />
-          <button className="ch-icon-button hidden md:inline-flex" type="button" aria-label="User menu">
+          <ChromeIconButton className="hidden md:inline-flex" type="button" aria-label="User menu">
             <AppIcon name="chevron-down" className="size-4" />
-          </button>
+          </ChromeIconButton>
         </div>
       </div>
     </header>

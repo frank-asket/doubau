@@ -1,5 +1,6 @@
 "use client";
 
+import { ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 
 import { Gauge, Tag } from "./CareerHeroMockSections";
@@ -31,7 +32,7 @@ export function AtsOptimizerClient() {
             <h2 className="text-[20px] font-bold">Job Description</h2>
             <p className="mt-2 text-[var(--app-text-secondary)]">Paste the job description to analyze</p>
             <textarea className="mt-5 min-h-56 w-full rounded-2xl border border-[var(--app-border)] p-5 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]" placeholder="Paste the job description here..." />
-            <button className="ch-primary-button mt-5" type="button"><AppIcon name="analytics" className="size-5" /> Analyse CV</button>
+            <ChromePrimaryButton className="mt-5" type="button"><AppIcon name="analytics" className="size-5" /> Analyse CV</ChromePrimaryButton>
           </section>
         </main>
         <aside className="space-y-4">

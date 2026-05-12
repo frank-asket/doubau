@@ -36,7 +36,7 @@ export function CareerSuccessPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/profile", { cache: "no-store" });
       if (!r.ok) throw new Error("profile");
-      return r.json() as ProfileDto;
+      return (await r.json()) as ProfileDto;
     },
   });
 
@@ -45,7 +45,7 @@ export function CareerSuccessPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/workspace/summary", { cache: "no-store" });
       if (!r.ok) throw new Error("workspace");
-      return r.json() as WorkspaceSummary;
+      return (await r.json()) as WorkspaceSummary;
     },
   });
 
@@ -54,7 +54,7 @@ export function CareerSuccessPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/milestones?limit=100", { cache: "no-store" });
       if (!r.ok) throw new Error("milestones");
-      return r.json() as MilestoneRow[];
+      return (await r.json()) as MilestoneRow[];
     },
   });
 
@@ -63,7 +63,7 @@ export function CareerSuccessPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/match/metrics?days=30", { cache: "no-store" });
       if (!r.ok) throw new Error("metrics");
-      return r.json() as { window_days?: number; by_event_type?: Record<string, number> };
+      return (await r.json()) as { window_days?: number; by_event_type?: Record<string, number> };
     },
   });
 

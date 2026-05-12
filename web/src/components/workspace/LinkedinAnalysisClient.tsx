@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { ChromePrimaryButton, ChromePrimaryLink } from "@/components/ui/chrome-motion";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,7 +27,7 @@ export function LinkedinAnalysisClient() {
       const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("resume");
-      return r.json() as ResumeLatestDto;
+      return (await r.json()) as ResumeLatestDto;
     },
   });
 
@@ -163,9 +165,9 @@ export function LinkedinAnalysisClient() {
               ))}
             </div>
             <div className="mt-auto pt-10">
-              <Link href="/app/cv-builder" className="ch-primary-button inline-flex w-full items-center justify-center gap-2">
+              <ChromePrimaryLink href="/app/cv-builder" className="w-full">
                 <AppIcon name="upload" className="size-5" /> Update résumé
-              </Link>
+              </ChromePrimaryLink>
             </div>
           </aside>
 
@@ -191,9 +193,9 @@ export function LinkedinAnalysisClient() {
             readOnly
             aria-readonly
           />
-          <button type="button" className="ch-primary-button opacity-60" disabled title="Coming soon">
+          <ChromePrimaryButton type="button" className="opacity-60" disabled title="Coming soon">
             <AppIcon name="arrow-up-right" className="size-5" /> Run
-          </button>
+          </ChromePrimaryButton>
         </div>
         <div className="mt-8">
           <ProgressLine value={overall} />

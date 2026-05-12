@@ -26,7 +26,7 @@ export function useWorkspaceSummary() {
         const body = (await r.json().catch(() => ({}))) as { detail?: string };
         throw new Error(body.detail || `Summary failed (${r.status})`);
       }
-      return r.json() as Promise<WorkspaceSummary>;
+      return (await r.json()) as WorkspaceSummary;
     },
   });
 }

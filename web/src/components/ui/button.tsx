@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
@@ -5,22 +6,32 @@ import { cn } from "@/lib/utils";
 export type AppButtonVariant = "primary" | "outline" | "ghost" | "danger" | "approve";
 export type AppButtonSize = "sm" | "md" | "lg";
 
-export type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+/** DOM handlers that clash with Framer Motion props on `motion.button`. */
+type ButtonAttrs = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart" | "onAnimationEnd"
+>;
+
+export type AppButtonProps = ButtonAttrs & {
   variant?: AppButtonVariant;
   size?: AppButtonSize;
 };
 
 export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function AppButton(
-  { className, variant = "primary", size = "md", type = "button", ...props },
+  { className, children, variant = "primary", size = "md", type = "button", ...props },
   ref,
 ) {
+  const reduced = useReducedMotion();
   return (
-    <button
+    <motion.button
       ref={ref}
       type={type}
+      whileHover={reduced ? undefined : { scale: 1.015 }}
+      whileTap={reduced ? undefined : { scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 520, damping: 28 }}
       className={cn(
-        "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 font-medium shadow-[var(--app-shadow-0)] transition-[background-color,border-color,color,box-shadow,transform]",
-        "duration-150 ease-out active:scale-[0.96]",
+        "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 font-medium shadow-[var(--app-shadow-0)] transition-[background-color,border-color,color,box-shadow]",
+        "duration-150 ease-out",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg-page)]",
         "disabled:pointer-events-none disabled:opacity-50",
         variant !== "ghost" &&
@@ -54,6 +65,8 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </motion.button>
   );
 });

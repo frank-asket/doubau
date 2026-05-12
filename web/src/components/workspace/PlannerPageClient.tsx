@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ChromePrimaryLink } from "@/components/ui/chrome-motion";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -38,7 +38,7 @@ export function PlannerPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/milestones?limit=200", { cache: "no-store" });
       if (!r.ok) throw new Error("milestones");
-      return r.json() as MilestoneRow[];
+      return (await r.json()) as MilestoneRow[];
     },
   });
 
@@ -104,9 +104,9 @@ export function PlannerPageClient() {
             ))}
           </div>
           <div className="flex gap-3">
-            <Link href="/app/career-steps" className="ch-primary-button inline-flex items-center gap-2">
+            <ChromePrimaryLink href="/app/career-steps">
               <AppIcon name="plus" className="size-5" /> Add milestone
-            </Link>
+            </ChromePrimaryLink>
           </div>
         </div>
 

@@ -34,7 +34,7 @@ export function SettingsProfileClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/profile", { cache: "no-store" });
       if (!r.ok) throw new Error("profile");
-      return r.json() as Promise<Profile>;
+      return (await r.json()) as Profile;
     },
   });
 
@@ -68,7 +68,7 @@ export function SettingsProfileClient() {
         }),
       });
       if (!r.ok) throw new Error("save");
-      return r.json() as Promise<Profile>;
+      return (await r.json()) as Profile;
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.profile });

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useMemo, useState } from "react";
@@ -10,6 +11,8 @@ import {
 } from "@/hooks/use-sidebar-media";
 import { useCareerGrowthHoverPrefetch } from "@/components/providers/CareerGrowthProvider";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
+
+const MotionLink = motion(Link);
 
 function navActive(pathname: string, href: string) {
   if (pathname === href) return true;
@@ -46,16 +49,20 @@ function NavLinkStack({
   /** Indent + divider when links live inside a collapsible submenu. */
   submenu?: boolean;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   return (
     <ul className={submenu ? "space-y-1 border-l border-white/[0.08] pl-2" : "space-y-1"}>
       {items.map(({ href, label, subtitle, icon }) => {
         const active = navActive(pathname, href);
         return (
           <li key={`${href}:${label}`}>
-            <Link
+            <MotionLink
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out hover:translate-x-0.5 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
+              whileHover={reducedMotion ? undefined : { x: 4 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 420, damping: 28 }}
+              className={`relative flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-[background-color,color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-sidebar)] ${
                 active
                   ? "bg-[var(--app-sidebar-active-bg)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_rgba(32,209,125,0.16)]"
                   : "text-[var(--app-sidebar-muted)] hover:bg-[var(--app-sidebar-hover-bg)] hover:text-white/80"
@@ -76,7 +83,7 @@ function NavLinkStack({
                   </span>
                 ) : null}
               </span>
-            </Link>
+            </MotionLink>
           </li>
         );
       })}

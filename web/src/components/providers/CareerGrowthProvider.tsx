@@ -34,14 +34,14 @@ export function isCareerGrowthPath(pathname: string | null): boolean {
 async function fetchJson<T>(url: string): Promise<T> {
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(String(r.status));
-  return r.json() as Promise<T>;
+  return (await r.json()) as T;
 }
 
 async function fetchResumeLatest(): Promise<unknown | null> {
   const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
   if (r.status === 404) return null;
   if (!r.ok) throw new Error("resume");
-  return r.json();
+  return await r.json();
 }
 
 export type CareerGrowthContextValue = {

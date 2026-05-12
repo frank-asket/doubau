@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { ChromePrimaryLink } from "@/components/ui/chrome-motion";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -31,7 +33,7 @@ export function SponsorshipHubClient() {
     queryFn: async () => {
       const r = await fetch("/api/jobs/feed?limit=80", { cache: "no-store" });
       if (!r.ok) throw new Error("feed");
-      return r.json() as FeedRow[];
+      return (await r.json()) as FeedRow[];
     },
   });
 
@@ -53,9 +55,9 @@ export function SponsorshipHubClient() {
           <div className="max-w-4xl opacity-80">
             <SegmentedTabs items={["Overview", "Point Calculator", "Graduate Visa", "Find Sponsors"]} active="Overview" />
           </div>
-          <Link href="/app/copilot" className="ch-primary-button inline-flex items-center gap-2">
+          <ChromePrimaryLink href="/app/copilot">
             <AppIcon name="sparkle" className="size-5" /> Get guidance
-          </Link>
+          </ChromePrimaryLink>
         </div>
         <p className="mt-4 text-[13px] text-[var(--app-text-secondary)]">
           Tab labels above are illustrative — Doubow does not run a points engine in-product yet. Use government sources before making decisions.

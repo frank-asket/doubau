@@ -170,6 +170,12 @@
   transform: translateY(-1px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .theme-app .ch-soft-card:hover {
+    transform: none;
+  }
+}
+
 .theme-app .ch-pill {
   display: inline-flex;
   min-height: 28px;
@@ -209,6 +215,14 @@
 
 .theme-app .ch-primary-button:active {
   transform: scale(0.96);
+}
+
+/* Framer Motion drives tap scale on `.fm-motion` — avoid double shrink */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-app .ch-primary-button.fm-motion:active,
+  .theme-app .ch-icon-button.fm-motion:active {
+    transform: none;
+  }
 }
 
 .theme-app .ch-icon-button {

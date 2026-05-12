@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { ChromePrimaryLink } from "@/components/ui/chrome-motion";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -33,7 +35,7 @@ export function PathfinderPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/profile", { cache: "no-store" });
       if (!r.ok) throw new Error("profile");
-      return r.json() as ProfileDto;
+      return (await r.json()) as ProfileDto;
     },
   });
 
@@ -42,7 +44,7 @@ export function PathfinderPageClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/workspace/summary", { cache: "no-store" });
       if (!r.ok) throw new Error("workspace");
-      return r.json() as WorkspaceSummary;
+      return (await r.json()) as WorkspaceSummary;
     },
   });
 
@@ -52,7 +54,7 @@ export function PathfinderPageClient() {
       const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("resume");
-      return r.json() as ResumeLatestDto;
+      return (await r.json()) as ResumeLatestDto;
     },
   });
 
@@ -185,9 +187,9 @@ export function PathfinderPageClient() {
                   </div>
                 </div>
                 <div className="p-5">
-                  <Link href="/app/planner" className="ch-primary-button inline-flex w-full items-center justify-center gap-2">
+                  <ChromePrimaryLink href="/app/planner" className="w-full">
                     <AppIcon name="layers" className="size-5" /> Plan milestones
-                  </Link>
+                  </ChromePrimaryLink>
                 </div>
               </article>
             ))}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
+import { ChromeIconLink, ChromePrimaryLink } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 
 export const metadata: Metadata = {
@@ -366,12 +367,10 @@ export default async function DashboardPage() {
               </h2>
             </div>
             <div className="flex gap-2">
-              <Link className="ch-primary-button" href="/app/discovery">
-                Find roles
-              </Link>
-              <Link className="ch-icon-button" href="/app/tracker" aria-label="Open tracker">
+              <ChromePrimaryLink href="/app/discovery">Find roles</ChromePrimaryLink>
+              <ChromeIconLink href="/app/tracker" aria-label="Open tracker">
                 <AppIcon name="arrow-up-right" className="size-5" />
-              </Link>
+              </ChromeIconLink>
             </div>
           </div>
         </section>

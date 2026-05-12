@@ -66,7 +66,7 @@ export function CareerStepsClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/milestones?limit=100", { cache: "no-store" });
       if (!r.ok) throw new Error("milestones");
-      return r.json() as Promise<MilestoneRow[]>;
+      return (await r.json()) as MilestoneRow[];
     },
   });
 
@@ -86,7 +86,7 @@ export function CareerStepsClient() {
         body: JSON.stringify(body),
       });
       if (!r.ok) throw new Error("create");
-      return r.json();
+      return await r.json();
     },
     onSuccess: async () => {
       setTitle("");
@@ -103,7 +103,7 @@ export function CareerStepsClient() {
         body: JSON.stringify({ status }),
       });
       if (!r.ok) throw new Error("patch");
-      return r.json();
+      return await r.json();
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.milestones });

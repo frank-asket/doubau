@@ -1,5 +1,6 @@
 "use client";
 
+import { ChromeIconButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 
 import { Tag } from "./CareerHeroMockSections";
@@ -25,9 +26,9 @@ export function DiscussionActivityClient() {
                 </div>
                 <span className="inline-flex items-center gap-2 text-[13px] text-[var(--app-text-secondary)]">
                   1 day ago
-                  <button className="ch-icon-button size-8" type="button" aria-label={`More options for ${author}`}>
+                  <ChromeIconButton className="size-8" type="button" aria-label={`More options for ${author}`}>
                     <AppIcon name="more-horizontal" className="size-4" />
-                  </button>
+                  </ChromeIconButton>
                 </span>
               </div>
               <h3 className="mt-6 font-bold">{title}</h3>
@@ -56,9 +57,9 @@ export function DiscussionActivityClient() {
                   <h3 className="font-bold">{author}</h3>
                   <span className="inline-flex items-center gap-2 text-[13px] text-[var(--app-text-secondary)]">
                     {idx + 10}h
-                    <button className="ch-icon-button size-8" type="button" aria-label={`More options for ${author}`}>
+                    <ChromeIconButton className="size-8" type="button" aria-label={`More options for ${author}`}>
                       <AppIcon name="more-horizontal" className="size-4" />
-                    </button>
+                    </ChromeIconButton>
                   </span>
                 </div>
                 <p className="mt-4 text-[15px] leading-5">{title}<br />{body.slice(0, 86)}...</p>

@@ -35,7 +35,7 @@ export function CareerHealthClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/check-ins?limit=120", { cache: "no-store" });
       if (!r.ok) throw new Error("check-ins");
-      return r.json() as CheckInDto[];
+      return (await r.json()) as CheckInDto[];
     },
   });
 
@@ -53,7 +53,7 @@ export function CareerHealthClient() {
         }),
       });
       if (!r.ok) throw new Error("save");
-      return r.json();
+      return await r.json();
     },
     onSuccess: async () => {
       setNotes("");

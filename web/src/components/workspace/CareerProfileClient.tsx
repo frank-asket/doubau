@@ -36,7 +36,7 @@ export function CareerProfileClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/profile", { cache: "no-store" });
       if (!r.ok) throw new Error("profile");
-      return r.json() as ProfileDto;
+      return (await r.json()) as ProfileDto;
     },
   });
 
@@ -45,7 +45,7 @@ export function CareerProfileClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/workspace/summary", { cache: "no-store" });
       if (!r.ok) throw new Error("workspace");
-      return r.json() as WorkspaceSummary;
+      return (await r.json()) as WorkspaceSummary;
     },
   });
 
@@ -55,7 +55,7 @@ export function CareerProfileClient() {
       const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("resume");
-      return r.json() as ResumeLatestDto;
+      return (await r.json()) as ResumeLatestDto;
     },
   });
 

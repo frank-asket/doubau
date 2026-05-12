@@ -20,7 +20,7 @@ export function CvBuilderClient() {
       const r = await fetch("/api/me/resume/latest", { cache: "no-store" });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("resume");
-      return r.json() as Promise<ResumePayload>;
+      return (await r.json()) as ResumePayload;
     },
   });
 

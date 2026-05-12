@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 import type { ProfileDto } from "@/lib/career-data";
 import { queryKeys } from "@/lib/query-keys";
@@ -49,7 +50,7 @@ export function SalaryBenchmarkClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/profile", { cache: "no-store" });
       if (!r.ok) throw new Error("profile");
-      return r.json() as ProfileDto;
+      return (await r.json()) as ProfileDto;
     },
   });
 
@@ -67,7 +68,7 @@ export function SalaryBenchmarkClient() {
     queryFn: async () => {
       const r = await fetch("/api/jobs/feed?limit=40", { cache: "no-store" });
       if (!r.ok) throw new Error("feed");
-      return r.json() as FeedRow[];
+      return (await r.json()) as FeedRow[];
     },
   });
 
@@ -76,7 +77,7 @@ export function SalaryBenchmarkClient() {
     queryFn: async () => {
       const r = await fetch("/api/me/match/events?limit=400", { cache: "no-store" });
       if (!r.ok) throw new Error("events");
-      return r.json() as MatchEvent[];
+      return (await r.json()) as MatchEvent[];
     },
   });
 
@@ -230,9 +231,9 @@ export function SalaryBenchmarkClient() {
                 placeholder="Keywords you negotiate with"
               />
             </label>
-            <button type="button" className="ch-primary-button mt-7 w-full opacity-70" disabled title="External benchmarks not connected">
+            <ChromePrimaryButton type="button" className="mt-7 w-full opacity-70" disabled title="External benchmarks not connected">
               <AppIcon name="analytics" className="size-5" /> Predict salary (soon)
-            </button>
+            </ChromePrimaryButton>
           </section>
 
           <section className="ch-panel p-6">

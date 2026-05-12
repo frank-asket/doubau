@@ -21,11 +21,11 @@ export type DraftRow = {
 export async function fetchApplications(): Promise<ApplicationRow[]> {
   const r = await fetch("/api/applications", { cache: "no-store" });
   if (!r.ok) throw new Error("applications");
-  return r.json() as Promise<ApplicationRow[]>;
+  return (await r.json()) as ApplicationRow[];
 }
 
 export async function fetchDrafts(): Promise<DraftRow[]> {
   const r = await fetch("/api/applications/drafts", { cache: "no-store" });
   if (!r.ok) throw new Error("drafts");
-  return r.json() as Promise<DraftRow[]>;
+  return (await r.json()) as DraftRow[];
 }
