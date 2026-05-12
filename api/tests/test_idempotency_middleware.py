@@ -32,9 +32,10 @@ def _signup(client: TestClient, *, prefix: str = "idem") -> tuple[str, UUID, str
     return token, UUID(str(payload["sub"])), email
 
 
-def test_idempotency_replays_same_user_same_body() -> None:
+def test_idempotency_replays_same_user_same_body(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(app)
-    token, user_id, _ = _signup(client)
+    token, user_id, email = _signup(client)
+    monkeypatch.setattr("app.api.jobs.settings.admin_ingestion_user_ids", email)
     headers = {
         "Authorization": f"Bearer {token}",
         "Idempotency-Key": f"job-create-{uuid4()}",
@@ -64,9 +65,10 @@ def test_idempotency_replays_same_user_same_body() -> None:
             db.commit()
 
 
-def test_idempotency_rejects_reuse_on_different_path() -> None:
+def test_idempotency_rejects_reuse_on_different_path(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(app)
-    token, user_id, _ = _signup(client, prefix="idem-target")
+    token, user_id, email = _signup(client, prefix="idem-target")
+    monkeypatch.setattr("app.api.jobs.settings.admin_ingestion_user_ids", email)
     key = f"target-{uuid4()}"
     headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": key}
     payload = {"company": "TargetCo", "title": "Backend Engineer"}
@@ -91,6 +93,7 @@ def test_idempotency_rejects_reuse_on_different_path() -> None:
 def test_idempotency_scopes_clerk_token_to_existing_email(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(app)
     _, user_id, email = _signup(client, prefix="idem-clerk")
+    monkeypatch.setattr("app.api.jobs.settings.admin_ingestion_user_ids", email)
 
     async def fake_decode_any_access_token(_token: str) -> dict:
         return {"sub": "user_clerk123", "email": email}

@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
 import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
 import { AppBadge } from "@/components/ui/badge";
@@ -38,6 +39,9 @@ const PIPELINE_COLUMNS = [
 
 export function TrackerClient() {
   useApplicationsPipelineWs(true);
+
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
 
   const qc = useQueryClient();
 
@@ -75,6 +79,13 @@ export function TrackerClient() {
       return `${a.company} ${a.job_title}`.localeCompare(`${b.company} ${b.job_title}`);
     });
   }, [applicationsQuery.data]);
+
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    if (!sorted.some((a) => a.id === highlightId)) return;
+    const el = document.getElementById(`tracker-app-${highlightId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightId, loading, sorted]);
   const byColumn = useMemo(() => {
     const groups = new Map<string, typeof sorted>();
     for (const column of PIPELINE_COLUMNS) groups.set(column.id, []);
@@ -190,8 +201,17 @@ export function TrackerClient() {
                 <div className="flex flex-col gap-3">
                   {rows.map((app) => {
                     const { variant, label } = applicationStatusBadge(app.status);
+                    const isHighlight = highlightId === app.id;
                     return (
-                      <article key={app.id} className="rounded-[var(--app-radius-md)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-3">
+                      <article
+                        key={app.id}
+                        id={`tracker-app-${app.id}`}
+                        className={`rounded-[var(--app-radius-md)] border-[0.5px] bg-[var(--app-bg-elevated)] p-3 ${
+                          isHighlight
+                            ? "border-[var(--app-accent)] shadow-[0_0_0_2px_color-mix(in_srgb,var(--app-accent)_35%,transparent)]"
+                            : "border-[var(--app-border)]"
+                        }`}
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-[var(--app-text-primary)]">{app.job_title}</h3>

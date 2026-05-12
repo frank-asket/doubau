@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { type ReactNode, useMemo, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 
 import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
@@ -116,6 +116,66 @@ function normalizedRow(row: DisplayRow): DisplayRow {
 
 function isPreviewJob(job: JobRow) {
   return job.id.startsWith("mock-");
+}
+
+function DiscoveryScoringExplainer({
+  resumeStatus,
+  catalogSummary,
+}: {
+  resumeStatus: string | null | undefined;
+  catalogSummary: CatalogSummary | null;
+}) {
+  const active = catalogSummary?.active_total ?? 0;
+  const embeddedJobs = catalogSummary?.embedded_total ?? 0;
+  const missingJobEmb = catalogSummary?.missing_embedding_total ?? 0;
+  const resumeEmbedded = resumeStatus === "EMBEDDED";
+  const semanticRankingLikely = resumeEmbedded && embeddedJobs > 0;
+
+  return (
+    <div className="mb-6 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_06%,var(--app-bg-elevated))] px-4 py-4 sm:px-5">
+      <h3 className="text-[13px] font-semibold text-[var(--app-text-primary)]">How Job Discovery matches you</h3>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+        <li>
+          <span className="font-medium text-[var(--app-text-primary)]">Semantic CV match</span> (scores driven by résumé + job
+          embeddings) runs only when your latest résumé is <strong className="text-[var(--app-text-primary)]">EMBEDDED</strong>, the API has{" "}
+          <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code>, and catalog roles have job
+          embeddings (Celery <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code> after ingest).
+        </li>
+        <li>
+          Otherwise the feed still ranks listings using your{" "}
+          <span className="font-medium text-[var(--app-text-primary)]">persona, goals, location, seniority</span>, and freshness — not
+          full-text résumé similarity.
+        </li>
+        <li>
+          New jobs appear after <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) or{" "}
+          <strong className="text-[var(--app-text-primary)]">import URL</strong>, processed by your worker queue.
+        </li>
+      </ul>
+      <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
+        <span
+          className={`rounded-full px-3 py-1 font-medium ${
+            resumeEmbedded ? "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]" : "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]"
+          }`}
+        >
+          Résumé: {resumeStatus ?? "unknown"}
+        </span>
+        <span className="rounded-full bg-[var(--app-bg-muted)] px-3 py-1 font-medium text-[var(--app-text-secondary)]">
+          Catalog: {active} active · {embeddedJobs} with embeddings
+          {missingJobEmb > 0 ? ` · ${missingJobEmb} still indexing` : ""}
+        </span>
+        <span
+          className={`rounded-full px-3 py-1 font-medium ${
+            semanticRankingLikely ? "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]" : "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]"
+          }`}
+        >
+          {semanticRankingLikely ? "Semantic ranking likely active" : "Heuristic / partial semantic ranking"}
+        </span>
+      </div>
+      <p className="mt-3 text-[12px] text-[var(--app-text-tertiary)]">
+        Dashboard shows parse status; production needs workers + OpenAI on the API for the full Stage‑2 experience described in the product flow.
+      </p>
+    </div>
+  );
 }
 
 function sourceLabel(job: JobRow) {
@@ -293,12 +353,14 @@ export function DiscoveryClient({
   initialJobs,
   initialHiddenJobs,
   catalogSummary,
+  resumeStatus,
   loadError,
 }: {
   initialFeed: FeedRow[];
   initialJobs: JobRow[];
   initialHiddenJobs: JobRow[];
   catalogSummary: CatalogSummary | null;
+  resumeStatus?: string | null;
   loadError: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("all");
@@ -310,6 +372,7 @@ export function DiscoveryClient({
   const [importUrl, setImportUrl] = useState("");
   const [importKind, setImportKind] = useState<ImportKind>("url");
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [visibleLimit, setVisibleLimit] = useState(12);
   const [isPending, startTransition] = useTransition();
 
   const rows = useMemo(() => {
@@ -330,8 +393,12 @@ export function DiscoveryClient({
             components: {},
           }))
         : [];
-    return source.slice(0, 12).map((row) => normalizedRow(row));
+    return source.map((row) => normalizedRow(row));
   }, [initialFeed, initialJobs]);
+
+  useEffect(() => {
+    setVisibleLimit(12);
+  }, [query, tab]);
 
   const favoriteCount = favorites.size;
   const totalCount = catalogSummary?.active_total || initialJobs.length || initialFeed.length;
@@ -342,6 +409,7 @@ export function DiscoveryClient({
     const needle = query.trim().toLowerCase();
     return `${job.title} ${job.company} ${job.location || ""} ${job.tags.join(" ")}`.toLowerCase().includes(needle);
   });
+  const displayedRows = visibleRows.slice(0, visibleLimit);
 
   function toggleFavorite(id: string) {
     const row = rows.find((r) => r.job.id === id);
@@ -403,11 +471,17 @@ export function DiscoveryClient({
         body: JSON.stringify({ url, kind: importKind }),
       })
         .then(async (res) => {
-          if (!res.ok) throw new Error("Import failed");
+          if (!res.ok) {
+            const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+            throw new Error(typeof body.detail === "string" ? body.detail : "Import failed");
+          }
           setImportStatus("Import queued. New roles appear after the worker finishes.");
           setImportUrl("");
         })
-        .catch(() => setImportStatus("Could not queue that import."));
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "Could not queue that import.";
+          setImportStatus(message);
+        });
     });
   }
 
@@ -423,7 +497,8 @@ export function DiscoveryClient({
               High-signal opportunities, ranked for your next move.
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-7 text-white/68">
-              Doubow ranks active roles from connected providers using your resume, location, seniority, and recent activity.
+              When your résumé is embedded and jobs are indexed, we rank by semantic fit vs your CV — otherwise by profile, location,
+              seniority, and freshness until ingest + workers catch up.
             </p>
           </div>
           <div className="grid min-w-[260px] grid-cols-2 gap-3">
@@ -508,6 +583,9 @@ export function DiscoveryClient({
           <ChromePrimaryButton className="min-w-36" type="submit" disabled={isPending}>
             {isPending ? "Queueing" : "Import"}
           </ChromePrimaryButton>
+          <p className="text-[12px] text-[var(--app-text-tertiary)] lg:col-span-3">
+            Catalog imports are restricted to admins so customer Discovery stays on the controlled job pool.
+          </p>
           {importStatus ? (
             <p className="text-[13px] font-semibold text-[var(--app-text-secondary)] lg:col-span-3">
               {importStatus}
@@ -517,6 +595,10 @@ export function DiscoveryClient({
       ) : null}
 
       <div className="my-8 border-t border-[var(--app-border)]" />
+
+      {!loadError ? (
+        <DiscoveryScoringExplainer resumeStatus={resumeStatus} catalogSummary={catalogSummary} />
+      ) : null}
 
       {loadError ? (
         <div className="mb-5 rounded-2xl border border-[color-mix(in_srgb,var(--app-danger)_25%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_7%,white)] px-5 py-4 text-[14px] text-[var(--app-danger)]">
@@ -532,11 +614,11 @@ export function DiscoveryClient({
         <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-white px-5 py-16 text-center text-[var(--app-text-secondary)]">
           {query.trim()
             ? "No matching roles found."
-            : "No live roles are available yet. Import a job URL or run a provider sync to populate Discovery."}
+            : "No live roles are available yet. Run a provider sync to populate Discovery."}
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {visibleRows.map((row, index) => (
+          {displayedRows.map((row, index) => (
             <DiscoveryCard
               key={row.job.id}
               row={row}
@@ -548,6 +630,18 @@ export function DiscoveryClient({
           ))}
         </div>
       )}
+
+      {displayedRows.length < visibleRows.length ? (
+        <div className="mt-8 flex justify-center">
+          <ChromePrimaryButton
+            className="min-w-44"
+            type="button"
+            onClick={() => setVisibleLimit((current) => current + 12)}
+          >
+            Show more roles
+          </ChromePrimaryButton>
+        </div>
+      ) : null}
 
       {initialHiddenJobs.length ? (
         <p className="mt-6 text-[12px] text-[var(--app-text-tertiary)]">

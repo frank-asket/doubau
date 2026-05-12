@@ -11,8 +11,9 @@ from app.api.jobs import JobCreate, create_job
 from app.models.job import Job
 
 
-def test_create_job_returns_existing_after_integrity_error() -> None:
+def test_create_job_returns_existing_after_integrity_error(monkeypatch) -> None:
     """Simulates lost race: SELECT missed duplicate, INSERT hits unique index."""
+    monkeypatch.setattr("app.api.jobs.settings.admin_ingestion_user_ids", "admin@example.com")
     uid = uuid4()
     existing = MagicMock(spec=Job)
     existing.id = uid
@@ -42,7 +43,11 @@ def test_create_job_returns_existing_after_integrity_error() -> None:
         source_url="https://jobs.example.com/role/1",
     )
 
-    out = create_job(payload, db, MagicMock())
+    user = MagicMock()
+    user.id = uuid4()
+    user.email = "admin@example.com"
+
+    out = create_job(payload, db, user)
 
     assert out.id == uid
     assert out.company == "Acme"

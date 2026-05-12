@@ -7,6 +7,7 @@ from app.api.jobs import (
     _require_ingestion_admin,
     _score_job_heuristic,
     _score_reason,
+    _validate_public_scrape_url,
 )
 from app.models.job import Job
 from app.models.user import User
@@ -51,3 +52,24 @@ def test_bulk_ingestion_admin_guard_blocks_unlisted_user(monkeypatch: pytest.Mon
         _require_ingestion_admin(user)
 
     assert exc.value.status_code == 403
+
+
+def test_scrape_url_validator_accepts_public_https_url() -> None:
+    assert _validate_public_scrape_url("jobs.example.com/role/1") == "https://jobs.example.com/role/1"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc/passwd",
+        "http://localhost:8000/admin",
+        "http://127.0.0.1:8000/admin",
+        "http://10.0.0.5/metadata",
+        "http://169.254.169.254/latest/meta-data/",
+    ],
+)
+def test_scrape_url_validator_blocks_unsafe_urls(url: str) -> None:
+    with pytest.raises(HTTPException) as exc:
+        _validate_public_scrape_url(url)
+
+    assert exc.value.status_code == 400

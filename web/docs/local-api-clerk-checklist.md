@@ -54,7 +54,7 @@ Use this to verify the web app against a **running FastAPI** (`NEXT_PUBLIC_API_B
 
 ### Phase 4 roadmap routes (signed in)
 
-Scaffold UIs (`PhaseLaunchPlaceholder`): verify each loads without errors.
+Smoke `/app/demo-milestone` and `/api/health`; verify core `/app/*` routes load without errors.
 
 | Route | Phase |
 |-------|-------|

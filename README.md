@@ -42,3 +42,9 @@ uv run pytest tests/test_job_get_api.py tests/test_milestones_api.py -q
 - `web/`: Next.js (marketing + app)
 - `api/`: FastAPI (auth, state machine, workers later)
 
+## Production launch (this week)
+- **Runbook:** [`docs/LAUNCH_WEEK.md`](docs/LAUNCH_WEEK.md) — CORS, Clerk, workers, smoke tests.
+- **Web env template:** `web/.env.example`
+- **Pre-flight (API):** `python api/scripts/check_launch_env.py` (after exporting env)
+- **CI:** GitHub Actions workflow `.github/workflows/ci.yml` (typecheck + Next build + API compile)
+

@@ -366,8 +366,14 @@ export default async function DashboardPage() {
                 Track applications, resume readiness, and role recommendations from one place.
               </h2>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <ChromePrimaryLink href="/app/discovery">Find roles</ChromePrimaryLink>
+              <Link
+                href="/app/demo-milestone"
+                className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius-pill)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-page)] px-4 text-[13px] font-semibold text-[var(--app-text-primary)] shadow-[var(--app-shadow-0)] transition-[background-color,color] duration-150 hover:bg-[var(--app-bg-muted)]"
+              >
+                Demo checklist
+              </Link>
               <ChromeIconLink href="/app/tracker" aria-label="Open tracker">
                 <AppIcon name="arrow-up-right" className="size-5" />
               </ChromeIconLink>

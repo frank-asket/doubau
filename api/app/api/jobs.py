@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from ipaddress import ip_address
 from typing import Literal
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
@@ -38,6 +40,35 @@ def _require_ingestion_admin(user: User) -> None:
     allowed = set(settings.admin_ingestion_user_ids_list)
     if not allowed or (str(user.id) not in allowed and user.email not in allowed):
         raise HTTPException(status_code=403, detail="Bulk job sync is restricted.")
+
+
+def _validate_public_scrape_url(raw: str) -> str:
+    value = raw.strip()
+    parsed = urlparse(value if "://" in value else f"https://{value}")
+    if parsed.scheme not in {"http", "https"}:
+        raise HTTPException(status_code=400, detail="Only http(s) job URLs can be imported.")
+    if not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Import URL must include a host.")
+
+    host = parsed.hostname.strip().lower()
+    if host in {"localhost", "localhost.localdomain"} or host.endswith(".localhost"):
+        raise HTTPException(status_code=400, detail="Localhost URLs cannot be imported.")
+
+    try:
+        addr = ip_address(host.strip("[]"))
+    except ValueError:
+        addr = None
+    if addr is not None and (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_reserved
+        or addr.is_multicast
+        or addr.is_unspecified
+    ):
+        raise HTTPException(status_code=400, detail="Private network URLs cannot be imported.")
+
+    return parsed.geturl()
 
 
 class JobCreate(BaseModel):
@@ -208,7 +239,8 @@ def track_job_event(
 
 
 @router.post("", response_model=JobOut)
-def create_job(payload: JobCreate, db: DbDep, _: CurrentUserDep) -> JobOut:
+def create_job(payload: JobCreate, db: DbDep, user: CurrentUserDep) -> JobOut:
+    _require_ingestion_admin(user)
     url_hash = hash_source_url(payload.source_url) if payload.source_url else None
     if url_hash:
         existing = db.scalar(select(Job).where(Job.source_url_hash == url_hash))
@@ -420,9 +452,10 @@ def queue_scrapling_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
 
 
 @router.post("/scrape", response_model=ScrapeQueueOut)
-def queue_scrape(payload: ScrapeUrlIn, _: CurrentUserDep) -> ScrapeQueueOut:
+def queue_scrape(payload: ScrapeUrlIn, user: CurrentUserDep) -> ScrapeQueueOut:
     """Enqueue single-URL HTML scrape, or RSS/Atom fan-out (each link queued as ``scrape_job``)."""
-    nu = payload.normalized_url()
+    _require_ingestion_admin(user)
+    nu = _validate_public_scrape_url(payload.normalized_url())
     if payload.kind == "rss":
         res = scrape_rss_feed_task.delay(nu)
     else:

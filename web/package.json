@@ -12,7 +12,8 @@
     "build": "rimraf .next && next build --webpack",
     "build:turbo": "rimraf .next && next build",
     "start": "next start",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint ."
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",

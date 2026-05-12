@@ -28,7 +28,7 @@ This document maps the Phase 4 roadmap bullets to concrete behavior in the repo.
 
 ## Route coverage (P1 / P2)
 
-Scaffold pages live under `/app/*` with `PhaseLaunchPlaceholder`. **Settings & billing** documents Stripe env hooks for API wiring.
+App workspace routes under `/app/*` are backed by the FastAPI BFF. Use `/app/demo-milestone` for an end-to-end smoke checklist. **Settings & billing** documents Stripe env hooks for API wiring.
 
 ## Production checklist
 

@@ -66,7 +66,7 @@ export function NotificationsClient() {
         at: ts,
         title: `${a.company} — ${a.job_title}`,
         detail: `Application · ${a.status.replaceAll("_", " ")}`,
-        href: "/app/tracker",
+        href: `/app/tracker?highlight=${encodeURIComponent(a.id)}`,
         icon: "briefcase",
       });
     }
@@ -92,8 +92,8 @@ export function NotificationsClient() {
         id: `match-${ev.id}`,
         at: ts,
         title: reason,
-        detail: `Discovery signal · job ${ev.job_id.slice(0, 8)}…`,
-        href: "/app/discovery",
+        detail: "Discovery signal — open scored role",
+        href: `/app/discovery/${encodeURIComponent(ev.job_id)}`,
         icon: "analytics",
       });
     }
