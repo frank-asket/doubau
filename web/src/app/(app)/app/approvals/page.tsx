@@ -16,6 +16,7 @@ import {
 } from "@/lib/application-status";
 import { fetchApplications, fetchDrafts, type ApplicationRow, type DraftRow } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
+import { suggestRecipientEmailFromJobUrl } from "@/lib/suggest-recipient-email";
 
 /** Safety-net polling when WS is unavailable; pipeline WS drives most updates. */
 const APPROVALS_POLL_MS = 60_000;
@@ -52,6 +53,20 @@ export default function ApprovalsPage() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
+  const [recipientByAppId, setRecipientByAppId] = useState<Record<string, string>>({});
+
+  const googleMailboxQ = useQuery({
+    queryKey: queryKeys.googleMailbox,
+    queryFn: async () => {
+      const r = await fetch("/api/me/google/status", { cache: "no-store" });
+      if (!r.ok) throw new Error("google");
+      return (await r.json()) as {
+        oauth_configured: boolean;
+        connected: boolean;
+        google_account_email?: string | null;
+      };
+    },
+  });
 
   const applicationsQuery = useQuery({
     queryKey: queryKeys.applications,
@@ -71,6 +86,46 @@ export default function ApprovalsPage() {
       qc.invalidateQueries({ queryKey: queryKeys.applicationDrafts }),
     ]);
   };
+
+  const sendGmailM = useMutation({
+    mutationFn: async ({ appId, recipientEmail }: { appId: string; recipientEmail: string }) => {
+      const resp = await fetch(`/api/applications/${encodeURIComponent(appId)}/send-gmail-in-app`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ recipient_email: recipientEmail.trim() }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        throw new Error(typeof data.detail === "string" ? data.detail : "Gmail send failed.");
+      }
+    },
+    onMutate: () => setMutationError(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: (err) => {
+      setMutationError(err instanceof Error ? err.message : "Gmail send failed.");
+    },
+  });
+
+  const skipLinkedInM = useMutation({
+    mutationFn: async (appId: string) => {
+      const resp = await fetch(`/api/applications/${encodeURIComponent(appId)}/skip-linkedin-draft`, {
+        method: "POST",
+      });
+      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      if (!resp.ok) {
+        throw new Error(typeof data.detail === "string" ? data.detail : "Could not update LinkedIn draft.");
+      }
+    },
+    onMutate: () => setMutationError(null),
+    onSuccess: async () => {
+      await invalidateApprovalQueries();
+    },
+    onError: (err) => {
+      setMutationError(err instanceof Error ? err.message : "Could not update LinkedIn draft.");
+    },
+  });
 
   const patchDraftM = useMutation({
     mutationFn: async ({ draftId, content }: { draftId: string; content: string }) => {
@@ -340,24 +395,106 @@ export default function ApprovalsPage() {
           }
 
           if (status === "APPROVED") {
+            const gmailReady = Boolean(
+              googleMailboxQ.data?.oauth_configured && googleMailboxQ.data?.connected,
+            );
+            const defaultRec = suggestRecipientEmailFromJobUrl(app.source_url ?? "");
+            const recipient = recipientByAppId[app.id] ?? (app.recipient_email?.trim() || defaultRec);
+
+            if (d.channel === "linkedin") {
+              return (
+                <AppApprovalCard
+                  key={d.id}
+                  actionsSlot={
+                    <div className="flex max-w-lg flex-col gap-2">
+                      <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+                        LinkedIn messages cannot be sent from Doubow without LinkedIn partner API access. If you are
+                        applying by email, close this draft here so your pipeline stays accurate.
+                      </p>
+                      <AppButton
+                        disabled={skipLinkedInM.isPending}
+                        size="sm"
+                        variant="outline"
+                        type="button"
+                        onClick={() => skipLinkedInM.mutate(app.id)}
+                      >
+                        Close LinkedIn draft (in-app)
+                      </AppButton>
+                    </div>
+                  }
+                  badgeLabel={label}
+                  badgeVariant={variant}
+                  snippet={snippetPreview(d.content)}
+                  subtitle={subtitle}
+                  title={title}
+                />
+              );
+            }
+
             return (
               <AppApprovalCard
                 key={d.id}
                 actionsSlot={
-                  <>
-                    <AppButton
-                      disabled={busy}
-                      size="sm"
-                      variant="primary"
-                      type="button"
-                      onClick={() => submitM.mutate(app.id)}
-                    >
-                      Submit outreach
-                    </AppButton>
-                    <span className="self-center text-[12px] text-[var(--app-text-secondary)]">
-                      Draft approved — submit when you&apos;re ready.
-                    </span>
-                  </>
+                  <div className="flex w-full min-w-0 max-w-lg flex-col gap-2">
+                    {gmailReady ? (
+                      <>
+                        <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+                          Recruiter or careers email
+                          <input
+                            type="email"
+                            value={recipient}
+                            onChange={(e) =>
+                              setRecipientByAppId((m) => ({ ...m, [app.id]: e.target.value }))
+                            }
+                            placeholder="careers@company.com"
+                            className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+                          />
+                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AppButton
+                            disabled={busy || sendGmailM.isPending || !recipient.trim()}
+                            size="sm"
+                            variant="primary"
+                            type="button"
+                            onClick={() => sendGmailM.mutate({ appId: app.id, recipientEmail: recipient })}
+                          >
+                            {sendGmailM.isPending ? "Sending…" : "Send from my Gmail"}
+                          </AppButton>
+                          <AppButton
+                            disabled={busy || submitM.isPending}
+                            size="sm"
+                            variant="outline"
+                            type="button"
+                            onClick={() => submitM.mutate(app.id)}
+                          >
+                            Queue server send
+                          </AppButton>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
+                          Gmail sends from your connected address. &quot;Queue server send&quot; uses the legacy SMTP
+                          relay (if configured on the API).
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <AppButton
+                          disabled={busy}
+                          size="sm"
+                          variant="primary"
+                          type="button"
+                          onClick={() => submitM.mutate(app.id)}
+                        >
+                          Submit outreach
+                        </AppButton>
+                        <p className="text-[12px] text-[var(--app-text-secondary)]">
+                          <Link href="/app/settings" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
+                            Connect Gmail
+                          </Link>{" "}
+                          to send from your mailbox without opening Gmail.
+                        </p>
+                      </>
+                    )}
+                  </div>
                 }
                 badgeLabel={label}
                 badgeVariant={variant}

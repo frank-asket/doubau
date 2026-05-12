@@ -6,6 +6,7 @@ export type ApplicationRow = {
   job_title: string;
   status: string;
   source_url?: string | null;
+  recipient_email?: string | null;
   created_at?: string;
   updated_at?: string;
 };

@@ -12,6 +12,7 @@ from app.db import Base
 
 if TYPE_CHECKING:
     from app.models.profile import Profile
+    from app.models.user_google_token import UserGoogleToken
 
 
 class User(Base):
@@ -23,4 +24,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     profile: Mapped[Profile] = relationship(back_populates="user", uselist=False)
+    google_token: Mapped[UserGoogleToken | None] = relationship(
+        "UserGoogleToken", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 

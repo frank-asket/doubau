@@ -1,11 +1,12 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 
 from app.agents.interview_rag import (
@@ -21,9 +22,11 @@ from app.agents.outreach import (
 )
 from app.api.deps import CurrentUserDep, DbDep, user_from_token_payload
 from app.db import SessionLocal
+from app.integrations.gmail_oauth import google_oauth_configured, send_plaintext_email
 from app.llm.logging import record_llm_interaction
 from app.models.application import Application, ApplicationStatus
 from app.models.outreach_draft import DraftStatus, OutreachDraft
+from app.models.user_google_token import UserGoogleToken
 from app.security import decode_any_access_token
 from app.state_machine import InvalidTransition, assert_transition
 from app.tasks import dispatch_application_outbound
@@ -60,6 +63,7 @@ class ApplicationOut(BaseModel):
     company: str
     job_title: str
     source_url: str | None
+    recipient_email: str | None
     status: ApplicationStatus
     created_at: datetime
     updated_at: datetime
@@ -91,6 +95,11 @@ class DraftPatch(BaseModel):
     feedback_score: int | None = Field(default=None, ge=1, le=5)
 
 
+class SendGmailInAppIn(BaseModel):
+    recipient_email: EmailStr
+    subject: str | None = Field(default=None, max_length=220)
+
+
 def _touch_application(app: Application) -> None:
     app.updated_at = datetime.utcnow()
 
@@ -101,6 +110,7 @@ def _application_out(app: Application) -> ApplicationOut:
         company=app.company,
         job_title=app.job_title,
         source_url=app.source_url,
+        recipient_email=app.recipient_email,
         status=app.status,
         created_at=app.created_at,
         updated_at=app.updated_at,
@@ -399,6 +409,154 @@ def submit(
         dispatch_application_outbound.delay(str(app.id))
     except Exception as exc:  # noqa: BLE001
         log.warning("dispatch_application_outbound.delay failed (broker down?): %s", exc)
+    return _application_out(app)
+
+
+@router.post("/{application_id}/send-gmail-in-app", response_model=ApplicationOut)
+def send_gmail_in_app(
+    application_id: UUID,
+    payload: SendGmailInAppIn,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> ApplicationOut:
+    """Send approved email draft via user's Gmail (OAuth). Closes LinkedIn draft in-app."""
+    if not google_oauth_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Gmail in-app send not configured (set DOUBOW_GOOGLE_OAUTH_* on API).",
+        )
+
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    if app.status != ApplicationStatus.APPROVED:
+        raise HTTPException(
+            status_code=409,
+            detail="Application must be APPROVED before in-app Gmail send.",
+        )
+
+    g = db.get(UserGoogleToken, current_user.id)
+    if g is None or not g.refresh_ciphertext:
+        raise HTTPException(
+            status_code=400,
+            detail="Connect Gmail under Settings before sending from your mailbox.",
+        )
+    from_addr = (g.google_account_email or "").strip()
+    if not from_addr:
+        raise HTTPException(
+            status_code=400,
+            detail="Reconnect Gmail — we could not read your Google account email.",
+        )
+
+    email_draft = db.scalar(
+        select(OutreachDraft).where(
+            OutreachDraft.application_id == application_id,
+            OutreachDraft.channel == "email",
+            OutreachDraft.status == DraftStatus.DRAFT,
+        )
+    )
+    if email_draft is None:
+        raise HTTPException(status_code=409, detail="No email draft ready to send.")
+
+    subj = (payload.subject or "").strip() or f"Application — {app.job_title} ({app.company})"
+    to_addr = str(payload.recipient_email).strip()
+
+    t0 = time.perf_counter()
+    try:
+        send_plaintext_email(
+            refresh_token_cipher=g.refresh_ciphertext,
+            from_addr=from_addr,
+            to_addr=to_addr,
+            subject=subj,
+            body=email_draft.content,
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Gmail send failed: {e!s}") from e
+    ms = int((time.perf_counter() - t0) * 1000)
+
+    record_llm_interaction(
+        db,
+        user_id=current_user.id,
+        agent_name="sender_email",
+        prompt_parts=(str(application_id), str(email_draft.id), subj, "gmail_api"),
+        raw_output=json.dumps(
+            {"channel": "email", "to": to_addr, "sent": True, "via": "gmail_api"},
+        ),
+        latency_ms=ms,
+    )
+    email_draft.status = DraftStatus.SENT
+    app.recipient_email = to_addr
+
+    li_draft = db.scalar(
+        select(OutreachDraft).where(
+            OutreachDraft.application_id == application_id,
+            OutreachDraft.channel == "linkedin",
+            OutreachDraft.status == DraftStatus.DRAFT,
+        )
+    )
+    if li_draft is not None:
+        record_llm_interaction(
+            db,
+            user_id=current_user.id,
+            agent_name="sender_linkedin",
+            prompt_parts=(str(application_id), str(li_draft.id), "skipped_with_gmail_send"),
+            raw_output=json.dumps(
+                {"sent": True, "channel": "linkedin", "mode": "closed_in_app_with_email_apply"}
+            ),
+            latency_ms=0,
+        )
+        li_draft.status = DraftStatus.SENT
+
+    try:
+        assert_transition(app.status, ApplicationStatus.SUBMITTED)
+    except InvalidTransition as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    app.status = ApplicationStatus.SUBMITTED
+    _touch_application(app)
+    db.commit()
+    db.refresh(app)
+    return _application_out(app)
+
+
+@router.post("/{application_id}/skip-linkedin-draft", response_model=ApplicationOut)
+def skip_linkedin_draft(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> ApplicationOut:
+    """Mark LinkedIn draft done without LinkedIn API (email-only or manual DM)."""
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    if app.status != ApplicationStatus.APPROVED:
+        raise HTTPException(
+            status_code=409,
+            detail="Only APPROVED applications can skip the LinkedIn draft here.",
+        )
+
+    li_draft = db.scalar(
+        select(OutreachDraft).where(
+            OutreachDraft.application_id == application_id,
+            OutreachDraft.channel == "linkedin",
+            OutreachDraft.status == DraftStatus.DRAFT,
+        )
+    )
+    if li_draft is None:
+        raise HTTPException(status_code=409, detail="No active LinkedIn draft to skip.")
+
+    t0 = time.perf_counter()
+    record_llm_interaction(
+        db,
+        user_id=current_user.id,
+        agent_name="sender_linkedin",
+        prompt_parts=(str(application_id), str(li_draft.id), "skipped_in_app"),
+        raw_output=json.dumps({"sent": True, "channel": "linkedin", "mode": "user_skipped_in_app"}),
+        latency_ms=int((time.perf_counter() - t0) * 1000),
+    )
+    li_draft.status = DraftStatus.SENT
+    _touch_application(app)
+    db.commit()
+    db.refresh(app)
     return _application_out(app)
 
 

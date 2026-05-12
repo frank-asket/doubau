@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { SettingsProfileClient } from "@/components/workspace/SettingsProfileClient";
 
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function SettingsPage() {
-  return <SettingsProfileClient />;
+  return (
+    <Suspense fallback={<p className="p-6 text-[13px] text-[var(--app-text-secondary)]">Loading settings…</p>}>
+      <SettingsProfileClient />
+    </Suspense>
+  );
 }

@@ -11,9 +11,11 @@ from app.models.outreach_draft import OutreachDraft
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument
 from app.models.user import User
+from app.models.user_google_token import UserGoogleToken
 
 __all__ = [
     "User",
+    "UserGoogleToken",
     "Profile",
     "Application",
     "OutreachDraft",

@@ -1,0 +1,20 @@
+import { NextResponse } from "next/server";
+
+import { getApiBaseUrl, getBackendAuthHeaders } from "../../../_server";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(_: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  try {
+    const resp = await fetch(`${base}/applications/${encodeURIComponent(id)}/skip-linkedin-draft`, {
+      method: "POST",
+      headers: await getBackendAuthHeaders(),
+      cache: "no-store",
+    });
+    return NextResponse.json(await resp.json().catch(() => ({})), { status: resp.status });
+  } catch {
+    return NextResponse.json({ detail: "Cannot reach API." }, { status: 503 });
+  }
+}

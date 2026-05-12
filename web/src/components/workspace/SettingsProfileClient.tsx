@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -31,6 +31,59 @@ const PERSONAS = [
 export function SettingsProfileClient() {
   const qc = useQueryClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [gmailBanner, setGmailBanner] = useState<string | null>(null);
+
+  const googleQ = useQuery({
+    queryKey: queryKeys.googleMailbox,
+    queryFn: async () => {
+      const r = await fetch("/api/me/google/status", { cache: "no-store" });
+      if (!r.ok) throw new Error("google");
+      return (await r.json()) as {
+        oauth_configured: boolean;
+        connected: boolean;
+        google_account_email?: string | null;
+      };
+    },
+  });
+
+  useEffect(() => {
+    const g = searchParams.get("gmail");
+    if (!g) return;
+    if (g === "connected") {
+      setGmailBanner("Gmail connected. You can send applications from Doubow without opening Gmail.");
+    } else if (g === "denied") {
+      setGmailBanner("Google sign-in was cancelled.");
+    } else {
+      setGmailBanner("Gmail connection did not complete. Check the API redirect URI and Google Cloud credentials.");
+    }
+    void qc.invalidateQueries({ queryKey: queryKeys.googleMailbox });
+    const t = window.setTimeout(() => router.replace("/app/settings"), 5000);
+    return () => window.clearTimeout(t);
+  }, [searchParams, router, qc]);
+
+  const disconnectGmail = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/me/google/disconnect", { method: "DELETE" });
+      if (!r.ok) throw new Error("disconnect");
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.googleMailbox });
+      setGmailBanner("Gmail disconnected.");
+    },
+  });
+
+  const startGoogleOAuth = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/me/google/oauth-url", { cache: "no-store" });
+      const data = (await r.json()) as { authorization_url?: string; detail?: string };
+      if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "oauth_url");
+      const url = data.authorization_url;
+      if (!url) throw new Error("No authorization URL");
+      window.location.href = url;
+    },
+  });
+
   const q = useQuery({
     queryKey: queryKeys.profile,
     queryFn: async () => {
@@ -189,6 +242,64 @@ export function SettingsProfileClient() {
             </div>
             {save.isError ? (
               <p className="text-[13px] text-[var(--app-badge-red-fg)]">Save failed. Try again.</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--app-text-primary)]">Gmail (apply without opening Gmail)</h2>
+              <p className="mt-2 text-[13px] leading-6 text-[var(--app-text-secondary)]">
+                Connect your Google account so Doubow can send outreach from <span className="font-medium">your</span> mailbox
+                after you approve a draft. LinkedIn DMs are not automated (ToS); we close the LinkedIn draft in-app when you
+                send by email.
+              </p>
+            </div>
+            {gmailBanner ? (
+              <p className="rounded-md border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-3 py-2 text-[13px] text-[var(--app-text-secondary)]">
+                {gmailBanner}
+              </p>
+            ) : null}
+            {googleQ.isLoading ? (
+              <p className="text-[13px] text-[var(--app-text-secondary)]">Checking Gmail connection…</p>
+            ) : googleQ.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">Could not load Gmail status.</p>
+            ) : !googleQ.data?.oauth_configured ? (
+              <p className="text-[13px] text-[var(--app-text-secondary)]">
+                Gmail in-app send is not enabled on this deployment yet (API missing{" "}
+                <span className="font-mono text-[12px]">DOUBOW_GOOGLE_OAUTH_*</span>).
+              </p>
+            ) : googleQ.data.connected ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-[13px] text-[var(--app-text-secondary)]">
+                  Connected as{" "}
+                  <span className="font-medium text-[var(--app-text-primary)]">
+                    {googleQ.data.google_account_email ?? "your Google account"}
+                  </span>
+                </p>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={disconnectGmail.isPending}
+                  onClick={() => disconnectGmail.mutate()}
+                >
+                  Disconnect Gmail
+                </AppButton>
+              </div>
+            ) : (
+              <AppButton
+                type="button"
+                variant="primary"
+                disabled={startGoogleOAuth.isPending}
+                onClick={() => startGoogleOAuth.mutate()}
+              >
+                {startGoogleOAuth.isPending ? "Redirecting…" : "Connect Gmail"}
+              </AppButton>
+            )}
+            {startGoogleOAuth.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">
+                {startGoogleOAuth.error instanceof Error ? startGoogleOAuth.error.message : "Could not start Google sign-in."}
+              </p>
             ) : null}
           </div>
 

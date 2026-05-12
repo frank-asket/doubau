@@ -1,8 +1,9 @@
 import json
 import os
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import computed_field, field_validator
+from cryptography.fernet import Fernet
+from pydantic import computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -57,6 +58,18 @@ def _env_bool(name: str, default: bool = False) -> bool:
     if raw is None or not raw.strip():
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_valid_fernet_key(raw: str) -> bool:
+    """Fernet keys are 32 bytes encoded url-safe base64 (44 chars including padding)."""
+    s = raw.strip()
+    if len(s) != 44:
+        return False
+    try:
+        Fernet(s.encode("ascii"))
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 class Settings(BaseSettings):
@@ -166,9 +179,9 @@ class Settings(BaseSettings):
     # POST /jobs/cron/queue-ingest — optional shared secret for Railway Cron / GitHub Actions.
     # When unset, the route responds with 404 so scanners do not see an auth surface.
     cron_ingest_secret: str | None = None
-    # When True, Celery Beat also runs Remote OK ingest every hour at :17 UTC (needs worker + Redis).
+    # When True, Celery Beat runs Remote OK ingest hourly at :17 UTC (needs worker + Redis).
     ingest_beat_hourly_remoteok: bool = False
-    # Queue Remote OK + Adzuna ingest once after API startup (Redis lock; see app/startup_bootstrap.py).
+    # Queue Remote OK + Adzuna ingest once after API startup (Redis lock; see startup_bootstrap).
     bootstrap_ingest_on_startup: bool = False
 
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).
@@ -197,6 +210,59 @@ class Settings(BaseSettings):
     scrapling_seed_urls: str = os.getenv("SCRAPLING_SEED_URLS", "")
     # Cap total canonical rows persisted per Scrapling ingest run (separate from Adzuna limits).
     scrapling_ingest_max_jobs: int = int(os.getenv("SCRAPLING_INGEST_MAX_JOBS", "100") or "100")
+
+    # Gmail in-app send (OAuth). Redirect URI = Next.js callback (/api/me/google/oauth/callback).
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    google_oauth_redirect_uri: str | None = None
+    # Optional Fernet key (44-char url-safe base64). If unset, token crypto derives from jwt_secret.
+    oauth_token_fernet_key: str | None = None
+
+    @field_validator(
+        "google_oauth_client_id",
+        "google_oauth_client_secret",
+        "google_oauth_redirect_uri",
+        "oauth_token_fernet_key",
+        mode="before",
+    )
+    @classmethod
+    def empty_google_oauth_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("oauth_token_fernet_key", mode="after")
+    @classmethod
+    def oauth_token_fernet_key_must_be_usable(cls, v: object) -> object:
+        if not isinstance(v, str) or not v.strip():
+            return None
+        return v if _is_valid_fernet_key(v) else None
+
+    @model_validator(mode="after")
+    def legacy_google_oauth_env(self) -> Self:
+        """Allow unprefixed GOOGLE_OAUTH_* when DOUBOW_GOOGLE_OAUTH_* is unset."""
+        patch: dict[str, str | None] = {}
+
+        if not (self.google_oauth_client_id or "").strip():
+            v = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+            if v:
+                patch["google_oauth_client_id"] = v
+        if not (self.google_oauth_client_secret or "").strip():
+            v = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
+            if v:
+                patch["google_oauth_client_secret"] = v
+        if not (self.google_oauth_redirect_uri or "").strip():
+            v = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "").strip()
+            if v:
+                patch["google_oauth_redirect_uri"] = v
+        if not (self.oauth_token_fernet_key or "").strip():
+            v = os.getenv("GOOGLE_OAUTH_TOKEN_FERNET_KEY", "").strip()
+            if v and _is_valid_fernet_key(v):
+                patch["oauth_token_fernet_key"] = v
+
+        if patch:
+            return self.model_copy(update=patch)
+        return self
 
     @field_validator("database_url", mode="before")
     @classmethod
