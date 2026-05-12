@@ -708,14 +708,11 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
         raise self.retry(exc=exc, countdown=min(300, 10 * (2 ** self.request.retries))) from exc
 
 
-@celery_app.task(name="app.tasks.process_resume_document")
-def process_resume_document(resume_document_id: str) -> dict[str, Any]:
+def run_process_resume_document_sync(resume_document_id: str) -> dict[str, Any]:
     """
-    Phase 1 pipeline:
-    - download raw file from S3
-    - parse PDF/DOCX -> extracted_text + parsed_json
-    - OpenAI embedding -> JSONB + pgvector column (status EMBEDDED) when API key is set
-    - persist back to `resume_documents`
+    Parse PDF/DOCX from S3, optional LLM structure, optional OpenAI embedding → ``EMBEDDED``.
+
+    Used by POST ``/me/resume`` (BackgroundTasks) by default and by the Celery task when enabled.
     """
     with SessionLocal() as db:
         try:
@@ -778,6 +775,16 @@ def process_resume_document(resume_document_id: str) -> dict[str, Any]:
             db.add(doc)
             db.commit()
             raise
+
+
+@celery_app.task(name="app.tasks.process_resume_document")
+def process_resume_document(resume_document_id: str) -> dict[str, Any]:
+    """
+    Celery entrypoint — same work as :func:`run_process_resume_document_sync`.
+
+    Enable with ``DOUBOW_RESUME_PROCESS_VIA_CELERY=true`` on upload if you prefer workers only.
+    """
+    return run_process_resume_document_sync(resume_document_id)
 
 
 @celery_app.task(name="app.tasks.mark_stale_jobs")

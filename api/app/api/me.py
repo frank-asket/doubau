@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from sqlalchemy import desc, func, select
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score_from_jd_text
@@ -30,9 +32,18 @@ from app.models.milestone import Milestone
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.storage.s3 import ensure_bucket, s3_client
-from app.tasks import process_resume_document
+from app.tasks import process_resume_document, run_process_resume_document_sync
 
 router = APIRouter(prefix="/me", tags=["me"])
+log = logging.getLogger(__name__)
+
+
+async def _resume_pipeline_background(resume_document_id: str) -> None:
+    """Runs parse/embed off the request thread so POST /me/resume returns quickly."""
+    try:
+        await asyncio.to_thread(run_process_resume_document_sync, resume_document_id)
+    except Exception:
+        log.exception("Résumé pipeline failed document_id=%s", resume_document_id)
 
 
 def _resume_document_out(doc: ResumeDocument) -> dict:
@@ -116,6 +127,7 @@ def put_profile(
 async def upload_resume(
     db: DbDep,
     current_user: CurrentUserDep,
+    background_tasks: BackgroundTasks,
     file: UploadFile,
 ) -> dict:
     if not file.filename:
@@ -164,7 +176,10 @@ async def upload_resume(
     db.commit()
     db.refresh(doc)
 
-    process_resume_document.delay(str(doc.id))
+    if settings.resume_process_via_celery:
+        process_resume_document.delay(str(doc.id))
+    else:
+        background_tasks.add_task(_resume_pipeline_background, str(doc.id))
     return {
         "id": str(doc.id),
         "status": doc.status,
@@ -355,7 +370,11 @@ def dashboard_summary(db: DbDep, current_user: CurrentUserDep) -> DashboardSumma
     for app in apps:
         bucket = trend[_trend_bucket(app.created_at.replace(tzinfo=None), start=start)]
         status = app.status.value if hasattr(app.status, "value") else str(app.status)
-        if status in (ApplicationStatus.DISCOVERED, ApplicationStatus.SCORING, ApplicationStatus.DRAFTED):
+        if status in (
+            ApplicationStatus.DISCOVERED,
+            ApplicationStatus.SCORING,
+            ApplicationStatus.DRAFTED,
+        ):
             bucket.discovered += 1
         elif status in (ApplicationStatus.PENDING_APPROVAL, ApplicationStatus.APPROVED):
             bucket.pending += 1

@@ -161,6 +161,9 @@ class Settings(BaseSettings):
     resume_llm_structuring_max_chars: int = 12_000
     # auto: OpenRouter first, then direct Anthropic, then OpenAI (when respective keys are set).
     resume_structuring_provider: Literal["auto", "claude", "openai", "openrouter"] = "auto"
+    # Default False: run parse + embed after POST /me/resume via BackgroundTasks on the API
+    # (no Celery worker). True: enqueue ``process_resume_document`` only (needs worker + broker).
+    resume_process_via_celery: bool = False
 
     @field_validator("database_url", mode="before")
     @classmethod
