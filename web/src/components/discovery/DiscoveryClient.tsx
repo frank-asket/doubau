@@ -137,73 +137,96 @@ function DiscoveryScoringExplainer({
 
   return (
     <div className="mb-6 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_06%,var(--app-bg-elevated))] px-4 py-4 sm:px-5">
-      <h3 className="text-[13px] font-semibold text-[var(--app-text-primary)]">How Job Discovery matches you</h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h3 className="text-[13px] font-semibold text-[var(--app-text-primary)]">Ranking</h3>
+        <div className="flex flex-wrap gap-2 text-[12px]">
+          <span
+            className={`rounded-full px-3 py-1 font-medium ${
+              resumeEmbedded
+                ? "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]"
+                : "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]"
+            }`}
+          >
+            Résumé: {resumeStatus ?? "unknown"}
+          </span>
+          <span className="rounded-full bg-[var(--app-bg-muted)] px-3 py-1 font-medium text-[var(--app-text-secondary)]">
+            Catalog: {active} active · {embeddedJobs} with embeddings
+            {missingJobEmb > 0 ? ` · ${missingJobEmb} still indexing` : ""}
+          </span>
+          <span className={`rounded-full px-3 py-1 font-medium ${rankingChipClass}`}>{rankingChipLabel}</span>
+        </div>
+      </div>
 
       {catalogEmpty ? (
-        <div className="mt-3 rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-warning)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-          <p className="font-medium text-[var(--app-text-primary)]">Your résumé is ready, but the job catalog is empty.</p>
-          <p className="mt-2">
-            Listings are filled by <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) and
-            your <strong className="text-[var(--app-text-primary)]">Celery worker</strong> talking to{" "}
-            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">Redis</code>. Without a worker and scheduled ingest (or a
-            manual queue), <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">active_total</code> stays zero — semantic
-            scoring does not apply until jobs exist.
-          </p>
-          <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
-            Ops: set <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_REDIS_URL</code>, run worker + beat (or{" "}
-            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_START_WORKER_IN_API</code> /{" "}
-            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP</code>), and{" "}
-            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code> for{" "}
-            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code>. Full steps:{" "}
-            <a
-              href={launchDocsHref()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-[var(--app-accent)] underline decoration-[color-mix(in_srgb,var(--app-accent)_45%,transparent)] underline-offset-2 hover:opacity-90"
-            >
-              Launch week runbook
-            </a>
-            .
-          </p>
-        </div>
-      ) : null}
+        <p className="mt-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+          <span className="font-medium text-[var(--app-text-primary)]">No listings yet.</span> Jobs arrive after provider ingest or an
+          import; refresh after your pipeline runs.{" "}
+          <a
+            href={launchDocsHref()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[var(--app-accent)] underline decoration-[color-mix(in_srgb,var(--app-accent)_45%,transparent)] underline-offset-2 hover:opacity-90"
+          >
+            Launch runbook
+          </a>
+        </p>
+      ) : (
+        <p className="mt-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+          When your résumé and catalog jobs are both embedded, we can rank by semantic fit to your CV; otherwise you still get ranked
+          results from your profile, goals, location, seniority, and freshness.
+        </p>
+      )}
 
-      <ul className={`mt-3 list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] ${catalogEmpty ? "opacity-80" : ""}`}>
-        <li>
-          <span className="font-medium text-[var(--app-text-primary)]">Semantic CV match</span> (scores driven by résumé + job
-          embeddings) runs only when your latest résumé is <strong className="text-[var(--app-text-primary)]">EMBEDDED</strong>, the API has{" "}
-          <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code>, and catalog roles have job
-          embeddings (Celery <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code> after ingest).
-        </li>
-        <li>
-          Otherwise the feed still ranks listings using your{" "}
-          <span className="font-medium text-[var(--app-text-primary)]">persona, goals, location, seniority</span>, and freshness — not
-          full-text résumé similarity.
-        </li>
-        <li>
-          New jobs appear after <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) or{" "}
-          <strong className="text-[var(--app-text-primary)]">import URL</strong>, processed by your worker queue.
-        </li>
-      </ul>
-      <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
-        <span
-          className={`rounded-full px-3 py-1 font-medium ${
-            resumeEmbedded ? "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]" : "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]"
-          }`}
-        >
-          Résumé: {resumeStatus ?? "unknown"}
-        </span>
-        <span className="rounded-full bg-[var(--app-bg-muted)] px-3 py-1 font-medium text-[var(--app-text-secondary)]">
-          Catalog: {active} active · {embeddedJobs} with embeddings
-          {missingJobEmb > 0 ? ` · ${missingJobEmb} still indexing` : ""}
-        </span>
-        <span className={`rounded-full px-3 py-1 font-medium ${rankingChipClass}`}>{rankingChipLabel}</span>
-      </div>
-      <p className="mt-3 text-[12px] text-[var(--app-text-tertiary)]">
-        {catalogEmpty
-          ? "Once ingest runs, refresh this page — catalog counts update on each load."
-          : "Dashboard shows parse status; production needs workers + OpenAI on the API for the full Stage‑2 experience described in the product flow."}
-      </p>
+      <details className="mt-3 rounded-[var(--app-radius-md)] border border-dashed border-[color-mix(in_srgb,var(--app-accent)_22%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_04%,transparent)] px-3 py-2 text-[12px] text-[var(--app-text-secondary)]">
+        <summary className="cursor-pointer select-none font-medium text-[var(--app-text-primary)] outline-none marker:text-[var(--app-text-tertiary)]">
+          Technical details (self-hosted / ops)
+        </summary>
+        {catalogEmpty ? (
+          <div className="mt-3 rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-warning)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-3 text-[13px] leading-relaxed">
+            <p className="font-medium text-[var(--app-text-primary)]">Catalog empty</p>
+            <p className="mt-2">
+              Ingest (Remote OK / Adzuna / Scrapling) plus a <strong className="text-[var(--app-text-primary)]">Celery worker</strong> and{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">Redis</code> keep{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">active_total</code> moving. Set{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_REDIS_URL</code>, run worker + beat (or{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_START_WORKER_IN_API</code> /{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP</code>), and{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code> for{" "}
+              <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code>.
+            </p>
+          </div>
+        ) : null}
+        <ul className={`mt-3 list-disc space-y-2 pl-5 ${catalogEmpty ? "opacity-90" : ""}`}>
+          <li>
+            <span className="font-medium text-[var(--app-text-primary)]">Semantic CV match</span> (résumé + job embeddings) needs your
+            latest résumé <strong className="text-[var(--app-text-primary)]">EMBEDDED</strong>,{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code> on the API, and job
+            embeddings from Celery <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code> after ingest.
+          </li>
+          <li>
+            Otherwise the feed ranks using{" "}
+            <span className="font-medium text-[var(--app-text-primary)]">persona, goals, location, seniority</span>, and freshness — not
+            full-text résumé similarity.
+          </li>
+          <li>
+            New jobs appear after <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) or{" "}
+            <strong className="text-[var(--app-text-primary)]">import URL</strong>, processed by your worker queue.
+          </li>
+        </ul>
+        <p className="mt-3 text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
+          {catalogEmpty
+            ? "After ingest runs, refresh — counts update on each load."
+            : "Résumé parse status lives on the dashboard; workers + OpenAI on the API unlock the full embedding-backed path."}{" "}
+          <a
+            href={launchDocsHref()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[var(--app-accent)] underline-offset-2 hover:underline"
+          >
+            Launch runbook
+          </a>
+        </p>
+      </details>
     </div>
   );
 }
