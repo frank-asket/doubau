@@ -193,7 +193,7 @@ export function SalaryBenchmarkClient() {
           <section className="ch-panel p-6">
             <h2 className="text-[20px] font-bold">Role context</h2>
             <p className="mt-2 text-[13px] text-[var(--app-text-secondary)]">
-              Pulled from your profile — adjust in Settings. External salary prediction is not wired yet.
+              Benchmarks use your saved profile fields below for context; Doubow does not call external salary APIs — treat numbers as directional only.
             </p>
             <label className="mt-6 block font-semibold">
               Job title

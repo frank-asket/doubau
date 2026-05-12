@@ -167,7 +167,9 @@ export function SponsorshipHubClient() {
       <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="ch-panel p-6">
           <h2 className="text-[20px] font-bold">Points Calculator</h2>
-          <p className="mt-2 text-[var(--app-text-secondary)]">Placeholder — integrate official rules engine separately.</p>
+          <p className="mt-2 text-[var(--app-text-secondary)]">
+            Points totals are illustrative only — always validate eligibility against current UKVI guidance before decisions.
+          </p>
           <div className="mt-8 space-y-7">
             {["Job Offer from Licensed Sponsor", "Job at Required Skill Level", "English Language Requirement"].map((label) => (
               <label key={label} className="block font-semibold opacity-70">

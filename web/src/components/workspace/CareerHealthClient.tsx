@@ -12,7 +12,7 @@ import {
 } from "@/lib/career-data";
 import { queryKeys } from "@/lib/query-keys";
 
-import { MetricCard, ProgressLine, Tag } from "./CareerHeroMockSections";
+import { MetricCard, Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 const MOODS = [
@@ -22,6 +22,8 @@ const MOODS = [
   { label: "Good", value: 4 },
   { label: "Great", value: 5 },
 ];
+
+const EMPTY_CHECK_INS: CheckInDto[] = [];
 
 export function CareerHealthClient() {
   const qc = useQueryClient();
@@ -62,7 +64,7 @@ export function CareerHealthClient() {
     },
   });
 
-  const rows = q.data ?? [];
+  const rows = q.data ?? EMPTY_CHECK_INS;
   const moods = rows.map((c) => c.mood).filter((m): m is number => m != null);
   const energies = rows.map((c) => c.energy).filter((m): m is number => m != null);
   const workloads = rows.map((c) => c.workload).filter((m): m is number => m != null);
@@ -71,7 +73,7 @@ export function CareerHealthClient() {
   const avgEnergy = avg(energies);
   const avgWorkload = avg(workloads);
   const streak = goodDayStreak(rows, 4);
-  const series = useMemo(() => moodSeriesLastN(rows, 14), [q.data]);
+  const series = useMemo(() => moodSeriesLastN(rows, 14), [rows]);
 
   const recentLowMood = moods.length >= 3 && avgMood != null && avgMood < 3.2;
 

@@ -19,6 +19,8 @@ type MilestoneRow = {
   created_at: string;
 };
 
+const EMPTY_MILESTONES: MilestoneRow[] = [];
+
 function normStatus(s: string) {
   return s.toLowerCase();
 }
@@ -42,7 +44,7 @@ export function PlannerPageClient() {
     },
   });
 
-  const rows = q.data ?? [];
+  const rows = q.data ?? EMPTY_MILESTONES;
 
   const { todo, doing, done } = useMemo(() => {
     let t = 0;
@@ -67,7 +69,9 @@ export function PlannerPageClient() {
     const s = normStatus(m.status);
     return s === "in_progress" || s === "doing";
   });
-  const plannedRows = sorted.filter((m) => !["done", "completed", "in_progress", "doing"].includes(normStatus(m.status)));
+  const plannedRows = sorted.filter(
+    (m) => !["done", "completed", "in_progress", "doing"].includes(normStatus(m.status)),
+  );
   const doneRows = sorted.filter((m) => ["done", "completed"].includes(normStatus(m.status)));
 
   return (

@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 
-import { ChromePrimaryButton, ChromePrimaryLink } from "@/components/ui/chrome-motion";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { ChromePrimaryLink } from "@/components/ui/chrome-motion";
+import { AppButton } from "@/components/ui/button";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
 import { AppIcon } from "@/components/ui/app-icon";
 import {
   getResumeStructured,
   linkedinStyleScores,
   overallProfileScore,
+  type ProfileDto,
   type ResumeLatestDto,
 } from "@/lib/career-data";
 import { queryKeys } from "@/lib/query-keys";
@@ -19,7 +21,46 @@ import { Gauge, ProgressLine } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 export function LinkedinAnalysisClient() {
+  const qc = useQueryClient();
   const [section, setSection] = useState<string>("Headline");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+
+  const profileQ = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: async () => {
+      const r = await fetch("/api/me/profile", { cache: "no-store" });
+      if (!r.ok) throw new Error("profile");
+      return (await r.json()) as ProfileDto;
+    },
+  });
+
+  useEffect(() => {
+    const g = profileQ.data?.goals;
+    const raw = g && typeof g.linkedin_profile_url === "string" ? g.linkedin_profile_url : "";
+    setLinkedinUrl(raw);
+  }, [profileQ.data]);
+
+  const saveLinkedIn = useMutation({
+    mutationFn: async () => {
+      const base =
+        profileQ.data?.goals && typeof profileQ.data.goals === "object"
+          ? { ...profileQ.data.goals }
+          : {};
+      const trimmed = linkedinUrl.trim();
+      if (trimmed) base.linkedin_profile_url = trimmed;
+      else delete base.linkedin_profile_url;
+      const r = await fetch("/api/me/profile", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ goals: base }),
+      });
+      if (!r.ok) throw new Error("Could not save profile.");
+      return (await r.json()) as ProfileDto;
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+  });
 
   const resumeQ = useQuery({
     queryKey: queryKeys.resumeLatest,
@@ -184,19 +225,35 @@ export function LinkedinAnalysisClient() {
       <section className="ch-panel p-6">
         <h2 className="text-[20px] font-bold">LinkedIn profile URL</h2>
         <p className="mt-2 text-[var(--app-text-secondary)]">
-          Doubow does not fetch LinkedIn automatically yet. Paste a URL for your records — analysis above uses your uploaded résumé only.
+          Doubow does not scrape LinkedIn. Save your public profile URL on your record — scoring above still uses your uploaded résumé text only.
         </p>
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
-            className="h-14 flex-1 rounded-full border border-[var(--app-border)] px-6 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]"
+            className="h-14 min-w-0 flex-1 rounded-full border border-[var(--app-border)] px-6 outline-none focus:ring-2 focus:ring-[var(--app-focus-ring)]"
             placeholder="https://www.linkedin.com/in/username"
-            readOnly
-            aria-readonly
+            value={linkedinUrl}
+            onChange={(e) => setLinkedinUrl(e.target.value)}
+            type="url"
+            autoComplete="url"
+            aria-label="LinkedIn profile URL"
           />
-          <ChromePrimaryButton type="button" className="opacity-60" disabled title="Coming soon">
-            <AppIcon name="arrow-up-right" className="size-5" /> Run
-          </ChromePrimaryButton>
+          <AppButton
+            type="button"
+            variant="primary"
+            disabled={saveLinkedIn.isPending || profileQ.isLoading}
+            onClick={() => saveLinkedIn.mutate()}
+          >
+            {saveLinkedIn.isPending ? "Saving…" : "Save URL"}
+          </AppButton>
         </div>
+        {saveLinkedIn.isSuccess ? (
+          <p className="mt-3 text-[13px] text-[var(--app-success)]">Saved to your profile.</p>
+        ) : null}
+        {saveLinkedIn.isError ? (
+          <p className="mt-3 text-[13px] text-[var(--app-danger)]" role="alert">
+            {saveLinkedIn.error instanceof Error ? saveLinkedIn.error.message : "Save failed."}
+          </p>
+        ) : null}
         <div className="mt-8">
           <ProgressLine value={overall} />
         </div>

@@ -85,11 +85,6 @@ function keyForCompany(company: string) {
   return "google";
 }
 
-function salaryFor(job: JobRow, index: number) {
-  const highPayCompanies = /amazon|apple|senior|lead/i;
-  return highPayCompanies.test(`${job.company} ${job.title}`) || index === 2 ? "£75,000" : "£50,000";
-}
-
 function postedLabel(job: JobRow) {
   const raw = job.source_posted_at || job.created_at;
   const date = raw ? new Date(raw) : null;
@@ -127,7 +122,9 @@ function sourceLabel(job: JobRow) {
   if (job.listing_source === "remoteok") return "RemoteOK";
   if (job.listing_source === "adzuna") return "Adzuna";
   if (job.listing_source === "http_fetch") return "Imported";
-  if (job.listing_source) return job.listing_source;
+  if (job.listing_source === "greenhouse") return "Greenhouse";
+  if (job.listing_source === "scrapling_jsonld" || job.listing_source === "scrapling") return "Scrapling";
+  if (job.listing_source) return job.listing_source.replace(/_/g, " ");
   return "Doubow";
 }
 
@@ -249,8 +246,8 @@ function DiscoveryCard({
       </div>
 
       <div className="flex items-center justify-between border-t border-dashed border-[var(--app-border)] px-6 py-5">
-        <p className="text-[22px] font-black tracking-[-0.03em] text-[var(--app-text-primary)]">
-          {salaryFor(job, index)} <span className="text-[13px] font-semibold text-[var(--app-text-secondary)]">/year</span>
+        <p className="max-w-[220px] text-[13px] font-medium leading-snug text-[var(--app-text-secondary)]">
+          Compensation is not stored in the catalog — check the posting for salary or range.
         </p>
         <div className="flex items-center gap-3">
           {!isPreviewJob(job) ? (

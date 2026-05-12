@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhaseLaunchPlaceholder } from "@/components/app/PhaseLaunchPlaceholder";
+import { WorkspaceSearchClient } from "@/components/workspace/WorkspaceSearchClient";
 
 export const metadata: Metadata = {
-  title: "Global search",
+  title: "Search",
 };
 
 export default function SearchPage() {
-  return (
-    <PhaseLaunchPlaceholder
-      title="Search"
-      description="Quickly find jobs, applications, drafts, career tools, settings, and saved work across DouBow."
-    />
-  );
+  return <WorkspaceSearchClient />;
 }
