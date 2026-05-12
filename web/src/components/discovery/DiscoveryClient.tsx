@@ -257,7 +257,6 @@ function DiscoveryCard({
   ];
   const detailHref = isPreviewJob(job) ? "#" : `/app/discovery/${job.id}`;
   const description = job.description || "";
-  const hasLiveUrl = Boolean(job.source_url && job.source_url !== "#");
   const score = typeof row.score === "number" ? Math.round(row.score) : null;
   const components = Object.entries(row.components || {}).slice(0, 3);
 
@@ -357,27 +356,16 @@ function DiscoveryCard({
               <AppIcon name="trash" className="size-4" />
             </button>
           ) : null}
-          {hasLiveUrl ? (
-            <a
-              href={job.source_url || "#"}
-              target="_blank"
-              rel="noreferrer"
-              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)] active:scale-[0.96]"
-              aria-label={`Open ${job.title} source`}
-              onClick={() => void postJobEvent(job.id, "click_out")}
-            >
-              <AppIcon name="arrow-up-right" className="size-5" />
-            </a>
-          ) : (
+          {!isPreviewJob(job) ? (
             <Link
               href={detailHref}
               className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)] active:scale-[0.96]"
-              aria-label={`Open ${job.title}`}
-              onClick={() => void postJobEvent(job.id, "click_out")}
+              aria-label={`View ${job.title} and apply in Doubow`}
+              title="View role and apply in Doubow"
             >
               <AppIcon name="arrow-up-right" className="size-5" />
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.article>
@@ -412,23 +400,26 @@ export function DiscoveryClient({
   const [isPending, startTransition] = useTransition();
 
   const rows = useMemo(() => {
-    const source: DisplayRow[] = initialFeed.length
-      ? initialFeed.map((row) => ({
-          job: row.job,
-          score: row.score,
-          similarity: row.similarity,
-          scoreReason: row.score_reason || null,
-          components: row.score_components || {},
-        }))
-      : initialJobs.length
-        ? initialJobs.map((job) => ({
-            job,
-            score: null,
-            similarity: null,
-            scoreReason: null,
-            components: {},
-          }))
-        : [];
+    const fromFeed: DisplayRow[] = initialFeed.map((row) => ({
+      job: row.job,
+      score: row.score,
+      similarity: row.similarity,
+      scoreReason: row.score_reason || null,
+      components: row.score_components || {},
+    }));
+    const seen = new Set(fromFeed.map((r) => r.job.id));
+    const fromJobsOnly: DisplayRow[] = initialJobs
+      .filter((job) => !seen.has(job.id))
+      .map((job) => ({
+        job,
+        score: null,
+        similarity: null,
+        scoreReason: null,
+        components: {},
+      }));
+    // When the feed is personalized (e.g. résumé similarity), it only includes embedded jobs.
+    // Merge the full recent catalog so other providers (Remote OK, Adzuna, etc.) still surface.
+    const source = fromFeed.length > 0 ? [...fromFeed, ...fromJobsOnly] : fromJobsOnly;
     return source.map((row) => normalizedRow(row));
   }, [initialFeed, initialJobs]);
 

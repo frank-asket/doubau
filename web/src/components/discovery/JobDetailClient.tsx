@@ -10,7 +10,7 @@ import type { JobRow } from "@/components/discovery/DiscoveryClient";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
-import { ChromeIconButton, ChromePrimaryLink } from "@/components/ui/chrome-motion";
+import { ChromeIconButton } from "@/components/ui/chrome-motion";
 import { parseJobDescriptionSections } from "@/lib/job-detail-parse";
 import { cn } from "@/lib/utils";
 
@@ -170,9 +170,14 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   }, [job.id, loadFit]);
 
   const generateOutreach = useCallback(async () => {
+    if (isPreviewJob(job)) {
+      setOutreachMsg("Preview listings cannot create applications.");
+      return;
+    }
     setOutreachBusy(true);
     setOutreachMsg(null);
     try {
+      void postJobEvent(job.id, "apply_click", "apply_in_doubow");
       const cr = await fetch("/api/applications", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -202,7 +207,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
     } finally {
       setOutreachBusy(false);
     }
-  }, [job.company, job.title, job.source_url, router]);
+  }, [job, router]);
 
   function toggleFavorite() {
     const next = !favorited;
@@ -279,21 +284,33 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                {job.source_url ? (
-                  <a
-                    href={job.source_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      "ch-primary-button fm-motion inline-flex min-h-[40px] min-w-[7.5rem] items-center justify-center rounded-[var(--app-radius-pill)] px-5 py-2 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform active:scale-[0.96]",
-                    )}
-                    onClick={() => void postJobEvent(job.id, "apply_click")}
-                  >
-                    Apply now
-                  </a>
+                {!isPreviewJob(job) ? (
+                  <>
+                    <AppButton
+                      type="button"
+                      variant="primary"
+                      className="min-h-[40px] min-w-[7.5rem] px-5 py-2 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform active:scale-[0.96] disabled:active:scale-100"
+                      disabled={outreachBusy}
+                      aria-busy={outreachBusy}
+                      onClick={() => void generateOutreach()}
+                    >
+                      {outreachBusy ? "Starting…" : "Apply in Doubow"}
+                    </AppButton>
+                    {job.source_url ? (
+                      <a
+                        href={job.source_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-h-[40px] items-center justify-center rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-2 text-[12px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)]"
+                        onClick={() => void postJobEvent(job.id, "click_out", "original listing from hero")}
+                      >
+                        Original listing
+                      </a>
+                    ) : null}
+                  </>
                 ) : (
                   <span className="rounded-[var(--app-radius-pill)] border border-dashed border-[var(--app-border)] px-4 py-2 text-[12px] text-[var(--app-text-tertiary)]">
-                    No apply URL
+                    Preview — apply unavailable
                   </span>
                 )}
                 <ChromeIconButton
@@ -311,6 +328,11 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                 </ChromeIconButton>
               </div>
             </div>
+            {outreachMsg ? (
+              <p className="mt-3 text-[12px] text-[var(--app-badge-red-fg)] sm:text-right" role="alert">
+                {outreachMsg}
+              </p>
+            ) : null}
             {shareHint ? <p className="mt-3 text-center text-[12px] text-[var(--app-text-secondary)] sm:text-right">{shareHint}</p> : null}
           </div>
 
@@ -486,25 +508,20 @@ export function JobDetailClient({ job }: { job: JobRow }) {
             </div>
           </div>
 
-          <AppButton
-            type="button"
-            variant="primary"
-            className="w-full justify-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform active:scale-[0.96] disabled:active:scale-100"
-            disabled={outreachBusy}
-            aria-busy={outreachBusy}
-            onClick={() => void generateOutreach()}
-          >
-            {outreachBusy ? "Working…" : "Generate outreach"}
-          </AppButton>
           {outreachMsg ? (
             <p className="text-center text-[12px] text-[var(--app-badge-red-fg)]" role="alert">
               {outreachMsg}
             </p>
-          ) : (
-            <p className="text-center text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
-              Creates an application draft, then opens your review queue. Nothing is sent until you approve.
-            </p>
-          )}
+          ) : null}
+          <p
+            className={cn(
+              "text-center text-[12px] leading-relaxed text-[var(--app-text-secondary)]",
+              outreachMsg ? "mt-2" : "",
+            )}
+          >
+            Use <span className="font-medium text-[var(--app-text-primary)]">Apply in Doubow</span> at the top to create
+            drafts, then review in Approvals. Connect Gmail in Settings to send email without leaving the app.
+          </p>
 
           <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-1)]">
             <div className="text-[12px] font-semibold text-[var(--app-text-primary)]">Fit and match</div>
@@ -578,9 +595,15 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           </div>
 
           {job.source_url ? (
-            <ChromePrimaryLink href={job.source_url} target="_blank" rel="noreferrer" className="w-full justify-center">
+            <a
+              href={job.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-page)] px-4 py-2.5 text-[13px] font-medium text-[var(--app-text-secondary)] transition-colors hover:border-[var(--app-accent)] hover:text-[var(--app-text-primary)]"
+              onClick={() => void postJobEvent(job.id, "click_out", "original listing from sidebar")}
+            >
               View original listing
-            </ChromePrimaryLink>
+            </a>
           ) : null}
         </aside>
       </div>
