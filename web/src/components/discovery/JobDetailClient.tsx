@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
+import { EmployerLogoDevPanel } from "@/components/discovery/EmployerLogoDevPanel";
 import { JobCompanyMark, hostnameFromSourceUrl, resolveCompanyLogoHost } from "@/components/discovery/JobCompanyMark";
 import type { JobRow } from "@/components/discovery/DiscoveryClient";
 import { AppBadge } from "@/components/ui/badge";
@@ -137,6 +138,11 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const companySiteHost = useMemo(() => {
     return hostnameFromSourceUrl(job.source_url) ?? resolveCompanyLogoHost(job.company, job.source_url);
   }, [job.company, job.source_url]);
+
+  const logoDevDescribeDomain = useMemo(() => {
+    if (isPreviewJob(job)) return null;
+    return resolveCompanyLogoHost(job.company, job.source_url);
+  }, [job.company, job.source_url, job.id]);
 
   const salaryLine = extractSalaryHint(job.description);
   const posted = formatDateLong(job.source_posted_at ?? job.created_at);
@@ -504,6 +510,11 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                     {companySiteHost}
                   </a>
                 ) : null}
+                <EmployerLogoDevPanel
+                  domain={logoDevDescribeDomain}
+                  enabled={!isPreviewJob(job)}
+                  companyName={job.company}
+                />
               </div>
             </div>
           </div>
