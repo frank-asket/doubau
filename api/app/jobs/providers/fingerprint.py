@@ -5,9 +5,10 @@ import hashlib
 
 def content_fingerprint_sha256(*, title: str, company: str, location: str | None) -> str:
     """
-    Stable fingerprint for cross-URL duplicate listings (same role, different apply URLs).
+    Stable fingerprint for duplicate listings with the same title/company/location.
 
-    Normalizes casing and whitespace; hashes title|company|location.
+    Used with a per-``listing_source`` Redis key in ``persist_canonical_job`` so different
+    providers can each store a row; duplicates within one provider still dedupe.
     """
     parts = [
         (title or "").lower().strip(),

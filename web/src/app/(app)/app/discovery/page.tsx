@@ -27,8 +27,8 @@ export default async function DiscoveryPage() {
   try {
     const headers = await getBackendAuthHeaders();
     const [feedRes, jobsRes, hiddenRes, summaryRes, workspaceRes] = await Promise.all([
-      fetch(`${base}/jobs/feed?limit=50`, { headers, cache: "no-store" }),
-      fetch(`${base}/jobs?limit=50&sort_by=created_at&order=desc`, { headers, cache: "no-store" }),
+      fetch(`${base}/jobs/feed?limit=100`, { headers, cache: "no-store" }),
+      fetch(`${base}/jobs?limit=100&sort_by=created_at&order=desc`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs/hidden?limit=50`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs/catalog/summary`, { headers, cache: "no-store" }),
       fetch(`${base}/me/workspace-summary`, { headers, cache: "no-store" }),
