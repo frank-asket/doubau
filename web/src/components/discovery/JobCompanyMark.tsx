@@ -15,6 +15,30 @@ export function hostnameFromSourceUrl(url: string | null | undefined): string | 
   }
 }
 
+/**
+ * Hosts where the public site favicon is the job board / ATS, not the hiring company.
+ * We skip these for logo resolution so we fall back to employer name heuristics or initials.
+ */
+function isLowSignalLogoHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === "remoteok.com" || h.endsWith(".remoteok.com")) return true;
+  if (h.includes("adzuna.")) return true;
+  if (h.includes("indeed.") || h.includes("glassdoor.") || h.includes("linkedin.") || h.includes("monster.")) return true;
+  if (h.includes("ziprecruiter.") || h.includes("reed.co") || h.includes("totaljobs.") || h.includes("seek.com")) return true;
+  if (
+    h === "boards.greenhouse.io" ||
+    h === "jobs.greenhouse.io" ||
+    h === "my.greenhouse.io" ||
+    h === "jobs.lever.co" ||
+    h === "lever.co" ||
+    h.includes(".lever.co")
+  ) {
+    return true;
+  }
+  if (h.includes("smartrecruiters.com") || h.includes("workable.com") || h.includes("ashbyhq.com")) return true;
+  return false;
+}
+
 /** When the listing has no URL, infer a corporate domain from the employer name (substring match). */
 const BRAND_HOST_BY_SUBSTRING: { needle: string; host: string }[] = [
   { needle: "meta", host: "meta.com" },
@@ -45,16 +69,47 @@ const BRAND_HOST_BY_SUBSTRING: { needle: string; host: string }[] = [
   { needle: "n26", host: "n26.com" },
   { needle: "deliveroo", host: "deliveroo.com" },
   { needle: "doordash", host: "doordash.com" },
+  { needle: "atlassian", host: "atlassian.com" },
+  { needle: "figma", host: "figma.com" },
+  { needle: "notion", host: "notion.so" },
+  { needle: "linear", host: "linear.app" },
+  { needle: "vercel", host: "vercel.com" },
+  { needle: "gitlab", host: "gitlab.com" },
+  { needle: "github", host: "github.com" },
+  { needle: "docker", host: "docker.com" },
+  { needle: "datadog", host: "datadoghq.com" },
+  { needle: "snowflake", host: "snowflake.com" },
+  { needle: "mongodb", host: "mongodb.com" },
+  { needle: "elastic", host: "elastic.co" },
+  { needle: "twilio", host: "twilio.com" },
 ];
 
 export function resolveCompanyLogoHost(company: string, sourceUrl: string | null | undefined): string | null {
   const fromUrl = hostnameFromSourceUrl(sourceUrl);
-  if (fromUrl) return fromUrl;
+  if (fromUrl && !isLowSignalLogoHost(fromUrl)) return fromUrl;
   const c = company.toLowerCase().trim();
   for (const { needle, host } of BRAND_HOST_BY_SUBSTRING) {
     if (c.includes(needle)) return host;
   }
   return null;
+}
+
+/** Ordered logo URLs for a corporate domain (high-res brand assets where available). */
+export function buildCompanyLogoCandidates(host: string): string[] {
+  const safe = host.trim().toLowerCase().replace(/[^a-z0-9.-]/g, "");
+  if (!safe || !safe.includes(".")) return [];
+  const enc = encodeURIComponent(safe);
+  const token = (process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY ?? "").trim();
+  const out: string[] = [];
+  if (token) {
+    out.push(`https://img.logo.dev/${safe}?token=${encodeURIComponent(token)}&size=128`);
+  }
+  out.push(
+    `https://logo.clearbit.com/${safe}`,
+    `https://unavatar.io/${safe}`,
+    `https://www.google.com/s2/favicons?domain=${enc}&sz=128`,
+  );
+  return out;
 }
 
 export function companyInitials(company: string): string {
@@ -65,10 +120,6 @@ export function companyInitials(company: string): string {
     return w.length >= 2 ? w.slice(0, 2).toUpperCase() : w[0]!.toUpperCase();
   }
   return `${parts[0]![0]}${parts[1]![0]}`.toUpperCase();
-}
-
-function faviconServiceUrl(host: string): string {
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
 }
 
 export type JobCompanyMarkSize = "card" | "detail" | "hero";
@@ -85,14 +136,17 @@ export function JobCompanyMark({
   className?: string;
 }) {
   const host = useMemo(() => resolveCompanyLogoHost(company, sourceUrl), [company, sourceUrl]);
-  const [imgFailed, setImgFailed] = useState(false);
+  const candidates = useMemo(() => (host ? buildCompanyLogoCandidates(host) : []), [host]);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    setImgFailed(false);
+    setAttempt(0);
   }, [host]);
 
   const initials = companyInitials(company);
-  const showFavicon = Boolean(host && !imgFailed);
+  const src: string | undefined =
+    candidates.length > 0 && attempt < candidates.length ? candidates[attempt] : undefined;
+  const showLogo = Boolean(src);
 
   const box =
     size === "hero"
@@ -116,9 +170,10 @@ export function JobCompanyMark({
       role="img"
       aria-label={`${company} logo`}
     >
-      {showFavicon ? (
+      {showLogo ? (
         <img
-          src={faviconServiceUrl(host!)}
+          key={src}
+          src={src}
           alt=""
           width={pxSize}
           height={pxSize}
@@ -126,7 +181,7 @@ export function JobCompanyMark({
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          onError={() => setImgFailed(true)}
+          onError={() => setAttempt((a) => Math.min(a + 1, candidates.length))}
         />
       ) : (
         <span
