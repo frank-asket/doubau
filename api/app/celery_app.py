@@ -8,6 +8,27 @@ from app.core.settings import settings
 
 
 def make_celery() -> Celery:
+    beat_schedule: dict = {
+        # Daily provider ingest (Week 3 sprint). Requires running celery beat.
+        "ingest-adzuna-0600-utc": {
+            "task": "app.tasks.ingest_adzuna_jobs",
+            "schedule": crontab(hour=6, minute=0),
+        },
+        "ingest-remoteok-0700-utc": {
+            "task": "app.tasks.ingest_remoteok_jobs",
+            "schedule": crontab(hour=7, minute=0),
+        },
+        "mark-stale-jobs-0800-utc": {
+            "task": "app.tasks.mark_stale_jobs",
+            "schedule": crontab(hour=8, minute=0),
+        },
+    }
+    if settings.ingest_beat_hourly_remoteok:
+        beat_schedule["ingest-remoteok-hourly"] = {
+            "task": "app.tasks.ingest_remoteok_jobs",
+            "schedule": crontab(minute=17),
+        }
+
     app = Celery(
         "doubow",
         broker=settings.redis_url,
@@ -42,21 +63,7 @@ def make_celery() -> Celery:
         task_acks_late=True,
         timezone="UTC",
         enable_utc=True,
-        beat_schedule={
-            # Daily provider ingest (Week 3 sprint). Requires running celery beat.
-            "ingest-adzuna-0600-utc": {
-                "task": "app.tasks.ingest_adzuna_jobs",
-                "schedule": crontab(hour=6, minute=0),
-            },
-            "ingest-remoteok-0700-utc": {
-                "task": "app.tasks.ingest_remoteok_jobs",
-                "schedule": crontab(hour=7, minute=0),
-            },
-            "mark-stale-jobs-0800-utc": {
-                "task": "app.tasks.mark_stale_jobs",
-                "schedule": crontab(hour=8, minute=0),
-            },
-        },
+        beat_schedule=beat_schedule,
     )
     return app
 

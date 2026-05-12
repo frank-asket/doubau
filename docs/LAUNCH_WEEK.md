@@ -28,13 +28,37 @@ Optional checks:
 cd api && python scripts/check_launch_env.py
 ```
 
+For a production pre-flight, export the real service env first. The API check exits nonzero when
+`DOUBOW_ENVIRONMENT=production` is still using local database/S3/CORS values, default JWT secrets,
+or Clerk development issuer/JWKS.
+
+### Job catalog ingest (automated)
+
+Discovery stays empty until rows exist in Postgres. Automate ingest with **any** of these (combine as needed):
+
+1. **Celery Beat + worker** (recommended baseline): same env as the API, Redis broker, worker listening on `default,scrape,score,draft,notify`, Beat process running. Optional env **`DOUBOW_INGEST_BEAT_HOURLY_REMOTEOK=true`** adds hourly Remote OK at **:17 UTC** in addition to the daily schedule in `api/app/celery_app.py`.
+2. **Cron HTTP hook**: set **`DOUBOW_CRON_INGEST_SECRET`** on the API (long random string). **`POST /jobs/cron/queue-ingest`** with header **`X-Doubow-Cron-Secret`** queues Remote OK + Adzuna (+ Scrapling when `SCRAPLING_ENABLED=true`). Returns **404** if the secret is unset (endpoint hidden).
+3. **GitHub Actions**: workflow **`.github/workflows/catalog-ingest.yml`** — add repo secrets **`DOUBOW_API_BASE_URL`** and **`DOUBOW_CRON_INGEST_SECRET`** matching the API. Runs every 6 hours and on manual dispatch; skips quietly until secrets exist.
+
+Manual smoke after setting **`DOUBOW_CRON_INGEST_SECRET`** on Railway:
+
+```bash
+curl -sS -X POST "${DOUBOW_API_BASE_URL}/jobs/cron/queue-ingest" \
+  -H "X-Doubow-Cron-Secret: ${DOUBOW_CRON_INGEST_SECRET}"
+```
+
 ## 3. Frontend (Next.js)
 
 1. **Vercel env vars** (see `web/.env.example`):
    - **`NEXT_PUBLIC_API_BASE_URL`** — public Railway API URL, **HTTPS**, **no trailing slash**.
    - **`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`** / **`CLERK_SECRET_KEY`** — production Clerk keys.
+   - **`CLERK_JWT_TEMPLATE`** — optional; defaults to `doubow-api`.
 2. Clerk dashboard: allowed origins / redirect URLs for your Vercel domain(s).
-3. Build: `cd web && npm ci && npm run typecheck && npm run build`.
+3. Pre-flight: `cd web && npm run launch:check`.
+4. Build: `cd web && npm ci && npm run typecheck && npm run build`.
+
+Vercel production builds fail fast if Clerk keys are not `pk_live_` / `sk_live_`, or the API base
+URL is not an HTTPS production URL.
 
 ## 4. Smoke tests (same day as deploy)
 

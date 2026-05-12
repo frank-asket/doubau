@@ -163,6 +163,12 @@ class Settings(BaseSettings):
     # Freshness: exclude jobs older than N days by default (posted_at else created_at).
     jobs_stale_after_days: int = 30
 
+    # POST /jobs/cron/queue-ingest — optional shared secret for Railway Cron / GitHub Actions.
+    # When unset, the route responds with 404 so scanners do not see an auth surface.
+    cron_ingest_secret: str | None = None
+    # When True, Celery Beat also runs Remote OK ingest every hour at :17 UTC (needs worker + Redis).
+    ingest_beat_hourly_remoteok: bool = False
+
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).
     resume_llm_structuring_enabled: bool = False
     resume_llm_structuring_max_chars: int = 12_000
@@ -215,6 +221,10 @@ class Settings(BaseSettings):
                 fallback = os.getenv("DATABASE_URL", "").strip()
                 if fallback:
                     s = fallback
+        ci = (os.getenv("CI") or "").strip().lower()
+        if not s.strip() and ci in {"true", "1", "yes"}:
+            # GitHub/GitLab CI often omit DATABASE_URL; imports must still parse a URL.
+            s = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/doubow_ci"
         head = s.split("://", 1)[0]
         if "+" in head:
             return s

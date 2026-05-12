@@ -45,6 +45,7 @@ uv run pytest tests/test_job_get_api.py tests/test_milestones_api.py -q
 ## Production launch (this week)
 - **Runbook:** [`docs/LAUNCH_WEEK.md`](docs/LAUNCH_WEEK.md) — CORS, Clerk, workers, smoke tests.
 - **Web env template:** `web/.env.example`
-- **Pre-flight (API):** `python api/scripts/check_launch_env.py` (after exporting env)
+- **Pre-flight (web):** `cd web && npm run launch:check` (after exporting Vercel env)
+- **Pre-flight (API):** `python api/scripts/check_launch_env.py` (after exporting Railway/API env)
 - **CI:** GitHub Actions workflow `.github/workflows/ci.yml` (typecheck + Next build + API compile)
-
+- **Catalog ingest:** [`docs/LAUNCH_WEEK.md`](docs/LAUNCH_WEEK.md) — Celery worker + beat; optional `POST /jobs/cron/queue-ingest` + [`.github/workflows/catalog-ingest.yml`](.github/workflows/catalog-ingest.yml)

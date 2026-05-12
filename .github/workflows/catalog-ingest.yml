@@ -1,0 +1,39 @@
+# Queue Remote OK + Adzuna ingest on the production API (requires Celery worker + Redis on Railway).
+# Configure repo secrets: DOUBOW_API_BASE_URL (e.g. https://doubau-production.up.railway.app),
+# DOUBOW_CRON_INGEST_SECRET (same value as API env DOUBOW_CRON_INGEST_SECRET).
+# If secrets are unset, the job exits 0 with a notice (no failure spam).
+
+name: Catalog ingest
+
+on:
+  schedule:
+    - cron: "25 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: catalog-ingest
+  cancel-in-progress: false
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Queue provider ingest
+        env:
+          API_BASE_URL: ${{ secrets.DOUBOW_API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.DOUBOW_CRON_INGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_BASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::notice::Catalog ingest skipped — add GitHub secrets DOUBOW_API_BASE_URL and DOUBOW_CRON_INGEST_SECRET (match API DOUBOW_CRON_INGEST_SECRET)."
+            exit 0
+          fi
+          BASE="${API_BASE_URL%/}"
+          echo "POST ${BASE}/jobs/cron/queue-ingest"
+          code=$(curl -sS -o /tmp/cron-ingest.json -w "%{http_code}" -X POST "${BASE}/jobs/cron/queue-ingest" \
+            -H "X-Doubow-Cron-Secret: ${CRON_SECRET}" \
+            -H "Content-Type: application/json")
+          cat /tmp/cron-ingest.json
+          echo ""
+          echo "HTTP ${code}"
+          test "${code}" = "200"

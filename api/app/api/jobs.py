@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import hmac
 from datetime import datetime, timedelta
 from ipaddress import ip_address
 from typing import Literal
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -461,6 +462,47 @@ def queue_scrape(payload: ScrapeUrlIn, user: CurrentUserDep) -> ScrapeQueueOut:
     else:
         res = scrape_job_task.delay(nu)
     return ScrapeQueueOut(task_id=str(res.id))
+
+
+class CronQueueIngestOut(BaseModel):
+    """Celery task IDs queued by ``POST /jobs/cron/queue-ingest``."""
+
+    queued: dict[str, str]
+
+
+def _cron_ingest_secret_ok(request: Request) -> None:
+    secret = (settings.cron_ingest_secret or "").strip()
+    if not secret:
+        raise HTTPException(status_code=404, detail="Not found")
+    sent = (request.headers.get("X-Doubow-Cron-Secret") or "").strip()
+    if len(sent) != len(secret):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not hmac.compare_digest(sent, secret):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+@router.post("/cron/queue-ingest", response_model=CronQueueIngestOut)
+def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
+    """Queue catalog ingest tasks without Clerk (automation).
+
+    Set ``DOUBOW_CRON_INGEST_SECRET`` on the API, then call with header
+    ``X-Doubow-Cron-Secret: <same value>`` from GitHub Actions, Railway Cron, or a manual ``curl``.
+
+    Requires a running **Celery worker** with the ``scrape`` queue and **Redis**; otherwise tasks
+    sit in the broker until a worker is available.
+
+    If the secret is unset, returns **404** so the endpoint is not discoverable.
+    """
+    _cron_ingest_secret_ok(request)
+    queued: dict[str, str] = {}
+    r_ro = ingest_remoteok_jobs_task.delay()
+    queued["remoteok"] = str(r_ro.id)
+    r_ad = ingest_adzuna_jobs_task.delay()
+    queued["adzuna"] = str(r_ad.id)
+    if settings.scrapling_enabled:
+        r_sc = ingest_scrapling_jobs_task.delay()
+        queued["scrapling"] = str(r_sc.id)
+    return CronQueueIngestOut(queued=queued)
 
 
 class FeedOut(BaseModel):

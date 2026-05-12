@@ -34,6 +34,9 @@ jobs:
     defaults:
       run:
         working-directory: api
+    env:
+      # Valid SQLAlchemy URL so import-time create_engine() does not fail (no DB required until first connection).
+      DOUBOW_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/doubow_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
