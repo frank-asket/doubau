@@ -1,11 +1,47 @@
 "use client";
 
-import { MetricCard, ProgressLine, Tag } from "./CareerHeroMockSections";
+import { CareerFlowProgress, MetricCard, ProgressLine, Tag } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 export function CareerSuccessPageClient() {
   return (
     <ProductPageChrome title="Career Success">
+      <CareerFlowProgress
+        steps={["Personal Info", "Skills & Expertise", "Career Goals", "Work Style"]}
+        active="Work Style"
+        value={100}
+      />
+
+      <section className="ch-panel p-7">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-[30px] font-black tracking-[-0.03em]">Your Personality Type: INTJ <Tag>Architect</Tag></h2>
+            <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--app-text-secondary)]">
+              A strategy-first profile with strong independent planning, system thinking, and written communication preferences.
+            </p>
+          </div>
+          <div className="flex gap-4 font-bold text-[var(--app-blue-500)]">
+            <button type="button">Download Report</button>
+            <button type="button">Share Results</button>
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-5 lg:grid-cols-3">
+          {[
+            ["Key Strengths", ["Strategic planning", "Complex problem solving", "Independent thinking", "High standards"]],
+            ["Work Style", ["Prefers independent work", "Focuses on long-term strategy", "Values efficiency and logic", "Driven by continuous improvement"]],
+            ["Communication", ["Direct and concise", "Focuses on facts and logic", "Prefers written communication", "Values intellectual discourse"]],
+          ].map(([title, items]) => (
+            <article key={title as string} className="rounded-[20px] border border-[var(--app-border)] bg-white/92 p-6 shadow-[var(--app-shadow-0)]">
+              <h3 className="text-[20px] font-black">{title as string}</h3>
+              <ul className="mt-5 space-y-3 text-[15px] leading-6 text-[var(--app-text-secondary)]">
+                {(items as string[]).map((item) => <li key={item}>- {item}</li>)}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="grid gap-4 md:grid-cols-2">
           <MetricCard title="Skills Mastery" value="35%" unit="(total)" delta="+15%" icon="◒">
@@ -22,7 +58,7 @@ export function CareerSuccessPageClient() {
           </MetricCard>
         </div>
         <section className="ch-panel p-6">
-          <h2 className="text-[18px] font-bold">Skills Grows</h2>
+          <h2 className="text-[18px] font-black">Skills Growth</h2>
           {[
             ["Strategic planning", 30, "+12% value"],
             ["Communication and negotiation", 40, "+18% value"],
@@ -45,8 +81,8 @@ export function CareerSuccessPageClient() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="ch-panel p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-bold">Career Goals</h2>
-            <button className="font-semibold text-[var(--app-accent)]" type="button">+ Add Goals</button>
+            <h2 className="text-[20px] font-black">Career Goals</h2>
+            <button className="font-bold text-[var(--app-blue-500)]" type="button">+ Add Goals</button>
           </div>
           {[
             ["Complete System Design Course", 75, "Learning"],
@@ -66,8 +102,8 @@ export function CareerSuccessPageClient() {
 
         <section className="ch-panel p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-bold">Recent Achievements</h2>
-            <button className="font-semibold text-[var(--app-accent)]" type="button">+ Add Achievement</button>
+            <h2 className="text-[20px] font-black">Recent Achievements</h2>
+            <button className="font-bold text-[var(--app-blue-500)]" type="button">+ Add Achievement</button>
           </div>
           {[
             ["Profile Strength Increased", "Your LinkedIn profile is now in the top 10%"],

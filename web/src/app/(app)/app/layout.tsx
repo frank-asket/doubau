@@ -27,6 +27,43 @@ const NAV_SECTIONS: AppNavSection[] = [
     ],
   },
   {
+    id: "career-growth",
+    title: "Career growth",
+    collapsible: true,
+    items: [
+      {
+        href: "/app/career-profile",
+        label: "Career Profile",
+        icon: "◦",
+        subtitle: "Set your goals, skills, and preferences",
+      },
+      {
+        href: "/app/pathfinder",
+        label: "Career Pathfinder",
+        icon: "◇",
+        subtitle: "Explore roles that fit your next move",
+      },
+      {
+        href: "/app/career-steps",
+        label: "Career Steps",
+        icon: "☑",
+        subtitle: "Follow a step-by-step growth plan",
+      },
+      {
+        href: "/app/planner",
+        label: "Career Planner",
+        icon: "□",
+        subtitle: "Plan milestones and weekly priorities",
+      },
+      {
+        href: "/app/career-success",
+        label: "Career Success",
+        icon: "✓",
+        subtitle: "Track skills, goals, and momentum",
+      },
+    ],
+  },
+  {
     id: "job-search",
     title: "Job search",
     collapsible: true,
@@ -64,43 +101,6 @@ const NAV_SECTIONS: AppNavSection[] = [
         href: "/app/analytics",
         label: "Match insights",
         subtitle: "See what is working in your search",
-      },
-    ],
-  },
-  {
-    id: "career-growth",
-    title: "Career growth",
-    collapsible: true,
-    items: [
-      {
-        href: "/app/career-profile",
-        label: "Career Profile",
-        icon: "◦",
-        subtitle: "Set your goals, skills, and preferences",
-      },
-      {
-        href: "/app/pathfinder",
-        label: "Career Pathfinder",
-        icon: "◇",
-        subtitle: "Explore roles that fit your next move",
-      },
-      {
-        href: "/app/career-steps",
-        label: "Career Steps",
-        icon: "☑",
-        subtitle: "Follow a step-by-step growth plan",
-      },
-      {
-        href: "/app/planner",
-        label: "Career Planner",
-        icon: "□",
-        subtitle: "Plan milestones and weekly priorities",
-      },
-      {
-        href: "/app/career-success",
-        label: "Career Success",
-        icon: "✓",
-        subtitle: "Track skills, goals, and momentum",
       },
     ],
   },
@@ -194,8 +194,9 @@ const NAV_SECTIONS: AppNavSection[] = [
 const MOBILE_NAV_ITEMS = [
   NAV_SECTIONS[0].items[0],
   NAV_SECTIONS[1].items[0],
-  NAV_SECTIONS[1].items[2],
   NAV_SECTIONS[1].items[1],
+  NAV_SECTIONS[2].items[0],
+  NAV_SECTIONS[2].items[2],
   NAV_SECTIONS[3].items[0],
   NAV_SECTIONS[4].items[0],
 ];
