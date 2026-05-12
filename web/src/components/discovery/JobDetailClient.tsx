@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { JobCompanyMark, hostnameFromSourceUrl, resolveCompanyLogoHost } from "@/components/discovery/JobCompanyMark";
@@ -115,7 +115,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const [shareHint, setShareHint] = useState<string | null>(null);
 
   const [fit, setFit] = useState<FitScoreResponse | null>(null);
-  const [fitLoading, setFitLoading] = useState(false);
+  const [fitLoading, setFitLoading] = useState(() => !isPreviewJob(job));
   const [fitError, setFitError] = useState<string | null>(null);
   const [outreachBusy, setOutreachBusy] = useState(false);
   const [outreachMsg, setOutreachMsg] = useState<string | null>(null);
@@ -144,6 +144,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const loadFit = useCallback(async () => {
     setFitLoading(true);
     setFitError(null);
+    setFit(null);
     try {
       const r = await fetch(`/api/jobs/${job.id}/fit`, { method: "POST" });
       const data = (await r.json().catch(() => ({}))) as FitScoreResponse & { detail?: string };
@@ -157,6 +158,16 @@ export function JobDetailClient({ job }: { job: JobRow }) {
       setFitLoading(false);
     }
   }, [job.id]);
+
+  useEffect(() => {
+    if (job.id.startsWith("mock-")) {
+      setFit(null);
+      setFitError(null);
+      setFitLoading(false);
+      return;
+    }
+    void loadFit();
+  }, [job.id, loadFit]);
 
   const generateOutreach = useCallback(async () => {
     setOutreachBusy(true);
@@ -227,6 +238,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   }
 
   const scoreDisplay = fit ? Math.round(fit.score) : null;
+  const matchDisplay = fit ? Math.round(fit.match_pct) : null;
   const fitStyle = scoreDisplay != null ? fitBarClass(scoreDisplay) : null;
 
   const salaryDisplay = salaryLine ? `${salaryLine} (from description)` : "—";
@@ -495,43 +507,72 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           )}
 
           <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-1)]">
-            <div className="text-[12px] font-semibold text-[var(--app-text-primary)]">Fit score</div>
-            {!fit && !fitLoading ? (
-              <div className="mt-3">
-                <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-                  Compare this role to your latest parsed résumé with the same structured model as discovery.
-                </p>
-                <AppButton
-                  type="button"
-                  variant="outline"
-                  className="mt-3 w-full justify-center transition-transform active:scale-[0.96]"
-                  onClick={() => void loadFit()}
-                >
-                  Check fit
-                </AppButton>
-                {fitError ? <p className="mt-2 text-[12px] text-[var(--app-badge-red-fg)]">{fitError}</p> : null}
-              </div>
-            ) : null}
+            <div className="text-[12px] font-semibold text-[var(--app-text-primary)]">Fit and match</div>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
+              Scored automatically against your latest parsed résumé (same signals as discovery ranking).
+            </p>
             {fitLoading ? (
               <div className="mt-4 space-y-2" aria-live="polite" aria-busy="true">
                 <div className="h-7 w-[40%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
                 <div className="h-2 w-full animate-pulse rounded-full bg-[var(--app-bg-muted)]" />
                 <div className="h-3 w-[85%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
                 <div className="h-3 w-[60%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
-                <p className="pt-1 text-[12px] text-[var(--app-text-tertiary)]">Scoring against your résumé…</p>
+                <p className="pt-1 text-[12px] text-[var(--app-text-tertiary)]">Scoring fit and role match…</p>
               </div>
+            ) : null}
+            {!fit && !fitLoading && fitError ? (
+              <div className="mt-3">
+                <p className="text-[12px] leading-relaxed text-[var(--app-badge-red-fg)]">{fitError}</p>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  className="mt-3 w-full justify-center transition-transform active:scale-[0.96]"
+                  onClick={() => void loadFit()}
+                >
+                  Try again
+                </AppButton>
+              </div>
+            ) : null}
+            {!fit && !fitLoading && !fitError && isPreviewJob(job) ? (
+              <p className="mt-3 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+                Preview listings are not scored against your résumé.
+              </p>
             ) : null}
             {fit && fitStyle ? (
               <div className="mt-3">
-                <div className={`text-[22px] font-semibold tabular-nums ${fitStyle.text}`}>{Math.round(fit.score)}%</div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
-                  <div className={`h-full rounded-full ${fitStyle.bar}`} style={{ width: `${Math.min(100, Math.round(fit.score))}%` }} />
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+                      Overall fit
+                    </div>
+                    <div className={`text-[22px] font-semibold tabular-nums ${fitStyle.text}`}>{scoreDisplay}%</div>
+                  </div>
+                  {matchDisplay != null ? (
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+                        Role match
+                      </div>
+                      <div className="text-[22px] font-semibold tabular-nums text-[var(--app-text-primary)]">{matchDisplay}%</div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
+                  <div className={`h-full rounded-full ${fitStyle.bar}`} style={{ width: `${Math.min(100, scoreDisplay ?? 0)}%` }} />
                 </div>
                 <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
                   {fitStyle.label}
                   {fit.gap_skills?.length ? ` · ${fit.gap_skills.length} skill gap(s)` : ""}
                 </p>
                 <p className="mt-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{fit.rationale}</p>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  className="mt-4 w-full justify-center text-[12px] transition-transform active:scale-[0.96]"
+                  disabled={fitLoading}
+                  onClick={() => void loadFit()}
+                >
+                  Recalculate
+                </AppButton>
               </div>
             ) : null}
           </div>
