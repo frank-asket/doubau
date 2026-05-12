@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getApiBaseUrl, getBackendAuthHeaders } from "@/app/api/_server";
 import {
   AppSidebarNav,
+  type AppNavItem,
   type AppNavSection,
 } from "@/components/app/AppSidebarNav";
 import { AppThemeShell } from "@/components/app/AppThemeShell";
@@ -186,14 +187,27 @@ const NAV_SECTIONS: AppNavSection[] = [
   },
 ];
 
-const MOBILE_NAV_ITEMS = [
-  NAV_SECTIONS[0].items[0],
-  NAV_SECTIONS[1].items[0],
-  NAV_SECTIONS[1].items[1],
-  NAV_SECTIONS[2].items[0],
-  NAV_SECTIONS[2].items[2],
-  NAV_SECTIONS[3].items[0],
-  NAV_SECTIONS[4].items[0],
+function navItemAt(sections: AppNavSection[], sectionId: string, index: number): AppNavItem {
+  const section = sections.find((s) => s.id === sectionId);
+  if (!section) throw new Error(`Nav section not found: ${sectionId}`);
+  const item = section.items[index];
+  if (!item) throw new Error(`Nav item missing: ${sectionId}[${index}]`);
+  return item;
+}
+
+/**
+ * Mobile strip — same destinations as the legacy numeric index list, but resolved by section id
+ * so inserting/reordering sections does not move meanings between groups.
+ * Order: Dashboard → Discovery → Tracker → Career Profile → Pathfinder → Copilot → Search.
+ */
+const MOBILE_NAV_ITEMS: AppNavItem[] = [
+  navItemAt(NAV_SECTIONS, "home", 0),
+  navItemAt(NAV_SECTIONS, "job-search", 0),
+  navItemAt(NAV_SECTIONS, "job-search", 1),
+  navItemAt(NAV_SECTIONS, "career-growth", 0),
+  navItemAt(NAV_SECTIONS, "career-growth", 2),
+  navItemAt(NAV_SECTIONS, "tools", 0),
+  navItemAt(NAV_SECTIONS, "account", 0),
 ];
 
 type OnboardingProfile = {
