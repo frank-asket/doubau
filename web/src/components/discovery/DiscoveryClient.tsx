@@ -7,6 +7,15 @@ import { type ReactNode, useEffect, useMemo, useState, useTransition } from "rea
 import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
+/** Public runbook (override with NEXT_PUBLIC_LAUNCH_DOCS_URL for forks). */
+const DEFAULT_LAUNCH_DOCS_HREF =
+  "https://github.com/frank-asket/doubau/blob/main/docs/LAUNCH_WEEK.md";
+
+function launchDocsHref(): string {
+  const u = (process.env.NEXT_PUBLIC_LAUNCH_DOCS_URL ?? "").trim();
+  return u || DEFAULT_LAUNCH_DOCS_HREF;
+}
+
 export type JobRow = {
   id: string;
   company: string;
@@ -129,12 +138,63 @@ function DiscoveryScoringExplainer({
   const embeddedJobs = catalogSummary?.embedded_total ?? 0;
   const missingJobEmb = catalogSummary?.missing_embedding_total ?? 0;
   const resumeEmbedded = resumeStatus === "EMBEDDED";
-  const semanticRankingLikely = resumeEmbedded && embeddedJobs > 0;
+  const catalogEmpty = active === 0;
+  const semanticRankingLikely = resumeEmbedded && embeddedJobs > 0 && active > 0;
+
+  let rankingChipLabel: string;
+  let rankingChipClass: string;
+  if (catalogEmpty) {
+    rankingChipLabel = "No jobs in catalog yet";
+    rankingChipClass =
+      "bg-[color-mix(in_srgb,var(--app-warning)_12%,var(--app-bg-muted))] text-[var(--app-text-primary)]";
+  } else if (semanticRankingLikely) {
+    rankingChipLabel = "Semantic ranking likely active";
+    rankingChipClass = "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]";
+  } else if (active > 0 && embeddedJobs === 0 && resumeEmbedded) {
+    rankingChipLabel = "Heuristic until job embeddings finish";
+    rankingChipClass = "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]";
+  } else if (active > 0 && !resumeEmbedded) {
+    rankingChipLabel = "Heuristic until résumé is embedded";
+    rankingChipClass = "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]";
+  } else {
+    rankingChipLabel = "Heuristic / partial semantic ranking";
+    rankingChipClass = "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]";
+  }
 
   return (
     <div className="mb-6 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_06%,var(--app-bg-elevated))] px-4 py-4 sm:px-5">
       <h3 className="text-[13px] font-semibold text-[var(--app-text-primary)]">How Job Discovery matches you</h3>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+
+      {catalogEmpty ? (
+        <div className="mt-3 rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-warning)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+          <p className="font-medium text-[var(--app-text-primary)]">Your résumé is ready, but the job catalog is empty.</p>
+          <p className="mt-2">
+            Listings are filled by <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) and
+            your <strong className="text-[var(--app-text-primary)]">Celery worker</strong> talking to{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">Redis</code>. Without a worker and scheduled ingest (or a
+            manual queue), <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">active_total</code> stays zero — semantic
+            scoring does not apply until jobs exist.
+          </p>
+          <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
+            Ops: set <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_REDIS_URL</code>, run worker + beat (or{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_START_WORKER_IN_API</code> /{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP</code>), and{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_OPENAI_API_KEY</code> for{" "}
+            <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">embed_job</code>. Full steps:{" "}
+            <a
+              href={launchDocsHref()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[var(--app-accent)] underline decoration-[color-mix(in_srgb,var(--app-accent)_45%,transparent)] underline-offset-2 hover:opacity-90"
+            >
+              Launch week runbook
+            </a>
+            .
+          </p>
+        </div>
+      ) : null}
+
+      <ul className={`mt-3 list-disc space-y-2 pl-5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] ${catalogEmpty ? "opacity-80" : ""}`}>
         <li>
           <span className="font-medium text-[var(--app-text-primary)]">Semantic CV match</span> (scores driven by résumé + job
           embeddings) runs only when your latest résumé is <strong className="text-[var(--app-text-primary)]">EMBEDDED</strong>, the API has{" "}
@@ -163,16 +223,12 @@ function DiscoveryScoringExplainer({
           Catalog: {active} active · {embeddedJobs} with embeddings
           {missingJobEmb > 0 ? ` · ${missingJobEmb} still indexing` : ""}
         </span>
-        <span
-          className={`rounded-full px-3 py-1 font-medium ${
-            semanticRankingLikely ? "bg-[color-mix(in_srgb,var(--app-success)_15%,transparent)] text-[var(--app-success)]" : "bg-[var(--app-bg-muted)] text-[var(--app-text-secondary)]"
-          }`}
-        >
-          {semanticRankingLikely ? "Semantic ranking likely active" : "Heuristic / partial semantic ranking"}
-        </span>
+        <span className={`rounded-full px-3 py-1 font-medium ${rankingChipClass}`}>{rankingChipLabel}</span>
       </div>
       <p className="mt-3 text-[12px] text-[var(--app-text-tertiary)]">
-        Dashboard shows parse status; production needs workers + OpenAI on the API for the full Stage‑2 experience described in the product flow.
+        {catalogEmpty
+          ? "Once ingest runs, refresh this page — catalog counts update on each load."
+          : "Dashboard shows parse status; production needs workers + OpenAI on the API for the full Stage‑2 experience described in the product flow."}
       </p>
     </div>
   );

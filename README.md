@@ -48,4 +48,4 @@ uv run pytest tests/test_job_get_api.py tests/test_milestones_api.py -q
 - **Pre-flight (web):** `cd web && npm run launch:check` (after exporting Vercel env)
 - **Pre-flight (API):** `python api/scripts/check_launch_env.py` (after exporting Railway/API env)
 - **CI:** GitHub Actions workflow `.github/workflows/ci.yml` (typecheck + Next build + API compile)
-- **Catalog ingest:** [`docs/LAUNCH_WEEK.md`](docs/LAUNCH_WEEK.md) — Redis + OpenAI + Celery (`DOUBOW_START_WORKER_IN_API` / `DOUBOW_START_BEAT_IN_API` for one-container Railway); optional `DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP`, `POST /jobs/cron/queue-ingest`, [`.github/workflows/catalog-ingest.yml`](.github/workflows/catalog-ingest.yml)
+- **Catalog ingest:** [`docs/LAUNCH_WEEK.md`](docs/LAUNCH_WEEK.md) — Redis + OpenAI + Celery (`DOUBOW_START_WORKER_IN_API` / `DOUBOW_START_BEAT_IN_API` for one-container Railway); optional `DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP`, `POST /jobs/cron/queue-ingest`, [`api/scripts/trigger_catalog_ingest.sh`](api/scripts/trigger_catalog_ingest.sh), [`.github/workflows/catalog-ingest.yml`](.github/workflows/catalog-ingest.yml)

@@ -52,6 +52,8 @@ curl -sS -X POST "${DOUBOW_API_BASE_URL}/jobs/cron/queue-ingest" \
   -H "X-Doubow-Cron-Secret: ${DOUBOW_CRON_INGEST_SECRET}"
 ```
 
+Or from the repo: `sh api/scripts/trigger_catalog_ingest.sh` (same two env vars).
+
 ## 3. Frontend (Next.js)
 
 1. **Vercel env vars** (see `web/.env.example`):

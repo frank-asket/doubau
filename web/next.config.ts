@@ -22,21 +22,28 @@ function validateProductionAuthEnv() {
 
   if (!pk) {
     failures.push("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required.");
-  } else if (pk.startsWith("pk_live_")) {
-    if (!sk.startsWith("sk_live_")) {
-      failures.push("CLERK_SECRET_KEY must be sk_live_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_live_…");
-    }
-  } else if (pk.startsWith("pk_test_")) {
-    // Vercel “Production” + *.vercel.app demo: Clerk Development keys (see web/README.md).
-    if (!sk.startsWith("sk_test_")) {
+  } else if (strict) {
+    if (pk.startsWith("pk_live_")) {
+      if (!sk.startsWith("sk_live_")) {
+        failures.push(
+          "CLERK_SECRET_KEY must start with sk_live_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_live_…",
+        );
+      }
+    } else if (pk.startsWith("pk_test_")) {
+      if (!sk.startsWith("sk_test_")) {
+        failures.push(
+          "CLERK_SECRET_KEY must start with sk_test_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_test_… (demo on *.vercel.app).",
+        );
+      }
+    } else {
       failures.push(
-        "CLERK_SECRET_KEY must be sk_test_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_test_… (or switch both to live keys for a custom domain).",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must start with pk_live_ or pk_test_ (Clerk publishable key).",
       );
     }
-  } else {
-    failures.push(
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must start with pk_live_ or pk_test_ (Clerk publishable key).",
-    );
+  }
+
+  if (!sk) {
+    failures.push("CLERK_SECRET_KEY is required.");
   }
 
   if (!apiBase.startsWith("https://")) {
