@@ -1,18 +1,14 @@
-import { motion, useReducedMotion } from "framer-motion";
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+"use client";
+
+import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import { forwardRef } from "react";
 
 import { cn } from "@/lib/utils";
 
 export type AppButtonVariant = "primary" | "outline" | "ghost" | "danger" | "approve";
 export type AppButtonSize = "sm" | "md" | "lg";
 
-/** DOM handlers that clash with Framer Motion props on `motion.button`. */
-type ButtonAttrs = Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart" | "onAnimationEnd"
->;
-
-export type AppButtonProps = ButtonAttrs & {
+export type AppButtonProps = Omit<HTMLMotionProps<"button">, "ref"> & {
   variant?: AppButtonVariant;
   size?: AppButtonSize;
 };

@@ -24,6 +24,7 @@ from app.jobs.html_snippet import extract_title_from_html
 from app.jobs.providers.adzuna import fetch_adzuna_canonical
 from app.jobs.providers.persist import persist_canonical_jobs
 from app.jobs.providers.remoteok import fetch_remoteok_canonical
+from app.jobs.providers.scrapling import fetch_scrapling_canonical
 from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.llm.logging import record_llm_interaction
@@ -409,6 +410,47 @@ def ingest_adzuna_jobs() -> dict[str, Any]:
     out.update(stats)
     log.info(
         "ingest_adzuna_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
+    return out
+
+
+@celery_app.task(name="app.tasks.ingest_scrapling_jobs")
+def ingest_scrapling_jobs() -> dict[str, Any]:
+    """Scrapling/Greenhouse/JSON-LD ingest → ``CanonicalJobIn`` + persist."""
+    started_at = datetime.now(UTC)
+    max_n = max(1, settings.scrapling_ingest_max_jobs)
+    jobs, err = fetch_scrapling_canonical(max_n)
+    if err == "scrapling_disabled":
+        ended_at = datetime.now(UTC)
+        return {
+            "status": "skipped_disabled",
+            "detail": "Set SCRAPLING_ENABLED=true to enable Scrapling ingest.",
+            "listing_source": "scrapling",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+    if err:
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_scrapling_jobs fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "scrapling",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "scrapling",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+    out.update(stats)
+    log.info(
+        "ingest_scrapling_jobs completed created=%s skipped=%s duration_ms=%s",
         out.get("created"),
         out.get("skipped"),
         out.get("ingest_duration_ms"),
@@ -809,4 +851,3 @@ def mark_stale_jobs() -> dict[str, Any]:
             "marked_stale": int(res2.rowcount or 0),
             "cutoff": cutoff.isoformat(),
         }
-

@@ -52,6 +52,13 @@ def _parse_cors_allow_origins(raw: str) -> list[str]:
     return out
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="DOUBOW_", extra="ignore")
 
@@ -164,6 +171,24 @@ class Settings(BaseSettings):
     # Default False: run parse + embed after POST /me/resume via BackgroundTasks on the API
     # (no Celery worker). True: enqueue ``process_resume_document`` only (needs worker + broker).
     resume_process_via_celery: bool = False
+
+    # Scrapling / Greenhouse-style ingest. These intentionally read the unprefixed SCRAPLING_*
+    # names used by the upstream scraper preset, while still allowing DOUBOW_SCRAPLING_* if you
+    # prefer this app's standard env prefix.
+    scrapling_enabled: bool = _env_bool("SCRAPLING_ENABLED", False)
+    scrapling_fixture_json_path: str = os.getenv("SCRAPLING_FIXTURE_JSON_PATH", "")
+    scrapling_bundle_fixture: bool = _env_bool("SCRAPLING_BUNDLE_FIXTURE", False)
+    scrapling_catalog_in_preset: bool = _env_bool("SCRAPLING_CATALOG_IN_PRESET", True)
+    scrapling_timeout_s: int = int(os.getenv("SCRAPLING_TIMEOUT_S", "60") or "60")
+    scrapling_auto_greenhouse_board_seeds: bool = _env_bool(
+        "SCRAPLING_AUTO_GREENHOUSE_BOARD_SEEDS", False
+    )
+    scrapling_greenhouse_seed_jobs_per_board: int = int(
+        os.getenv("SCRAPLING_GREENHOUSE_SEED_JOBS_PER_BOARD", "5") or "5"
+    )
+    scrapling_seed_urls: str = os.getenv("SCRAPLING_SEED_URLS", "")
+    # Cap total canonical rows persisted per Scrapling ingest run (separate from Adzuna limits).
+    scrapling_ingest_max_jobs: int = int(os.getenv("SCRAPLING_INGEST_MAX_JOBS", "100") or "100")
 
     @field_validator("database_url", mode="before")
     @classmethod
