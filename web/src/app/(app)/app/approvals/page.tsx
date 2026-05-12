@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
@@ -14,7 +14,7 @@ import {
   PIPELINE_LEGEND,
   applicationStatusBadge,
 } from "@/lib/application-status";
-import { fetchApplications, fetchDrafts, type ApplicationRow, type DraftRow } from "@/lib/applications-fetch";
+import { fetchApplications, fetchDrafts, gmailSentMessageWebUrl, type ApplicationRow, type DraftRow } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
 import { suggestRecipientEmailFromJobUrl } from "@/lib/suggest-recipient-email";
 
@@ -54,6 +54,17 @@ export default function ApprovalsPage() {
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
   const [recipientByAppId, setRecipientByAppId] = useState<Record<string, string>>({});
+  const [gmailSendNotice, setGmailSendNotice] = useState<{
+    recipient: string;
+    messageId: string | null;
+    updatedAt: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!gmailSendNotice) return;
+    const t = window.setTimeout(() => setGmailSendNotice(null), 14_000);
+    return () => window.clearTimeout(t);
+  }, [gmailSendNotice]);
 
   const googleMailboxQ = useQuery({
     queryKey: queryKeys.googleMailbox,
@@ -94,13 +105,19 @@ export default function ApprovalsPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ recipient_email: recipientEmail.trim() }),
       });
-      const data = (await resp.json().catch(() => ({}))) as { detail?: string };
+      const data = (await resp.json().catch(() => ({}))) as ApplicationRow & { detail?: string };
       if (!resp.ok) {
         throw new Error(typeof data.detail === "string" ? data.detail : "Gmail send failed.");
       }
+      return data as ApplicationRow;
     },
     onMutate: () => setMutationError(null),
-    onSuccess: async () => {
+    onSuccess: async (app) => {
+      setGmailSendNotice({
+        recipient: app.recipient_email?.trim() ?? "",
+        messageId: app.gmail_sent_message_id?.trim() || null,
+        updatedAt: app.updated_at ?? null,
+      });
       await invalidateApprovalQueries();
     },
     onError: (err) => {
@@ -314,6 +331,60 @@ export default function ApprovalsPage() {
         </div>
       ) : null}
 
+      {gmailSendNotice ? (
+        <div
+          role="status"
+          className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-success)_38%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-success)_10%,var(--app-bg-elevated))] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="font-semibold text-[var(--app-text-primary)]">Message sent from your Gmail</p>
+              {gmailSendNotice.recipient ? (
+                <p>
+                  <span className="text-[var(--app-text-tertiary)]">To</span>{" "}
+                  <span className="font-medium text-[var(--app-text-primary)]">{gmailSendNotice.recipient}</span>
+                  {gmailSendNotice.updatedAt ? (
+                    <>
+                      {" "}
+                      <span className="text-[var(--app-text-tertiary)]">·</span>{" "}
+                      <time className="tabular-nums text-[var(--app-text-tertiary)]" dateTime={gmailSendNotice.updatedAt}>
+                        {new Date(gmailSendNotice.updatedAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </time>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              <p className="text-[12px] text-[var(--app-text-tertiary)]">
+                A BCC copy should appear in your inbox (unless you sent to your own address). Sent mail also lists the employer
+                line.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+              {gmailSendNotice.messageId ? (
+                <a
+                  href={gmailSentMessageWebUrl(gmailSendNotice.messageId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius-pill)] border border-[color-mix(in_srgb,var(--app-accent)_35%,var(--app-border))] bg-white px-3 text-[12px] font-medium text-[var(--app-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--app-accent)_08%,white)]"
+                >
+                  Open in Gmail
+                </a>
+              ) : null}
+              <button
+                type="button"
+                className="text-[12px] font-medium text-[var(--app-text-tertiary)] underline-offset-4 hover:text-[var(--app-text-secondary)] hover:underline"
+                onClick={() => setGmailSendNotice(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-[var(--app-space-md)]">
         {loadingInitial && draftCount === 0 ? (
           <div
@@ -471,8 +542,9 @@ export default function ApprovalsPage() {
                           </AppButton>
                         </div>
                         <p className="text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
-                          Gmail sends from your connected address. &quot;Queue server send&quot; uses the legacy SMTP
-                          relay (if configured on the API).
+                          Sends through your connected Gmail. You are BCC&apos;d on the same message (unless the recipient is your
+                          own address) so a copy lands in your inbox. Doubow stores the Gmail message id and recipient after a
+                          successful send. &quot;Queue server send&quot; uses the legacy SMTP relay when configured on the API.
                         </p>
                       </>
                     ) : (
@@ -506,10 +578,56 @@ export default function ApprovalsPage() {
           }
 
           if (status === "SUBMITTED" || status === "FAILED" || status === "RETRY") {
+            const submittedProof =
+              status === "SUBMITTED" && (app.recipient_email?.trim() || app.gmail_sent_message_id?.trim()) ? (
+                <div className="max-w-lg space-y-2 rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-success)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-success)_06%,var(--app-bg-page))] px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+                  <p className="font-semibold text-[var(--app-text-primary)]">Send record</p>
+                  {app.recipient_email?.trim() ? (
+                    <p>
+                      <span className="text-[var(--app-text-tertiary)]">To</span>{" "}
+                      <span className="font-medium text-[var(--app-text-primary)]">{app.recipient_email.trim()}</span>
+                    </p>
+                  ) : null}
+                  {app.updated_at ? (
+                    <p className="tabular-nums text-[var(--app-text-tertiary)]">
+                      Recorded{" "}
+                      <time dateTime={app.updated_at}>
+                        {new Date(app.updated_at).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </time>
+                    </p>
+                  ) : null}
+                  {app.gmail_sent_message_id?.trim() ? (
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-[var(--app-text-tertiary)]">Gmail id</span>
+                      <code className="rounded bg-[var(--app-bg-muted)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--app-text-primary)]">
+                        {app.gmail_sent_message_id.trim().length > 28
+                          ? `${app.gmail_sent_message_id.trim().slice(0, 14)}…${app.gmail_sent_message_id.trim().slice(-10)}`
+                          : app.gmail_sent_message_id.trim()}
+                      </code>
+                      <a
+                        href={gmailSentMessageWebUrl(app.gmail_sent_message_id.trim())}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                      >
+                        Open in Gmail
+                      </a>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[var(--app-text-tertiary)]">
+                      No Gmail message id on file — this submission may have used server queue / SMTP instead of in-app Gmail.
+                    </p>
+                  )}
+                </div>
+              ) : null;
+
             return (
               <AppApprovalCard
                 key={d.id}
-                actionsSlot={null}
+                actionsSlot={submittedProof}
                 badgeLabel={label}
                 badgeVariant={variant}
                 snippet={snippetPreview(d.content)}

@@ -38,6 +38,7 @@ class Application(Base):
     job_title: Mapped[str] = mapped_column(String(200), nullable=False)
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     recipient_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    gmail_sent_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus, name="application_status"),

@@ -64,6 +64,7 @@ class ApplicationOut(BaseModel):
     job_title: str
     source_url: str | None
     recipient_email: str | None
+    gmail_sent_message_id: str | None
     status: ApplicationStatus
     created_at: datetime
     updated_at: datetime
@@ -111,6 +112,7 @@ def _application_out(app: Application) -> ApplicationOut:
         job_title=app.job_title,
         source_url=app.source_url,
         recipient_email=app.recipient_email,
+        gmail_sent_message_id=app.gmail_sent_message_id,
         status=app.status,
         created_at=app.created_at,
         updated_at=app.updated_at,
@@ -461,18 +463,29 @@ def send_gmail_in_app(
     subj = (payload.subject or "").strip() or f"Application — {app.job_title} ({app.company})"
     to_addr = str(payload.recipient_email).strip()
 
+    bcc_addrs: tuple[str, ...] = ()
+    if from_addr.lower() != to_addr.lower():
+        bcc_addrs = (from_addr,)
+
     t0 = time.perf_counter()
     try:
-        send_plaintext_email(
+        sent_resp = send_plaintext_email(
             refresh_token_cipher=g.refresh_ciphertext,
             from_addr=from_addr,
             to_addr=to_addr,
             subject=subj,
             body=email_draft.content,
+            bcc_addrs=bcc_addrs or None,
         )
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Gmail send failed: {e!s}") from e
     ms = int((time.perf_counter() - t0) * 1000)
+
+    gmail_mid: str | None = None
+    if isinstance(sent_resp, dict):
+        mid_raw = sent_resp.get("id")
+        if isinstance(mid_raw, str) and mid_raw.strip():
+            gmail_mid = mid_raw.strip()[:255]
 
     record_llm_interaction(
         db,
@@ -480,12 +493,20 @@ def send_gmail_in_app(
         agent_name="sender_email",
         prompt_parts=(str(application_id), str(email_draft.id), subj, "gmail_api"),
         raw_output=json.dumps(
-            {"channel": "email", "to": to_addr, "sent": True, "via": "gmail_api"},
+            {
+                "channel": "email",
+                "to": to_addr,
+                "sent": True,
+                "via": "gmail_api",
+                "gmail_message_id": gmail_mid,
+                "bcc_self": bool(bcc_addrs),
+            },
         ),
         latency_ms=ms,
     )
     email_draft.status = DraftStatus.SENT
     app.recipient_email = to_addr
+    app.gmail_sent_message_id = gmail_mid
 
     li_draft = db.scalar(
         select(OutreachDraft).where(

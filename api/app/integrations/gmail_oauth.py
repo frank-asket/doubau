@@ -104,10 +104,21 @@ def decrypt_refresh_token(ciphertext: str) -> str:
     return decrypt_secret(ciphertext)
 
 
-def _rfc822_raw(*, from_addr: str, to_addr: str, subject: str, body: str) -> str:
+def _rfc822_raw(
+    *,
+    from_addr: str,
+    to_addr: str,
+    subject: str,
+    body: str,
+    bcc_addrs: tuple[str, ...] = (),
+) -> str:
     msg = EmailMessage()
     msg["From"] = from_addr
     msg["To"] = to_addr
+    if bcc_addrs:
+        uniq = sorted({a.strip() for a in bcc_addrs if a.strip()})
+        if uniq:
+            msg["Bcc"] = ", ".join(uniq)
     msg["Subject"] = subject
     msg.set_content(body, subtype="plain", charset="utf-8")
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii")
@@ -121,19 +132,25 @@ def send_plaintext_email(
     to_addr: str,
     subject: str,
     body: str,
+    bcc_addrs: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    """Send one message via Gmail API using a refresh token (decrypted from DB)."""
+    """Send one message via Gmail API using a refresh token (decrypted from DB).
+
+    Optional ``bcc_addrs`` (e.g. the sender) delivers a hidden copy without changing ``To``.
+    """
     rt = decrypt_refresh_token(refresh_token_cipher)
     tok = refresh_access_token(refresh_token_plain=rt)
     access = tok.get("access_token")
     if not isinstance(access, str) or not access.strip():
         raise RuntimeError("no_access_token")
 
+    bcc_tuple = tuple(a.strip() for a in (bcc_addrs or ()) if a.strip())
     raw = _rfc822_raw(
         from_addr=from_addr,
         to_addr=to_addr.strip(),
         subject=subject.strip(),
         body=body,
+        bcc_addrs=bcc_tuple,
     )
     payload = json.dumps({"raw": raw})
     r = httpx.post(
