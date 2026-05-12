@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+/** Same semantics as `scripts/check-launch-env.mjs` for `DOUBOW_LAUNCH_STRICT`. */
+function isDoubowLaunchStrictEnv(): boolean {
+  const v = String(process.env.DOUBOW_LAUNCH_STRICT ?? "")
+    .trim()
+    .toLowerCase();
+  return ["1", "true", "yes"].includes(v);
+}
+
 function validateProductionAuthEnv() {
   const strict =
-    process.env.VERCEL_ENV === "production" || process.env.DOUBOW_LAUNCH_STRICT === "true";
+    process.env.VERCEL_ENV === "production" || isDoubowLaunchStrictEnv();
   if (!strict) return;
 
   const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
