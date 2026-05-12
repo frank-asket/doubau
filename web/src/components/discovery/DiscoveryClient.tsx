@@ -282,14 +282,26 @@ function DiscoveryCard({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className={`grid size-10 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_12%,white)] text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]"}`}
-            aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-            onClick={onToggleFavorite}
-          >
-            <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {!isPreviewJob(job) ? (
+              <Link
+                href={detailHref}
+                className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)] active:scale-[0.96]"
+                aria-label={`Job details — ${job.title}`}
+                title="Job details"
+              >
+                <AppIcon name="file-text" className="size-5" />
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className={`grid size-10 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_12%,white)] text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]"}`}
+              aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+              onClick={onToggleFavorite}
+            >
+              <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
+            </button>
+          </div>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
