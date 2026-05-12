@@ -168,6 +168,8 @@ class Settings(BaseSettings):
     cron_ingest_secret: str | None = None
     # When True, Celery Beat also runs Remote OK ingest every hour at :17 UTC (needs worker + Redis).
     ingest_beat_hourly_remoteok: bool = False
+    # Queue Remote OK + Adzuna ingest once after API startup (Redis lock; see app/startup_bootstrap.py).
+    bootstrap_ingest_on_startup: bool = False
 
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).
     resume_llm_structuring_enabled: bool = False

@@ -12,6 +12,11 @@ if [ "${DOUBOW_START_WORKER_IN_API:-false}" = "true" ]; then
     --loglevel=info &
 fi
 
+if [ "${DOUBOW_START_BEAT_IN_API:-false}" = "true" ]; then
+  echo "Starting Celery beat alongside API..."
+  celery -A app.celery_app.celery_app beat -l info &
+fi
+
 echo "Starting API..."
 # Railway injects PORT (often 8080). Docker Compose local API defaults to 8000 when unset.
 PORT="${PORT:-8000}"

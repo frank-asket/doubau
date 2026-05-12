@@ -39,6 +39,11 @@ Discovery stays empty until rows exist in Postgres. Automate ingest with **any**
 1. **Celery Beat + worker** (recommended baseline): same env as the API, Redis broker, worker listening on `default,scrape,score,draft,notify`, Beat process running. Optional env **`DOUBOW_INGEST_BEAT_HOURLY_REMOTEOK=true`** adds hourly Remote OK at **:17 UTC** in addition to the daily schedule in `api/app/celery_app.py`.
 2. **Cron HTTP hook**: set **`DOUBOW_CRON_INGEST_SECRET`** on the API (long random string). **`POST /jobs/cron/queue-ingest`** with header **`X-Doubow-Cron-Secret`** queues Remote OK + Adzuna (+ Scrapling when `SCRAPLING_ENABLED=true`). Returns **404** if the secret is unset (endpoint hidden).
 3. **GitHub Actions**: workflow **`.github/workflows/catalog-ingest.yml`** — add repo secrets **`DOUBOW_API_BASE_URL`** and **`DOUBOW_CRON_INGEST_SECRET`** matching the API. Runs every 6 hours and on manual dispatch; skips quietly until secrets exist.
+4. **Bootstrap on API startup** (optional): **`DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP=true`** queues Remote OK + Adzuna ingest **once** after deploy (Redis NX lock so multiple replicas do not duplicate). Still requires a **worker** to drain the queue.
+
+**One Railway service (smallest footprint):** In the API service env set **`DOUBOW_START_WORKER_IN_API=true`** and **`DOUBOW_START_BEAT_IN_API=true`** so `api/scripts/start.sh` runs Celery worker + beat beside Uvicorn. Set **`DOUBOW_OPENAI_API_KEY`** on the same service so **`embed_job`** can write **`embedding_vector`**. Combine with **`DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP=true`** for an immediate first ingest after deploy, or rely on beat/cron only.
+
+**Multiple Railway services** (recommended at scale): same Docker image — service A: API (`scripts/start.sh` without inline worker/beat); service B: `celery worker -Q default,scrape,score,draft,notify`; service C: `celery beat`.
 
 Manual smoke after setting **`DOUBOW_CRON_INGEST_SECRET`** on Railway:
 
