@@ -1,11 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 
 import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
-import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
+import { ChromeIconButton, ChromeIconLink, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
 /** Public runbook (override with NEXT_PUBLIC_LAUNCH_DOCS_URL for forks). */
@@ -271,8 +270,12 @@ async function postJobEvent(jobId: string, eventType: "click_out" | "save" | "di
 
 function ToolbarButton({ label, icon }: { label: string; icon: AppIconName }) {
   return (
-    <ChromeIconButton aria-label={label} title={label}>
-      <AppIcon name={icon} className="size-5" />
+    <ChromeIconButton
+      aria-label={label}
+      title={label}
+      className="size-11 border border-transparent text-[var(--app-text-secondary)] shadow-none transition-colors hover:border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-accent)_07%,var(--app-bg-elevated))] hover:text-[var(--app-accent)]"
+    >
+      <AppIcon name={icon} className="size-[22px]" />
     </ChromeIconButton>
   );
 }
@@ -290,6 +293,7 @@ function DiscoveryCard({
   onToggleFavorite: () => void;
   onHide: () => void;
 }) {
+  const reducedMotion = useReducedMotion();
   const job = row.job;
   const tags = [
     job.seniority || "3 year exp",
@@ -303,10 +307,11 @@ function DiscoveryCard({
 
   return (
     <motion.article
-      className="group relative overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--app-border)_70%,transparent)] bg-[rgba(255,255,255,0.86)] shadow-[0_20px_48px_rgba(9,28,17,0.07)] backdrop-blur transition hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--app-accent)_38%,var(--app-border))] hover:shadow-[0_28px_70px_rgba(9,28,17,0.13)]"
-      initial={{ opacity: 0, y: 12 }}
+      className="group relative overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--app-border)_70%,transparent)] bg-[rgba(255,255,255,0.86)] shadow-[0_20px_48px_rgba(9,28,17,0.07)] backdrop-blur transition-[border-color,box-shadow] duration-200 ease-out hover:border-[color-mix(in_srgb,var(--app-accent)_38%,var(--app-border))] hover:shadow-[0_28px_70px_rgba(9,28,17,0.13)]"
+      initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: Math.min(index * 0.035, 0.25) }}
+      whileHover={reducedMotion ? undefined : { y: -4 }}
+      transition={{ duration: 0.28, delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25) }}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--app-accent)] via-[#348ef6] to-[#ffb454] opacity-80" />
       <div className="p-6">
@@ -322,25 +327,36 @@ function DiscoveryCard({
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1">
             {!isPreviewJob(job) ? (
-              <Link
+              <ChromeIconLink
                 href={detailHref}
-                className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)] active:scale-[0.96]"
+                className="size-10 shrink-0 text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"
                 aria-label={`Job details — ${job.title}`}
                 title="Job details"
               >
                 <AppIcon name="file-text" className="size-5" />
-              </Link>
+              </ChromeIconLink>
             ) : null}
-            <button
+            <motion.button
               type="button"
-              className={`grid size-10 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_12%,white)] text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)]"}`}
+              className={`grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_14%,white)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--app-accent)_18%,transparent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"}`}
               aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+              title={favorite ? "Remove from favorites" : "Save to favorites"}
               onClick={onToggleFavorite}
+              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+              transition={{ type: "spring", stiffness: 520, damping: 28 }}
             >
-              <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
-            </button>
+              <motion.span
+                key={favorite ? "on" : "off"}
+                initial={reducedMotion ? false : { scale: 0.86, rotate: -8 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                className="grid place-items-center"
+              >
+                <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
+              </motion.span>
+            </motion.button>
           </div>
         </div>
 
@@ -385,27 +401,28 @@ function DiscoveryCard({
         <p className="max-w-[220px] text-[13px] font-medium leading-snug text-[var(--app-text-secondary)]">
           Compensation is not stored in the catalog — check the posting for salary or range.
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {!isPreviewJob(job) ? (
-            <button
+            <motion.button
               type="button"
-              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--app-danger)_8%,white)] hover:text-[var(--app-danger)] active:scale-[0.96]"
+              className="grid size-10 place-items-center rounded-full border border-transparent text-[var(--app-text-secondary)] transition-colors duration-150 ease-out hover:border-[color-mix(in_srgb,var(--app-danger)_22%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-danger)_08%,white)] hover:text-[var(--app-danger)]"
               aria-label={`Hide ${job.title}`}
               title="Hide role"
               onClick={onHide}
+              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
             >
               <AppIcon name="trash" className="size-4" />
-            </button>
+            </motion.button>
           ) : null}
           {!isPreviewJob(job) ? (
-            <Link
+            <ChromeIconLink
               href={detailHref}
-              className="grid size-10 place-items-center rounded-full text-[var(--app-text-secondary)] transition-[background-color,color,transform] duration-150 ease-out group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)] active:scale-[0.96]"
+              className="size-10 text-[var(--app-text-secondary)] group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)]"
               aria-label={`View ${job.title} and apply in Doubow`}
               title="View role and apply in Doubow"
             >
               <AppIcon name="arrow-up-right" className="size-5" />
-            </Link>
+            </ChromeIconLink>
           ) : null}
         </div>
       </div>
@@ -439,6 +456,7 @@ export function DiscoveryClient({
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [visibleLimit, setVisibleLimit] = useState(12);
   const [isPending, startTransition] = useTransition();
+  const reducedMotion = useReducedMotion();
 
   const rows = useMemo(() => {
     const fromFeed: DisplayRow[] = initialFeed.map((row) => ({
@@ -570,14 +588,24 @@ export function DiscoveryClient({
             </p>
           </div>
           <div className="grid min-w-[260px] grid-cols-2 gap-3">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+            <motion.div
+              className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur"
+              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32, delay: reducedMotion ? 0 : 0.06 }}
+            >
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Active roles</span>
               <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{totalCount}</strong>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+            </motion.div>
+            <motion.div
+              className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur"
+              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32, delay: reducedMotion ? 0 : 0.12 }}
+            >
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Embedded</span>
               <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{catalogSummary?.embedded_total ?? initialFeed.length}</strong>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -585,34 +613,57 @@ export function DiscoveryClient({
         <div className="flex w-full max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1">
           <button
             type="button"
-            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.96] ${
-              tab === "all" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
+            className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold transition-colors duration-150 ease-out ${
+              tab === "all" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
             }`}
             onClick={() => setTab("all")}
           >
-            <AppIcon name="briefcase" className="size-4" /> All Jobs <Tag active>{totalCount}</Tag>
+            {tab === "all" ? (
+              <motion.span
+                layoutId="discovery-tab-pill"
+                className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className="relative z-[1] flex items-center justify-center gap-2">
+              <AppIcon name="briefcase" className="size-4 shrink-0" />
+              <span>All jobs</span>
+              <Tag active={tab === "all"}>{totalCount}</Tag>
+            </span>
           </button>
           <button
             type="button"
-            className={`flex min-h-12 flex-1 items-center justify-center gap-3 rounded-full px-5 text-[15px] font-semibold transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.96] ${
-              tab === "favorites" ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]" : "text-[var(--app-text-secondary)]"
+            className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold transition-colors duration-150 ease-out ${
+              tab === "favorites" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
             }`}
             onClick={() => setTab("favorites")}
           >
-            <AppIcon name="star" className="size-4" /> Favorites Jobs <Tag>{favoriteCount}</Tag>
+            {tab === "favorites" ? (
+              <motion.span
+                layoutId="discovery-tab-pill"
+                className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className="relative z-[1] flex items-center justify-center gap-2">
+              <AppIcon name="star" className="size-4 shrink-0" />
+              <span>Favorites</span>
+              <Tag active={tab === "favorites"}>{favoriteCount}</Tag>
+            </span>
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <ToolbarButton label="Filters" icon="filter" />
           <ToolbarButton label="Sort" icon="analytics" />
-          <label className="flex min-h-12 w-52 items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)]">
-            <AppIcon name="search" className="size-5 text-[var(--app-text-secondary)]" />
+          <label className="group flex min-h-12 w-52 min-w-[13rem] items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)] transition-[box-shadow,border-color,ring] duration-200 ease-out focus-within:border-[color-mix(in_srgb,var(--app-accent)_42%,var(--app-border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--app-accent)_18%,transparent),var(--app-shadow-1)]">
+            <AppIcon name="search" className="size-5 shrink-0 text-[var(--app-text-secondary)] transition-colors duration-200 group-focus-within:text-[var(--app-accent)]" />
             <input
               className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter roles"
+              aria-label="Filter roles by keyword"
             />
           </label>
           <ChromePrimaryButton
@@ -704,10 +755,11 @@ export function DiscoveryClient({
       {displayedRows.length < visibleRows.length ? (
         <div className="mt-8 flex justify-center">
           <ChromePrimaryButton
-            className="min-w-44"
+            className="min-w-44 gap-2"
             type="button"
             onClick={() => setVisibleLimit((current) => current + 12)}
           >
+            <AppIcon name="chevron-down" className="size-5 opacity-90" />
             Show more roles
           </ChromePrimaryButton>
         </div>

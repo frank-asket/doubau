@@ -3,6 +3,17 @@ import { NextResponse } from "next/server";
 
 import type { EmployerBrandPayload, LogoDevDescribeJson } from "@/lib/logo-dev-describe-types";
 
+/** Logo.dev image CDN URL for the browser (publishable key; safe to expose to client). */
+function buildClientLogoDevImageUrl(domain: string): string | null {
+  const pk =
+    (process.env.NEXT_PUBLIC_LOGO_DEV_KEY ?? "").trim() ||
+    (process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY ?? "").trim();
+  if (!pk) return null;
+  const safe = domain.trim().toLowerCase();
+  if (!safe.includes(".")) return null;
+  return `https://img.logo.dev/${encodeURIComponent(safe)}?token=${encodeURIComponent(pk)}&size=128`;
+}
+
 /** Sanitize `domain` query for Logo.dev `/describe/:domain` (no path, scheme, or port). */
 function sanitizeEmployerDomain(raw: string | null): string | null {
   if (!raw?.trim()) return null;
@@ -30,6 +41,7 @@ type RawDescribe = {
   indexed_at?: string;
   socials?: Record<string, string>;
   colors?: Array<{ hex?: string }>;
+  blurhash?: string;
 };
 
 export async function GET(req: Request) {
@@ -50,14 +62,31 @@ export async function GET(req: Request) {
     );
   }
 
+  const logoUrl = buildClientLogoDevImageUrl(domain);
   const secret = (process.env.LOGO_DEV_SECRET_KEY ?? "").trim();
+
   if (!secret) {
-    return NextResponse.json({
-      ok: false as const,
-      reason: "not_configured",
-      message:
-        "Logo.dev Describe API is not configured. Set LOGO_DEV_SECRET_KEY (sk_…) on the server — Brand/describe requires a Logo.dev plan that includes this API.",
-    } satisfies LogoDevDescribeJson);
+    if (!logoUrl) {
+      return NextResponse.json({
+        ok: false as const,
+        reason: "not_configured",
+        message:
+          "Employer metadata needs at least NEXT_PUBLIC_LOGO_DEV_KEY (logos) or LOGO_DEV_SECRET_KEY (full Describe API on a paid Logo.dev plan).",
+      } satisfies LogoDevDescribeJson);
+    }
+    const partial: EmployerBrandPayload = {
+      source: "logo.dev",
+      partial: true,
+      name: domain,
+      domain,
+      description: null,
+      indexed_at: null,
+      socials: {},
+      colors_hex: [],
+      logo_url: logoUrl,
+      blurhash: null,
+    };
+    return NextResponse.json({ ok: true as const, data: partial } satisfies LogoDevDescribeJson);
   }
 
   const upstreamUrl = `https://api.logo.dev/describe/${encodeURIComponent(domain)}`;
@@ -82,6 +111,21 @@ export async function GET(req: Request) {
     }
 
     if (!resp.ok) {
+      if (resp.status === 404 && logoUrl) {
+        const fallback: EmployerBrandPayload = {
+          source: "logo.dev",
+          partial: true,
+          name: domain,
+          domain,
+          description: null,
+          indexed_at: null,
+          socials: {},
+          colors_hex: [],
+          logo_url: logoUrl,
+          blurhash: null,
+        };
+        return NextResponse.json({ ok: true as const, data: fallback } satisfies LogoDevDescribeJson);
+      }
       const msg =
         parsed && typeof parsed === "object" && parsed !== null && "message" in parsed
           ? String((parsed as { message?: unknown }).message)
@@ -120,14 +164,20 @@ export async function GET(req: Request) {
           )
         : {};
 
+    const resolvedDomain =
+      typeof raw.domain === "string" && raw.domain.trim() ? raw.domain.trim() : domain;
+    const blurhashRaw = typeof raw.blurhash === "string" ? raw.blurhash.trim() : "";
     const data: EmployerBrandPayload = {
       source: "logo.dev",
-      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : domain,
-      domain: typeof raw.domain === "string" && raw.domain.trim() ? raw.domain.trim() : domain,
+      partial: false,
+      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : resolvedDomain,
+      domain: resolvedDomain,
       description: typeof raw.description === "string" && raw.description.trim() ? raw.description.trim() : null,
       indexed_at: typeof raw.indexed_at === "string" ? raw.indexed_at : null,
       socials,
       colors_hex: colorsHex,
+      logo_url: buildClientLogoDevImageUrl(resolvedDomain),
+      blurhash: blurhashRaw || null,
     };
 
     return NextResponse.json({ ok: true as const, data } satisfies LogoDevDescribeJson);

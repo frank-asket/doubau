@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { AppIcon } from "@/components/ui/app-icon";
@@ -26,9 +27,20 @@ function socialLabel(key: string): string {
   return SOCIAL_LABEL[key] ?? key.replace(/_/g, " ");
 }
 
+function isEmployerPayload(d: Partial<EmployerBrandPayload>): d is EmployerBrandPayload {
+  if (d.source !== "logo.dev" || typeof d.domain !== "string" || typeof d.name !== "string") return false;
+  if (!Array.isArray(d.colors_hex) || !d.socials || typeof d.socials !== "object" || Array.isArray(d.socials)) {
+    return false;
+  }
+  if (typeof d.logo_url !== "string" && d.logo_url !== null) return false;
+  if (d.description !== null && typeof d.description !== "string") return false;
+  if (d.indexed_at !== null && typeof d.indexed_at !== "string") return false;
+  return true;
+}
+
 /**
- * Loads Logo.dev Brand (Describe) metadata for a corporate domain via the Next BFF
- * (`LOGO_DEV_SECRET_KEY` never reaches the browser).
+ * Default employer context from Logo.dev: Describe JSON when configured, otherwise the
+ * Logo.dev image CDN (partial). ``LOGO_DEV_SECRET_KEY`` never reaches the browser.
  */
 export function EmployerLogoDevPanel({
   domain,
@@ -68,18 +80,8 @@ export function EmployerLogoDevPanel({
         const json = raw as Partial<LogoDevDescribeJson>;
         if (json && typeof json === "object" && json.ok === true && json.data && typeof json.data === "object") {
           const d = json.data as Partial<EmployerBrandPayload>;
-          if (
-            typeof d.name === "string" &&
-            typeof d.domain === "string" &&
-            d.source === "logo.dev" &&
-            (d.description === null || typeof d.description === "string") &&
-            (d.indexed_at === null || typeof d.indexed_at === "string") &&
-            d.socials &&
-            typeof d.socials === "object" &&
-            !Array.isArray(d.socials) &&
-            Array.isArray(d.colors_hex)
-          ) {
-            setPayload(d as EmployerBrandPayload);
+          if (isEmployerPayload(d)) {
+            setPayload(d);
             return;
           }
         }
@@ -90,7 +92,9 @@ export function EmployerLogoDevPanel({
             return;
           }
           if (json.reason === "not_configured") {
-            setBlocked("Brand directory is not enabled on this deployment.");
+            setBlocked(
+              "Add NEXT_PUBLIC_LOGO_DEV_KEY for Logo.dev logos, or LOGO_DEV_SECRET_KEY on the server for full brand metadata.",
+            );
             return;
           }
           if (json.reason === "upstream" && r.status === 404) {
@@ -119,8 +123,13 @@ export function EmployerLogoDevPanel({
 
   if (loading) {
     return (
-      <div className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)] px-3 py-3 text-[12px] text-[var(--app-text-secondary)]">
-        Loading employer brand data…
+      <div className="mt-4 overflow-hidden rounded-[var(--app-radius-md)] border border-dashed border-[color-mix(in_srgb,var(--app-accent)_22%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_04%,var(--app-bg-muted))] px-3 py-3">
+        <div className="flex items-center gap-3 text-[12px] font-medium text-[var(--app-text-secondary)]">
+          <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06)]">
+            <span className="size-4 animate-pulse rounded-full bg-[var(--app-accent)]/35" />
+          </span>
+          Loading Logo.dev employer profile…
+        </div>
       </div>
     );
   }
@@ -147,9 +156,45 @@ export function EmployerLogoDevPanel({
 
   return (
     <div className="mt-4 space-y-3 border-t border-[var(--app-border)] pt-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-        Employer profile
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--app-accent)_25%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_08%,var(--app-bg-elevated))] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--app-accent)]">
+            Logo.dev
+          </div>
+          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
+            Employer metadata
+          </div>
+        </div>
+        {payload.logo_url ? (
+          <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_70%,transparent)]">
+            <Image
+              src={payload.logo_url}
+              alt=""
+              width={56}
+              height={56}
+              sizes="56px"
+              className="size-full object-contain p-1.5"
+            />
+          </div>
+        ) : null}
       </div>
+
+      {payload.partial ? (
+        <p className="rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-warning)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-2 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+          Showing the official{" "}
+          <a
+            href="https://logo.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[var(--app-accent)] underline-offset-2 hover:underline"
+          >
+            Logo.dev
+          </a>{" "}
+          mark for this domain. Add <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> on the server for
+          descriptions, colors, and social links (Describe API).
+        </p>
+      ) : null}
+
       {companyName.trim() && payload.name.trim().toLowerCase() !== companyName.trim().toLowerCase() ? (
         <p className="text-[12px] text-[var(--app-text-tertiary)]">
           Brand directory name: <span className="font-medium text-[var(--app-text-secondary)]">{payload.name}</span>
@@ -158,9 +203,9 @@ export function EmployerLogoDevPanel({
 
       {payload.description ? (
         <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{payload.description}</p>
-      ) : (
+      ) : !payload.partial ? (
         <p className="text-[12px] text-[var(--app-text-tertiary)]">No short description in the brand directory.</p>
-      )}
+      ) : null}
 
       {payload.colors_hex.length > 0 ? (
         <div>
@@ -210,11 +255,16 @@ export function EmployerLogoDevPanel({
       </div>
 
       <p className="text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
-        <a href="https://logo.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--app-accent)] underline-offset-2 hover:underline">
-          Employer brand data
+        <a
+          href="https://logo.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-[var(--app-accent)] underline-offset-2 hover:underline"
+        >
+          Logo.dev
         </a>{" "}
-        from Logo.dev (Describe API). Free plans may require a public attribution link on your marketing site — see their
-        attribution guidelines.
+        is the default employer directory for this panel. Free plans may require public attribution on your marketing
+        site.
       </p>
     </div>
   );
