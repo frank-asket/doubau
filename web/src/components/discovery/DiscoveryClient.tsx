@@ -209,6 +209,47 @@ function DiscoveryScoringExplainer({
   );
 }
 
+function showCatalogSourceDebugUi(): boolean {
+  return (
+    process.env.NODE_ENV === "development" ||
+    (process.env.NEXT_PUBLIC_SHOW_CATALOG_SOURCE_DEBUG ?? "").trim().toLowerCase() === "true"
+  );
+}
+
+function DiscoveryCatalogSourceDebug({ summary }: { summary: CatalogSummary }) {
+  const entries = Object.entries(summary.by_source).sort((a, b) => b[1] - a[1]);
+  return (
+    <details className="mb-5 rounded-[var(--app-radius-lg)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)] px-4 py-3 text-[13px] text-[var(--app-text-secondary)]">
+      <summary className="cursor-pointer select-none font-semibold text-[var(--app-text-primary)] outline-none marker:text-[var(--app-text-tertiary)]">
+        Catalog by listing_source (debug)
+      </summary>
+      <p className="mt-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
+        Counts are active non-stale jobs in Postgres (same filters as{" "}
+        <code className="rounded bg-[var(--app-bg-elevated)] px-1 text-[11px]">/jobs/catalog/summary</code>). Discovery loads at most 100
+        feed rows + 100 recent jobs — not every row.
+      </p>
+      {entries.length === 0 ? (
+        <p className="mt-2 text-[12px] font-medium text-[var(--app-warning)]">No rows in by_source — catalog empty or all outside the stale window.</p>
+      ) : (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {entries.map(([src, n]) => (
+            <li
+              key={src}
+              className="rounded-full border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 py-1 font-mono text-[12px] tabular-nums text-[var(--app-text-primary)]"
+            >
+              <span className="text-[var(--app-text-secondary)]">{src}</span>{" "}
+              <span className="font-semibold text-[var(--app-accent)]">{n}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-[11px] text-[var(--app-text-tertiary)]">
+        Stale after {summary.stale_after_days}d · embedded {summary.embedded_total} / {summary.active_total} active
+      </p>
+    </details>
+  );
+}
+
 function sourceLabel(job: JobRow) {
   if (job.listing_source === "remoteok") return "RemoteOK";
   if (job.listing_source === "adzuna") return "Adzuna";
@@ -622,6 +663,8 @@ export function DiscoveryClient({
       ) : null}
 
       <div className="my-8 border-t border-[var(--app-border)]" />
+
+      {catalogSummary && showCatalogSourceDebugUi() ? <DiscoveryCatalogSourceDebug summary={catalogSummary} /> : null}
 
       {!loadError ? (
         <DiscoveryScoringExplainer resumeStatus={resumeStatus} catalogSummary={catalogSummary} />
