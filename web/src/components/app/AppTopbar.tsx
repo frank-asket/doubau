@@ -1,12 +1,11 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
 import { AppIcon } from "@/components/ui/app-icon";
 
 const TITLES: Record<string, string> = {
-  "/app/dashboard": "Welcome back, Robert!",
   "/app/career-profile": "Career Profile",
   "/app/pathfinder": "Career Pathfinder",
   "/app/career-steps": "Career Steps",
@@ -30,14 +29,35 @@ const TITLES: Record<string, string> = {
   "/app/search": "Search",
 };
 
-function titleForPath(pathname: string) {
+function titleForPath(pathname: string, firstName?: string | null) {
   if (pathname.startsWith("/app/discovery/")) return "Job Details";
+  if (pathname === "/app/dashboard") {
+    return firstName ? `Welcome back, ${firstName}!` : "Welcome back!";
+  }
   return TITLES[pathname] ?? "Doubow";
+}
+
+function firstNameFromUser(user: ReturnType<typeof useUser>["user"]) {
+  const clerkFirstName = user?.firstName?.trim();
+  if (clerkFirstName) return clerkFirstName;
+
+  const fullNameFirst = user?.fullName?.trim().split(/\s+/)[0];
+  if (fullNameFirst) return fullNameFirst;
+
+  const emailName = user?.primaryEmailAddress?.emailAddress?.split("@")[0];
+  if (!emailName) return null;
+
+  return emailName
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export function AppTopbar() {
   const pathname = usePathname();
-  const title = titleForPath(pathname);
+  const { isLoaded, user } = useUser();
+  const title = titleForPath(pathname, isLoaded ? firstNameFromUser(user) : null);
 
   return (
     <header className="sticky top-0 z-20 shrink-0 bg-[linear-gradient(180deg,rgba(244,247,242,0.98),rgba(244,247,242,0.78))] px-2 pt-3 backdrop-blur md:px-3">

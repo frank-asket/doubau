@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { AppButton } from "@/components/ui/button";
 import { queryKeys } from "@/lib/query-keys";
 
+import { CareerFlowProgress } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 type MilestoneRow = {
@@ -114,6 +115,12 @@ export function CareerStepsClient() {
       title="Career steps"
       description="Your milestone roadmap. Start from Career pathfinder for persona-aware context, then break outcomes into trackable steps here."
     >
+      <CareerFlowProgress
+        steps={["Profile", "Pathfinder", "Career Steps", "Planner"]}
+        active="Career Steps"
+        value={66}
+      />
+
       <div className="mb-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
         <span className="font-medium text-[var(--app-text-primary)]">Plan, then apply:</span> refine direction in{" "}
         <Link href="/app/pathfinder" className="font-medium text-[var(--app-accent)] hover:underline">
@@ -130,7 +137,7 @@ export function CareerStepsClient() {
         .
       </div>
 
-      <div className="mb-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+      <div className="mb-6 rounded-[20px] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-0)]">
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
           Add milestone
         </div>
@@ -195,7 +202,7 @@ export function CareerStepsClient() {
                   {!isLast ? <div className="mt-1 w-px flex-1 min-h-[24px] bg-[var(--app-border)]" /> : null}
                 </div>
                 <div
-                  className={`mb-4 flex-1 rounded-[var(--app-radius-lg)] border bg-[var(--app-bg-elevated)] p-4 ${
+                  className={`mb-4 flex-1 rounded-[20px] border bg-[var(--app-bg-elevated)] p-4 shadow-[var(--app-shadow-0)] ${
                     active ? "border-[var(--app-accent)]" : "border-[var(--app-border)]"
                   } ${m.status.toLowerCase() === "done" || m.status.toLowerCase() === "completed" ? "" : "opacity-100"}`}
                   style={

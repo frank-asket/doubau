@@ -74,6 +74,56 @@ export function MetricCard({
   );
 }
 
+export function CareerFlowProgress({
+  steps,
+  active,
+  value,
+}: {
+  steps: string[];
+  active: string;
+  value: number;
+}) {
+  const activeIndex = Math.max(0, steps.indexOf(active));
+
+  return (
+    <section className="ch-panel px-5 py-5 sm:px-7">
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
+        {steps.map((step, index) => {
+          const complete = index < activeIndex;
+          const current = step === active;
+          return (
+            <div key={step} className="flex min-w-[150px] flex-1 items-center gap-3 sm:min-w-0">
+              <span
+                className={`grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.75)] ${
+                  complete || current
+                    ? "bg-[var(--app-blue-500)] text-white"
+                    : "bg-[var(--app-bg-muted)] text-[var(--app-text-tertiary)]"
+                }`}
+              >
+                {complete ? "✓" : index + 1}
+              </span>
+              <span
+                className={`truncate text-[14px] font-bold ${
+                  complete || current ? "text-[var(--app-blue-500)]" : "text-[var(--app-text-secondary)]"
+                }`}
+              >
+                {step}
+              </span>
+              {index < steps.length - 1 ? (
+                <span className="hidden h-px flex-1 bg-[var(--app-border)] sm:block" aria-hidden />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-7 grid grid-cols-[1fr_auto] items-center gap-5">
+        <ProgressLine value={value} />
+        <span className="tabular-nums text-[18px] font-black text-[var(--app-text-primary)]">{value}%</span>
+      </div>
+    </section>
+  );
+}
+
 export function Gauge({ value, label, icon = "circle" }: { value: number; label: string; icon?: AppIconName }) {
   const deg = Math.max(0, Math.min(100, value)) * 3.6;
   return (
@@ -96,14 +146,14 @@ export function Gauge({ value, label, icon = "circle" }: { value: number; label:
 
 export function SegmentedTabs({ items, active }: { items: string[]; active: string }) {
   return (
-    <div className="flex flex-wrap gap-1 rounded-full bg-[var(--app-bg-muted)] p-1">
+    <div className="flex flex-wrap gap-1 rounded-full bg-[var(--app-bg-muted)] p-1 shadow-[inset_0_0_0_1px_rgba(17,22,18,0.04)]">
       {items.map((item) => (
         <button
           key={item}
           type="button"
-          className={`min-h-10 flex-1 rounded-full px-5 text-[14px] font-semibold transition ${
+          className={`min-h-10 flex-1 rounded-full px-5 text-[14px] font-bold transition ${
             item === active
-              ? "bg-white text-[var(--app-accent)] shadow-[var(--app-shadow-1)]"
+              ? "bg-white text-[var(--app-blue-500)] shadow-[var(--app-shadow-1)]"
               : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
           }`}
         >
@@ -117,7 +167,7 @@ export function SegmentedTabs({ items, active }: { items: string[]; active: stri
 export function Tag({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
     <span
-      className={`ch-pill ${active ? "bg-[var(--app-blue-50)] text-[var(--app-accent)]" : ""}`}
+      className={`ch-pill ${active ? "bg-[var(--app-blue-50)] text-[var(--app-blue-500)]" : ""}`}
     >
       {children}
     </span>
@@ -151,6 +201,60 @@ export function FeatureListCard({
         ))}
       </ul>
     </article>
+  );
+}
+
+export function FieldShell({
+  label,
+  value,
+  icon,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  icon: string;
+  wide?: boolean;
+}) {
+  return (
+    <label className={wide ? "lg:col-span-2" : ""}>
+      <span className="block text-[14px] font-black text-[var(--app-text-primary)]">{label}</span>
+      <span className="mt-3 flex min-h-14 items-center gap-3 rounded-full border border-[var(--app-border)] bg-white/86 px-4 text-[14px] text-[var(--app-text-secondary)] shadow-[var(--app-shadow-0)]">
+        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--app-bg-muted)] text-[13px]" aria-hidden>
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{value}</span>
+        <span className="text-[11px] text-[var(--app-text-tertiary)]" aria-hidden>
+          {wide ? "" : "v"}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+export function SectionRow({
+  label,
+  active = false,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="border-t border-dashed border-[var(--app-border)]">
+      <button
+        type="button"
+        className={`flex min-h-14 w-full items-center justify-between px-5 text-left text-[15px] font-black ${
+          active ? "text-[var(--app-blue-500)]" : "text-[var(--app-text-primary)]"
+        }`}
+      >
+        {label}
+        <span className="text-[12px]" aria-hidden>
+          {active ? "^" : "v"}
+        </span>
+      </button>
+      {active ? <div className="px-5 pb-5">{children}</div> : null}
+    </div>
   );
 }
 
