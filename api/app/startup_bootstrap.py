@@ -15,6 +15,9 @@ _BOOTSTRAP_LOCK_TTL_S = 900
 def run_startup_bootstrap_ingest() -> None:
     """Queue initial catalog ingest once per deploy window (multi-instance safe via Redis NX).
 
+    Mirrors ``POST /jobs/cron/queue-ingest``: Remote OK + Adzuna, plus Scrapling when
+    ``SCRAPLING_ENABLED`` is true.
+
     Requires Redis, a Celery worker consuming the ``scrape`` queue, and ``DOUBOW_OPENAI_API_KEY``
     for ``embed_job`` to populate vectors after rows are inserted.
     """
@@ -33,14 +36,16 @@ def run_startup_bootstrap_ingest() -> None:
         return
 
     try:
-        from app.tasks import ingest_adzuna_jobs, ingest_remoteok_jobs
+        from app.tasks import ingest_adzuna_jobs, ingest_remoteok_jobs, ingest_scrapling_jobs
 
         ro = ingest_remoteok_jobs.delay()
         ad = ingest_adzuna_jobs.delay()
+        sc = ingest_scrapling_jobs.delay() if settings.scrapling_enabled else None
         log.info(
-            "bootstrap ingest queued remoteok_task_id=%s adzuna_task_id=%s",
+            "bootstrap ingest queued remoteok_task_id=%s adzuna_task_id=%s scrapling_task_id=%s",
             ro.id,
             ad.id,
+            sc.id if sc else None,
         )
     except Exception as exc:
         log.warning("bootstrap ingest queue failed (is the broker up?): %s", exc)
