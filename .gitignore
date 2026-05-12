@@ -25,3 +25,7 @@ crash.*.log
 
 .vercel
 .env*.local
+
+# Local scratch, exports, and generated docs — keep clones lean
+.tmp/
+/doubow_build_plan_polished.docx
