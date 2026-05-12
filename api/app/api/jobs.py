@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, HttpUrl
-from sqlalchemy import and_, asc, desc, func, or_, select
+from sqlalchemy import and_, asc, delete, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -35,6 +35,28 @@ from app.tasks import scrape_job as scrape_job_task
 from app.tasks import scrape_rss_feed as scrape_rss_feed_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+# Rows removed by ``POST /jobs/cron/clear-catalog`` when ``mode=providers`` (keeps ``manual``).
+_CRON_CLEAR_PROVIDER_SOURCES: frozenset[str] = frozenset(
+    {"remoteok", "adzuna", "scrapling", "scrapling_jsonld", "greenhouse", "http_fetch"}
+)
+
+
+def _clear_redis_job_fingerprint_keys() -> int:
+    """Best-effort delete of per-provider content fingerprints so re-ingest can insert again."""
+    try:
+        import redis
+
+        r = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    except Exception:
+        return 0
+    n = 0
+    try:
+        for key in r.scan_iter(match="doubow:job_fp:*", count=500):
+            n += int(r.delete(key))
+    except Exception:
+        return n
+    return n
 
 
 def _require_ingestion_admin(user: User) -> None:
@@ -503,6 +525,50 @@ def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
         r_sc = ingest_scrapling_jobs_task.delay()
         queued["scrapling"] = str(r_sc.id)
     return CronQueueIngestOut(queued=queued)
+
+
+class CronClearCatalogOut(BaseModel):
+    """Result of ``POST /jobs/cron/clear-catalog``."""
+
+    mode: Literal["providers", "all"]
+    jobs_deleted: int
+    fingerprint_keys_deleted: int
+
+
+@router.post("/cron/clear-catalog", response_model=CronClearCatalogOut)
+def cron_clear_job_catalog(
+    request: Request,
+    db: DbDep,
+    mode: Literal["providers", "all"] = "providers",
+) -> CronClearCatalogOut:
+    """Delete catalog job rows so a fresh ingest run is visible (automation).
+
+    Uses the same ``X-Doubow-Cron-Secret`` as ``POST /jobs/cron/queue-ingest``.
+
+    - ``mode=providers`` (default): deletes rows whose ``listing_source`` is one of the ingest
+      pipelines (Remote OK, Adzuna, Scrapling/Greenhouse, single-URL import). Rows with
+      ``listing_source=manual`` are kept.
+    - ``mode=all``: deletes **every** job row (including manual). Use with care.
+
+    Also clears Redis keys ``doubow:job_fp:*`` so fingerprint dedup does not block re-inserts.
+    Dependent rows (e.g. job feedback) cascade on delete.
+
+    Returns **404** when ``DOUBOW_CRON_INGEST_SECRET`` is unset.
+    """
+    _cron_ingest_secret_ok(request)
+    if mode == "all":
+        stmt = delete(Job)
+    else:
+        stmt = delete(Job).where(Job.listing_source.in_(_CRON_CLEAR_PROVIDER_SOURCES))
+    result = db.execute(stmt)
+    db.commit()
+    jobs_deleted = int(result.rowcount or 0)
+    fp_deleted = _clear_redis_job_fingerprint_keys()
+    return CronClearCatalogOut(
+        mode=mode,
+        jobs_deleted=jobs_deleted,
+        fingerprint_keys_deleted=fp_deleted,
+    )
 
 
 class FeedOut(BaseModel):
