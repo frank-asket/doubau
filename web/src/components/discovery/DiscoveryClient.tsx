@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 
+import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
 import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
@@ -66,32 +67,6 @@ function Tag({ children, active = false }: { children: ReactNode; active?: boole
       {children}
     </span>
   );
-}
-
-const LOGOS: Record<string, { text: string; bg: string; fg: string }> = {
-  meta: { text: "∞", bg: "#2f80ed", fg: "white" },
-  google: { text: "G", bg: "#ffffff", fg: "#4285f4" },
-  amazon: { text: "a", bg: "#ffffff", fg: "#111111" },
-  zalando: { text: "▶", bg: "#ff6422", fg: "white" },
-  glovo: { text: "⌖", bg: "#f2c94c", fg: "#35966c" },
-  revolut: { text: "R", bg: "#ffffff", fg: "#111111" },
-  airbnb: { text: "A", bg: "#ff5a70", fg: "white" },
-  shopify: { text: "S", bg: "#eef7e8", fg: "#75b84a" },
-  netflix: { text: "N", bg: "#111111", fg: "#e50914" },
-};
-
-function keyForCompany(company: string) {
-  const c = company.toLowerCase();
-  if (c.includes("meta")) return "meta";
-  if (c.includes("google")) return "google";
-  if (c.includes("amazon")) return "amazon";
-  if (c.includes("zalando")) return "zalando";
-  if (c.includes("glovo")) return "glovo";
-  if (c.includes("revolut")) return "revolut";
-  if (c.includes("airbnb")) return "airbnb";
-  if (c.includes("shopify")) return "shopify";
-  if (c.includes("netflix")) return "netflix";
-  return "google";
 }
 
 function postedLabel(job: JobRow) {
@@ -275,8 +250,6 @@ function DiscoveryCard({
   onHide: () => void;
 }) {
   const job = row.job;
-  const key = keyForCompany(job.company);
-  const logo = LOGOS[key];
   const tags = [
     job.seniority || "3 year exp",
     job.employment_type || "Full time",
@@ -299,12 +272,7 @@ function DiscoveryCard({
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
-            <span
-              className="grid size-14 shrink-0 place-items-center rounded-2xl text-[28px] font-black shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)]"
-              style={{ backgroundColor: logo.bg, color: logo.fg }}
-            >
-              {logo.text}
-            </span>
+            <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
             <div className="min-w-0">
               <h2 className="truncate text-[20px] font-bold tracking-[-0.01em] text-[var(--app-text-primary)]">
                 {job.title}

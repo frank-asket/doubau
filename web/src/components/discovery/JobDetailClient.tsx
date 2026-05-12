@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { AppBadge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { AppButton } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 
 import type { JobRow } from "./DiscoveryClient";
+import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
 
 type FitScoreResponse = {
   score: number;
@@ -75,11 +76,6 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const [fitError, setFitError] = useState<string | null>(null);
   const [outreachBusy, setOutreachBusy] = useState(false);
   const [outreachMsg, setOutreachMsg] = useState<string | null>(null);
-
-  const initials = useMemo(() => {
-    const c = (job.company || "?").trim();
-    return c.slice(0, 1).toUpperCase();
-  }, [job.company]);
 
   const loadFit = useCallback(async () => {
     setFitLoading(true);
@@ -162,9 +158,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--app-border)] pb-5">
             <div className="flex min-w-0 flex-1 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--app-radius-md)] bg-[var(--app-badge-blue-bg)] text-[18px] font-semibold tracking-tight text-[var(--app-badge-blue-fg)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)]">
-                {initials}
-              </div>
+              <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="detail" />
               <div className="min-w-0">
                 <h1 className="text-pretty text-[length:var(--app-text-display)] font-medium tracking-tight text-[var(--app-text-primary)]">
                   {job.title}
