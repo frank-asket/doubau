@@ -71,7 +71,7 @@ function faviconServiceUrl(host: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
 }
 
-export type JobCompanyMarkSize = "card" | "detail";
+export type JobCompanyMarkSize = "card" | "detail" | "hero";
 
 export function JobCompanyMark({
   company,
@@ -95,12 +95,20 @@ export function JobCompanyMark({
   const showFavicon = Boolean(host && !imgFailed);
 
   const box =
-    size === "detail"
-      ? `grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[var(--app-radius-md)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)] ${className}`
-      : `grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)] ${className}`;
+    size === "hero"
+      ? `grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.1)] ${className}`
+      : size === "detail"
+        ? `grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[var(--app-radius-md)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)] ${className}`
+        : `grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06),0_14px_28px_rgba(9,28,17,0.08)] ${className}`;
 
   const textCls =
-    size === "detail" ? "text-[18px] font-semibold tracking-tight" : "text-[28px] font-black";
+    size === "hero"
+      ? "text-3xl font-black tracking-tight"
+      : size === "detail"
+        ? "text-[18px] font-semibold tracking-tight"
+        : "text-[28px] font-black";
+
+  const pxSize = size === "hero" ? 64 : size === "detail" ? 48 : 56;
 
   return (
     <span
@@ -112,8 +120,8 @@ export function JobCompanyMark({
         <img
           src={faviconServiceUrl(host!)}
           alt=""
-          width={size === "detail" ? 48 : 56}
-          height={size === "detail" ? 48 : 56}
+          width={pxSize}
+          height={pxSize}
           className="size-full bg-white object-contain p-1.5"
           loading="lazy"
           decoding="async"

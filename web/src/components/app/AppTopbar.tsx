@@ -3,6 +3,7 @@
 import { UserButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
+import { appPageIcon } from "@/components/app/app-page-icons";
 import { ChromeIconButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 
@@ -25,13 +26,20 @@ const TITLES: Record<string, string> = {
   "/app/skill-gap-analysis": "Skill Gap Analysis",
   "/app/discussion": "Discussion Board",
   "/app/settings": "Settings",
-  "/app/billing": "Settings",
+  "/app/billing": "Billing",
   "/app/notifications": "Notifications",
   "/app/search": "Search",
+  "/app/approvals": "Draft approvals",
+  "/app/analytics": "Match insights",
+  "/app/interview-prep": "Interview prep",
+  "/app/demo-milestone": "Demo checklist",
+  "/app/design-system": "Design system",
 };
 
 function titleForPath(pathname: string, firstName?: string | null) {
   if (pathname.startsWith("/app/discovery/")) return "Job Details";
+  if (pathname.startsWith("/app/billing/checkout")) return "Checkout";
+  if (pathname.startsWith("/app/billing/portal")) return "Billing portal";
   if (pathname === "/app/dashboard") {
     return firstName ? `Welcome back, ${firstName}!` : "Welcome back!";
   }
@@ -59,17 +67,26 @@ export function AppTopbar() {
   const pathname = usePathname();
   const { isLoaded, user } = useUser();
   const title = titleForPath(pathname, isLoaded ? firstNameFromUser(user) : null);
+  const pageIcon = appPageIcon(pathname);
 
   return (
     <header className="sticky top-0 z-20 shrink-0 bg-[linear-gradient(180deg,rgba(244,247,242,0.98),rgba(244,247,242,0.78))] px-2 pt-3 backdrop-blur md:px-3">
       <div className="doubow-orb flex h-[var(--app-topbar-h)] items-center justify-between gap-4 rounded-[28px] border border-[var(--app-border)] bg-[rgba(255,255,255,0.84)] px-5 shadow-[var(--app-shadow-1)] backdrop-blur-xl">
-        <div className="relative min-w-0">
-          <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--app-accent-700)] md:block">
-            Doubow workspace
-          </p>
-          <h1 className="min-w-0 truncate text-[24px] font-black tracking-[-0.035em] text-[var(--app-text-primary)] md:text-[30px]">
-            {title}
-          </h1>
+        <div className="relative flex min-w-0 items-start gap-3 md:items-center">
+          <span
+            className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-elevated)] text-[var(--app-accent)] shadow-[var(--app-shadow-0)] md:mt-0 md:size-11"
+            aria-hidden
+          >
+            <AppIcon name={pageIcon} className="size-5 md:size-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--app-accent-700)] md:block">
+              Doubow workspace
+            </p>
+            <h1 className="min-w-0 truncate text-[24px] font-black tracking-[-0.035em] text-[var(--app-text-primary)] md:text-[30px]">
+              {title}
+            </h1>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <label className="relative hidden h-11 w-[320px] items-center gap-3 rounded-full border border-[var(--app-border)] bg-white/88 px-4 text-[14px] text-[var(--app-text-tertiary)] shadow-[var(--app-shadow-0)] lg:flex">

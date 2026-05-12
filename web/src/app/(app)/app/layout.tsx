@@ -54,11 +54,13 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/approvals",
         label: "Draft approvals",
+        icon: "check-circle",
         subtitle: "Review messages before they go out",
       },
       {
         href: "/app/analytics",
         label: "Match insights",
+        icon: "analytics",
         subtitle: "See what is working in your search",
       },
     ],
@@ -144,16 +146,19 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/cover-letter",
         label: "Cover letters",
+        icon: "file-text",
         subtitle: "Create tailored letters faster",
       },
       {
         href: "/app/interview-prep",
         label: "Interview prep",
+        icon: "clipboard-check",
         subtitle: "Practice questions for your target roles",
       },
       {
         href: "/app/skill-gap-analysis",
         label: "Skills gap",
+        icon: "filter",
         subtitle: "Know what to learn next",
       },
     ],
@@ -166,11 +171,13 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/search",
         label: "Search",
+        icon: "search",
         subtitle: "Find jobs, drafts, and tools quickly",
       },
       {
         href: "/app/notifications",
         label: "Notifications",
+        icon: "bell",
         subtitle: "Updates, reminders, and interview alerts",
       },
       {
@@ -182,11 +189,13 @@ const NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/app/settings",
         label: "Settings",
+        icon: "settings",
         subtitle: "Profile, preferences, and security",
       },
       {
         href: "/app/billing",
         label: "Billing",
+        icon: "star-filled",
         subtitle: "Plan, payment, and subscription",
       },
     ],
@@ -299,8 +308,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link
               key={`${item.href}:${item.label}`}
               href={item.href}
-              className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--app-radius-pill)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-secondary)] shadow-[var(--app-shadow-0)] transition-[border-color,color,background-color,transform] duration-150 ease-out active:scale-[0.96]"
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[var(--app-radius-pill)] border-[0.5px] border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-3 text-[12px] font-medium text-[var(--app-text-secondary)] shadow-[var(--app-shadow-0)] transition-[border-color,color,background-color,transform] duration-150 ease-out active:scale-[0.96]"
             >
+              <AppIcon name={item.icon ?? "circle"} className="size-4 text-[var(--app-text-tertiary)]" />
               {item.label}
             </Link>
           ))}

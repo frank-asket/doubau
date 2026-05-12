@@ -5,23 +5,29 @@ import { cn } from "@/lib/utils";
 export type AppIconName =
   | "analytics"
   | "arrow-up-right"
+  | "banknote"
   | "bell"
   | "briefcase"
+  | "building"
+  | "calendar"
   | "check-circle"
   | "chevron-down"
   | "chevron-right"
   | "circle"
   | "clipboard-check"
+  | "clock"
   | "file-text"
   | "filter"
   | "home"
   | "layers"
   | "log-out"
+  | "map-pin"
   | "message-circle"
   | "more-horizontal"
   | "plus"
   | "search"
   | "settings"
+  | "share"
   | "sparkle"
   | "star"
   | "star-filled"
@@ -38,6 +44,13 @@ const paths: Record<AppIconName, SVGProps<SVGSVGElement>["children"]> = {
       <path d="M16 16v-3" />
     </>
   ),
+  banknote: (
+    <>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </>
+  ),
   "arrow-up-right": (
     <>
       <path d="M7 17 17 7" />
@@ -48,6 +61,27 @@ const paths: Record<AppIconName, SVGProps<SVGSVGElement>["children"]> = {
     <>
       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
       <path d="M10 21h4" />
+    </>
+  ),
+  building: (
+    <>
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6v12M12 6v12M16 6v12M8 6h8M8 10h8M8 14h8" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
     </>
   ),
   briefcase: (
@@ -102,6 +136,12 @@ const paths: Record<AppIconName, SVGProps<SVGSVGElement>["children"]> = {
       <path d="m3 13 9 5 9-5" />
     </>
   ),
+  "map-pin": (
+    <>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </>
+  ),
   "log-out": (
     <>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -131,6 +171,14 @@ const paths: Record<AppIconName, SVGProps<SVGSVGElement>["children"]> = {
     <>
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
+    </>
+  ),
+  share: (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.59 13.51 6.83 3.98M15.41 6.51 8.59 10.49" />
     </>
   ),
   settings: (
