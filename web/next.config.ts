@@ -14,14 +14,34 @@ function validateProductionAuthEnv() {
     process.env.VERCEL_ENV === "production" || isDoubowLaunchStrictEnv();
   if (!strict) return;
 
-  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
-  const sk = process.env.CLERK_SECRET_KEY ?? "";
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const pk = (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "").trim();
+  const sk = (process.env.CLERK_SECRET_KEY ?? "").trim();
+  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
 
   const failures: string[] = [];
-  if (!pk.startsWith("pk_live_")) failures.push("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be pk_live_...");
-  if (!sk.startsWith("sk_live_")) failures.push("CLERK_SECRET_KEY must be sk_live_...");
-  if (!apiBase.startsWith("https://")) failures.push("NEXT_PUBLIC_API_BASE_URL must be an HTTPS production URL.");
+
+  if (!pk) {
+    failures.push("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required.");
+  } else if (pk.startsWith("pk_live_")) {
+    if (!sk.startsWith("sk_live_")) {
+      failures.push("CLERK_SECRET_KEY must be sk_live_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_live_…");
+    }
+  } else if (pk.startsWith("pk_test_")) {
+    // Vercel “Production” + *.vercel.app demo: Clerk Development keys (see web/README.md).
+    if (!sk.startsWith("sk_test_")) {
+      failures.push(
+        "CLERK_SECRET_KEY must be sk_test_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_test_… (or switch both to live keys for a custom domain).",
+      );
+    }
+  } else {
+    failures.push(
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must start with pk_live_ or pk_test_ (Clerk publishable key).",
+    );
+  }
+
+  if (!apiBase.startsWith("https://")) {
+    failures.push("NEXT_PUBLIC_API_BASE_URL must be an HTTPS production URL.");
+  }
   if (apiBase.includes("localhost") || apiBase.includes("127.0.0.1")) {
     failures.push("NEXT_PUBLIC_API_BASE_URL must not point to localhost in production.");
   }

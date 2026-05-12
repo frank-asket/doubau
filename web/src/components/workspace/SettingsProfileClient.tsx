@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -29,6 +30,7 @@ const PERSONAS = [
 
 export function SettingsProfileClient() {
   const qc = useQueryClient();
+  const router = useRouter();
   const q = useQuery({
     queryKey: queryKeys.profile,
     queryFn: async () => {
@@ -43,6 +45,7 @@ export function SettingsProfileClient() {
   const [yearsExperience, setYearsExperience] = useState("");
   const [location, setLocation] = useState("");
   const [contactPrefs, setContactPrefs] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   useEffect(() => {
     if (!q.data) return;
@@ -76,6 +79,22 @@ export function SettingsProfileClient() {
     },
   });
 
+  const deleteAccount = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/me/account", { method: "DELETE" });
+      const body = (await r.json().catch(() => ({}))) as { detail?: unknown };
+      if (!r.ok) {
+        throw new Error(typeof body.detail === "string" ? body.detail : "Account deletion failed.");
+      }
+      return body;
+    },
+    onSuccess: async () => {
+      await qc.clear();
+      router.replace("/");
+      router.refresh();
+    },
+  });
+
   return (
     <ProductPageChrome
       title="Settings"
@@ -86,90 +105,123 @@ export function SettingsProfileClient() {
       ) : q.isError ? (
         <p className="text-[13px] text-[var(--app-badge-red-fg)]">Could not load profile.</p>
       ) : (
-        <div className="max-w-xl space-y-5 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
-          <div className="text-[13px] text-[var(--app-text-secondary)]">
-            Signed in as{" "}
-            <span className="font-medium text-[var(--app-text-primary)]">{q.data?.email ?? "—"}</span>
-            {q.data?.plan_tier ? (
-              <>
-                {" "}
-                · Plan:{" "}
-                <span className="font-mono text-[12px] text-[var(--app-text-primary)]">{q.data.plan_tier}</span>
-              </>
+        <div className="max-w-2xl space-y-5">
+          <div className="space-y-5 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
+            <div className="text-[13px] text-[var(--app-text-secondary)]">
+              Signed in as{" "}
+              <span className="font-medium text-[var(--app-text-primary)]">{q.data?.email ?? "—"}</span>
+              {q.data?.plan_tier ? (
+                <>
+                  {" "}
+                  · Plan:{" "}
+                  <span className="font-mono text-[12px] text-[var(--app-text-primary)]">{q.data.plan_tier}</span>
+                </>
+              ) : null}
+            </div>
+
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Persona
+              <select
+                value={persona}
+                onChange={(e) => setPersona(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)]"
+              >
+                {PERSONAS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Current role
+              <input
+                value={currentRole}
+                onChange={(e) => setCurrentRole(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+              />
+            </label>
+
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Years experience
+              <input
+                value={yearsExperience}
+                onChange={(e) => setYearsExperience(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+              />
+            </label>
+
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Location
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+              />
+            </label>
+
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Contact preferences
+              <textarea
+                value={contactPrefs}
+                onChange={(e) => setContactPrefs(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+              />
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <AppButton
+                type="button"
+                disabled={save.isPending}
+                onClick={() => save.mutate()}
+                className="justify-center"
+              >
+                {save.isPending ? "Saving…" : "Save profile"}
+              </AppButton>
+              <Link
+                href="/app/billing"
+                className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]"
+              >
+                Open billing & subscriptions <AppIcon name="chevron-right" className="size-4" />
+              </Link>
+            </div>
+            {save.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">Save failed. Try again.</p>
             ) : null}
           </div>
 
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Persona
-            <select
-              value={persona}
-              onChange={(e) => setPersona(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)]"
-            >
-              {PERSONAS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Current role
-            <input
-              value={currentRole}
-              onChange={(e) => setCurrentRole(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-            />
-          </label>
-
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Years experience
-            <input
-              value={yearsExperience}
-              onChange={(e) => setYearsExperience(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-            />
-          </label>
-
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Location
-            <input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-            />
-          </label>
-
-          <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
-            Contact preferences
-            <textarea
-              value={contactPrefs}
-              onChange={(e) => setContactPrefs(e.target.value)}
-              rows={3}
-              className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
-            />
-          </label>
-
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[color-mix(in_srgb,var(--app-danger)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_5%,var(--app-bg-elevated))] p-6">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--app-text-primary)]">Delete account</h2>
+              <p className="mt-2 text-[13px] leading-6 text-[var(--app-text-secondary)]">
+                Permanently delete your profile, résumé files, applications, drafts, milestones, check-ins, and Copilot history.
+                This also attempts to remove your Clerk sign-in account.
+              </p>
+            </div>
+            <label className="block text-[12px] font-medium text-[var(--app-text-secondary)]">
+              Type DELETE to confirm
+              <input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                className="mt-1 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg-page)] px-3 py-2 text-[13px] text-[var(--app-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-danger)]"
+              />
+            </label>
             <AppButton
               type="button"
-              disabled={save.isPending}
-              onClick={() => save.mutate()}
-              className="justify-center"
+              variant="danger"
+              disabled={deleteConfirm !== "DELETE" || deleteAccount.isPending}
+              onClick={() => deleteAccount.mutate()}
             >
-              {save.isPending ? "Saving…" : "Save profile"}
+              {deleteAccount.isPending ? "Deleting…" : "Delete my account"}
             </AppButton>
-            <Link
-              href="/app/billing"
-              className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--app-accent)] transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--app-bg-muted)] active:scale-[0.96]"
-            >
-              Open billing & subscriptions <AppIcon name="chevron-right" className="size-4" />
-            </Link>
+            {deleteAccount.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">
+                {deleteAccount.error instanceof Error ? deleteAccount.error.message : "Account deletion failed."}
+              </p>
+            ) : null}
           </div>
-          {save.isError ? (
-            <p className="text-[13px] text-[var(--app-badge-red-fg)]">Save failed. Try again.</p>
-          ) : null}
         </div>
       )}
     </ProductPageChrome>

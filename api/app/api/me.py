@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import desc, func, select
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score_from_jd_text
@@ -31,11 +32,19 @@ from app.models.job_match_event import JobMatchEvent
 from app.models.milestone import Milestone
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.models.user import User
 from app.storage.s3 import ensure_bucket, s3_client
 from app.tasks import process_resume_document, run_process_resume_document_sync
 
 router = APIRouter(prefix="/me", tags=["me"])
 log = logging.getLogger(__name__)
+
+
+class AccountDeleteOut(BaseModel):
+    status: str
+    deleted_user_id: UUID
+    deleted_resume_objects: int
+    deleted_resume_documents: int
 
 
 async def _resume_pipeline_background(resume_document_id: str) -> None:
@@ -347,6 +356,53 @@ def _resume_readiness(status: str | None) -> int:
     if status == ResumeStatus.FAILED:
         return 12
     return 0
+
+
+@router.delete("/account", response_model=AccountDeleteOut)
+def delete_account(db: DbDep, current_user: CurrentUserDep) -> AccountDeleteOut:
+    """Erase the current user's app account and résumé objects.
+
+    Database rows use ON DELETE CASCADE from ``users`` for profile, applications/drafts,
+    check-ins, milestones, match events, feedback, idempotency keys, LLM logs, and Copilot
+    sessions. S3 objects are deleted first so failures do not leave orphaned database state.
+    """
+    docs = db.scalars(
+        select(ResumeDocument).where(ResumeDocument.user_id == current_user.id)
+    ).all()
+    objects = [(d.s3_bucket, d.s3_key) for d in docs if d.s3_bucket and d.s3_key]
+
+    if objects:
+        client = s3_client()
+        for bucket, key in objects:
+            try:
+                client.delete_object(Bucket=bucket, Key=key)
+            except ClientError as e:
+                code = (e.response or {}).get("Error", {}).get("Code")
+                if str(code) not in {"404", "NoSuchKey", "NotFound"}:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="Could not delete résumé storage.",
+                    ) from e
+            except BotoCoreError as e:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Could not delete résumé storage.",
+                ) from e
+
+    deleted_user_id = current_user.id
+    deleted_resume_documents = len(docs)
+    user = db.get(User, current_user.id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    db.delete(user)
+    db.commit()
+    return AccountDeleteOut(
+        status="deleted",
+        deleted_user_id=deleted_user_id,
+        deleted_resume_objects=len(objects),
+        deleted_resume_documents=deleted_resume_documents,
+    )
 
 
 def _trend_bucket(dt: datetime, *, start: datetime) -> int:

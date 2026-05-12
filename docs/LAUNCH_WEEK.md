@@ -62,8 +62,9 @@ curl -sS -X POST "${DOUBOW_API_BASE_URL}/jobs/cron/queue-ingest" \
 3. Pre-flight: `cd web && npm run launch:check`.
 4. Build: `cd web && npm ci && npm run typecheck && npm run build`.
 
-Vercel production builds fail fast if Clerk keys are not `pk_live_` / `sk_live_`, or the API base
-URL is not an HTTPS production URL.
+Vercel **Production** builds validate env: **`NEXT_PUBLIC_API_BASE_URL`** must be HTTPS (not
+localhost). Clerk keys must be a **matching pair** — `pk_test_` with `sk_test_` (demo on
+`*.vercel.app`) or `pk_live_` with `sk_live_` (custom domain).
 
 ## 4. Smoke tests (same day as deploy)
 

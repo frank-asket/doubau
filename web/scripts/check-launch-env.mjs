@@ -43,14 +43,28 @@ if (!apiBase) {
 
 if (!publishableKey) {
   blockers.push("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required.");
-} else if (strict && !publishableKey.startsWith("pk_live_")) {
-  blockers.push("Production web deploy must use a Clerk publishable key starting with pk_live_.");
+} else if (strict) {
+  if (publishableKey.startsWith("pk_live_")) {
+    if (!secretKey.startsWith("sk_live_")) {
+      blockers.push(
+        "CLERK_SECRET_KEY must start with sk_live_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_live_…",
+      );
+    }
+  } else if (publishableKey.startsWith("pk_test_")) {
+    if (!secretKey.startsWith("sk_test_")) {
+      blockers.push(
+        "CLERK_SECRET_KEY must start with sk_test_ when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is pk_test_… (demo on *.vercel.app).",
+      );
+    }
+  } else {
+    blockers.push(
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must start with pk_live_ or pk_test_ (Clerk publishable key).",
+    );
+  }
 }
 
 if (!secretKey) {
   blockers.push("CLERK_SECRET_KEY is required.");
-} else if (strict && !secretKey.startsWith("sk_live_")) {
-  blockers.push("Production web deploy must use a Clerk secret key starting with sk_live_.");
 }
 
 if (jwtTemplate !== "doubow-api") {
