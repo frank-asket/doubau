@@ -1,6 +1,6 @@
 """Store Gmail API message id after in-app send (open-in-Gmail + audit).
 
-Revision ID: 0017_application_gmail_sent_message_id
+Revision ID: 0017_gmail_sent_message_id (≤32 chars for alembic_version.version_num)
 Revises: 0016_user_google_tokens
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0017_application_gmail_sent_message_id"
+revision: str = "0017_gmail_sent_message_id"
 down_revision: str | None = "0016_user_google_tokens"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
