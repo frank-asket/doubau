@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 
 import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
-import { ChromeIconButton, ChromeIconLink, ChromePrimaryButton } from "@/components/ui/chrome-motion";
+import { ChromeIconButton, ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
 /** Public runbook (override with NEXT_PUBLIC_LAUNCH_DOCS_URL for forks). */
@@ -375,141 +375,150 @@ function DiscoveryCard({
       whileHover={reducedMotion ? undefined : { y: -3 }}
       transition={{ duration: 0.26, delay: reducedMotion ? 0 : Math.min(index * 0.03, 0.22) }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
-          <div className="min-w-0 pr-1">
-            {!isPreviewJob(job) ? (
-              <Link href={detailHref} className="block min-w-0 rounded-md outline-none ring-[var(--app-accent)] focus-visible:ring-2">
-                <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)] group-hover/card:text-[var(--app-accent)]">
-                  {job.title}
-                </h2>
-                <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
-              </Link>
-            ) : (
-              <>
-                <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)]">{job.title}</h2>
-                <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
-              </>
-            )}
+      {!isPreviewJob(job) ? (
+        <Link
+          href={detailHref}
+          className="absolute inset-0 z-10 rounded-[22px] outline-none ring-[var(--app-accent)] focus-visible:z-30 focus-visible:ring-2"
+          aria-label={`View job: ${job.title} at ${job.company}`}
+        />
+      ) : null}
+      <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
+            <div className="min-w-0 pr-1">
+              {!isPreviewJob(job) ? (
+                <>
+                  <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)] group-hover/card:text-[var(--app-accent)]">
+                    {job.title}
+                  </h2>
+                  <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)]">{job.title}</h2>
+                  <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-        <motion.button
-          type="button"
-          className={`grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_14%,white)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--app-accent)_18%,transparent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"}`}
-          aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-          title={favorite ? "Remove from favorites" : "Save to favorites"}
-          onClick={onToggleFavorite}
-          whileTap={reducedMotion ? undefined : { scale: 0.92 }}
-          transition={{ type: "spring", stiffness: 520, damping: 28 }}
-        >
-          <motion.span
-            key={favorite ? "on" : "off"}
-            initial={reducedMotion ? false : { scale: 0.86, rotate: -8 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className="grid place-items-center"
+          <motion.button
+            type="button"
+            className={`pointer-events-auto relative z-20 grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_14%,white)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--app-accent)_18%,transparent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"}`}
+            aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+            title={favorite ? "Remove from favorites" : "Save to favorites"}
+            onClick={onToggleFavorite}
+            whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 520, damping: 28 }}
           >
-            <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
-          </motion.span>
-        </motion.button>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {tags.map((tag) => (
-          <Tag key={`${job.id}-${tag}`}>{tag}</Tag>
-        ))}
-      </div>
-
-      <p className="mt-4 line-clamp-3 min-h-[4.5rem] text-[14px] leading-[1.55] text-[var(--app-text-primary)]">{description}</p>
-
-      <p className="mt-2 line-clamp-1 text-[12px] text-[var(--app-text-tertiary)]">
-        <span className="font-medium text-[var(--app-text-secondary)]">{sourceLabel(job)}</span>
-        <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
-          ·
-        </span>
-        <span>{postedLabel(job)}</span>
-        {score !== null ? (
-          <>
-            <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
-              ·
-            </span>
-            <span className="font-semibold text-[var(--app-accent)]">{score}% match</span>
-          </>
-        ) : null}
-      </p>
-
-      {row.scoreReason ? (
-        <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-snug text-[var(--app-text-secondary)]">{row.scoreReason}</p>
-      ) : null}
-
-      {components.length ? (
-        <details className="mt-3 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/60 px-2 py-1.5 text-[11px] text-[var(--app-text-tertiary)]">
-          <summary className="cursor-pointer select-none font-semibold text-[var(--app-text-secondary)] [&::-webkit-details-marker]:hidden">
-            Score breakdown
-          </summary>
-          <div className="mt-2 grid gap-2 pb-1">
-            {components.map(([name, value]) => (
-              <div
-                key={name}
-                className="grid grid-cols-[88px_1fr_40px] items-center gap-2 font-bold uppercase tracking-[0.06em]"
-              >
-                <span className="truncate">{name}</span>
-                <span className="h-1.5 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
-                  <span
-                    className="block h-full rounded-full bg-[var(--app-accent)]"
-                    style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
-                  />
-                </span>
-                <span className="text-right tabular-nums text-[var(--app-text-primary)]">{Math.round(value)}%</span>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
-
-      <div className="mt-auto flex items-center justify-between border-t border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] pt-4">
-        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[var(--app-text-primary)]">
-          <AppIcon name="banknote" className="size-4 shrink-0 text-[var(--app-text-tertiary)]" />
-          <span className="truncate text-[var(--app-text-secondary)]">See posting for salary</span>
-        </p>
-        <div className="flex shrink-0 items-center gap-1">
-          {!isPreviewJob(job) ? (
-            <motion.button
-              type="button"
-              className="grid size-10 place-items-center rounded-full border border-transparent text-[var(--app-text-secondary)] transition-colors duration-150 ease-out hover:border-[color-mix(in_srgb,var(--app-danger)_22%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-danger)_08%,white)] hover:text-[var(--app-danger)]"
-              aria-label={`Hide ${job.title}`}
-              title="Hide role"
-              onClick={onHide}
-              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            <motion.span
+              key={favorite ? "on" : "off"}
+              initial={reducedMotion ? false : { scale: 0.86, rotate: -8 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 22 }}
+              className="grid place-items-center"
             >
-              <AppIcon name="trash" className="size-4" />
-            </motion.button>
+              <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
+            </motion.span>
+          </motion.button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <Tag key={`${job.id}-${tag}`}>{tag}</Tag>
+          ))}
+        </div>
+
+        <p className="mt-4 line-clamp-3 min-h-[4.5rem] text-[14px] leading-[1.55] text-[var(--app-text-primary)]">{description}</p>
+
+        <p className="mt-2 line-clamp-1 text-[12px] text-[var(--app-text-tertiary)]">
+          <span className="font-medium text-[var(--app-text-secondary)]">{sourceLabel(job)}</span>
+          <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
+            ·
+          </span>
+          <span>{postedLabel(job)}</span>
+          {score !== null ? (
+            <>
+              <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
+                ·
+              </span>
+              <span className="font-semibold text-[var(--app-accent)]">{score}% match</span>
+            </>
           ) : null}
-          {!isPreviewJob(job) ? (
-            listingIsExternal ? (
-              <motion.a
-                href={listingHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-                aria-label={`Open original listing — ${job.title}`}
-                title="Original listing"
+        </p>
+
+        {row.scoreReason ? (
+          <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-snug text-[var(--app-text-secondary)]">{row.scoreReason}</p>
+        ) : null}
+
+        {components.length ? (
+          <details className="pointer-events-auto mt-3 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/60 px-2 py-1.5 text-[11px] text-[var(--app-text-tertiary)]">
+            <summary className="cursor-pointer select-none font-semibold text-[var(--app-text-secondary)] [&::-webkit-details-marker]:hidden">
+              Score breakdown
+            </summary>
+            <div className="mt-2 grid gap-2 pb-1">
+              {components.map(([name, value]) => (
+                <div
+                  key={name}
+                  className="grid grid-cols-[88px_1fr_40px] items-center gap-2 font-bold uppercase tracking-[0.06em]"
+                >
+                  <span className="truncate">{name}</span>
+                  <span className="h-1.5 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
+                    <span
+                      className="block h-full rounded-full bg-[var(--app-accent)]"
+                      style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
+                    />
+                  </span>
+                  <span className="text-right tabular-nums text-[var(--app-text-primary)]">{Math.round(value)}%</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+
+        <div className="mt-auto flex items-center justify-between border-t border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] pt-4">
+          <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[var(--app-text-primary)]">
+            <AppIcon name="banknote" className="size-4 shrink-0 text-[var(--app-text-tertiary)]" />
+            <span className="truncate text-[var(--app-text-secondary)]">See posting for salary</span>
+          </p>
+          <div className="flex shrink-0 items-center gap-1">
+            {!isPreviewJob(job) ? (
+              <motion.button
+                type="button"
+                className="pointer-events-auto relative z-20 grid size-10 place-items-center rounded-full border border-transparent text-[var(--app-text-secondary)] transition-colors duration-150 ease-out hover:border-[color-mix(in_srgb,var(--app-danger)_22%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-danger)_08%,white)] hover:text-[var(--app-danger)]"
+                aria-label={`Hide ${job.title}`}
+                title="Hide role"
+                onClick={onHide}
                 whileTap={reducedMotion ? undefined : { scale: 0.92 }}
               >
-                <AppIcon name="arrow-up-right" className="size-5" />
-              </motion.a>
-            ) : (
-              <ChromeIconLink
-                href={detailHref}
-                className={linkClass}
-                aria-label={`View ${job.title} in Doubow`}
-                title="View role"
-              >
-                <AppIcon name="arrow-up-right" className="size-5" />
-              </ChromeIconLink>
-            )
-          ) : null}
+                <AppIcon name="trash" className="size-4" />
+              </motion.button>
+            ) : null}
+            {!isPreviewJob(job) ? (
+              listingIsExternal ? (
+                <motion.a
+                  href={listingHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${linkClass} pointer-events-auto relative z-20`}
+                  aria-label={`Open original listing — ${job.title}`}
+                  title="Original listing"
+                  whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+                >
+                  <AppIcon name="arrow-up-right" className="size-5" />
+                </motion.a>
+              ) : (
+                <motion.span
+                  aria-hidden
+                  className={`${linkClass} pointer-events-none`}
+                  title="View role in Doubow"
+                  whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+                >
+                  <AppIcon name="arrow-up-right" className="size-5" />
+                </motion.span>
+              )
+            ) : null}
+          </div>
         </div>
       </div>
     </motion.article>

@@ -170,12 +170,8 @@ function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) 
                 ) : null}
               </article>
             );
-            return job.source_url ? (
-              <Link key={job.job_id} href={job.source_url} target="_blank" rel="noreferrer" className="block">
-                {inner}
-              </Link>
-            ) : (
-              <Link key={job.job_id} href="/app/discovery" className="block">
+            return (
+              <Link key={job.job_id} href={`/app/discovery/${job.job_id}`} className="block">
                 {inner}
               </Link>
             );
