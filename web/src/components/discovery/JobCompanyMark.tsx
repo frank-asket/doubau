@@ -34,6 +34,7 @@ function isLowSignalLogoHost(host: string): boolean {
   if (h.includes("adzuna.")) return true;
   if (h.includes("indeed.") || h.includes("glassdoor.") || h.includes("linkedin.") || h.includes("monster.")) return true;
   if (h.includes("ziprecruiter.") || h.includes("reed.co") || h.includes("totaljobs.") || h.includes("seek.com")) return true;
+  if (h === "boards-api.greenhouse.io") return true;
   if (
     h === "boards.greenhouse.io" ||
     h === "jobs.greenhouse.io" ||
@@ -46,6 +47,59 @@ function isLowSignalLogoHost(host: string): boolean {
   }
   if (h.includes("smartrecruiters.com") || h.includes("workable.com") || h.includes("ashbyhq.com")) return true;
   return false;
+}
+
+/**
+ * Many listings point at ATS hosts (Greenhouse, Lever, …) where the hostname is not the employer.
+ * We still derive a **likely corporate domain** from the first path segment so Logo.dev / favicons
+ * can resolve — otherwise the employer metadata panel stays empty.
+ */
+const GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES: Record<string, string> = {
+  doordashusa: "doordash.com",
+  doordash: "doordash.com",
+  reddit: "reddit.com",
+  lyft: "lyft.com",
+  airbnb: "airbnb.com",
+  stripe: "stripe.com",
+};
+
+function boardSlugToEmployerDomain(slugRaw: string): string | null {
+  const slug = slugRaw.trim().toLowerCase().replace(/_/g, "-");
+  if (!slug || slug.length < 2 || slug.length > 48) return null;
+  if (GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[slug]) return GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[slug];
+  // "acme-corp" → too ambiguous for auto-.com; skip hyphens in slug
+  if (slug.includes("-")) return null;
+  // Strip common regional suffixes before guessing .com
+  const stripped = slug.replace(/(usa|uk|eu|global)$/i, "");
+  if (stripped !== slug && GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[stripped]) {
+    return GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[stripped];
+  }
+  const base = stripped.length >= 2 ? stripped : slug;
+  if (!/^[a-z0-9]+$/.test(base)) return null;
+  return `${base}.com`;
+}
+
+/** Infer hiring company domain from ATS listing URL (Greenhouse / Lever paths). */
+export function inferEmployerDomainFromListingUrl(sourceUrl: string | null | undefined): string | null {
+  if (!sourceUrl || sourceUrl === "#") return null;
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(sourceUrl) ? sourceUrl : `https://${sourceUrl}`);
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    const parts = parsed.pathname.split("/").filter(Boolean);
+
+    if (host === "boards.greenhouse.io" || host === "job-boards.greenhouse.io") {
+      return boardSlugToEmployerDomain(parts[0] ?? "");
+    }
+    if (host === "jobs.lever.co" && parts[0]) {
+      return boardSlugToEmployerDomain(parts[0]);
+    }
+    if (host === "boards-api.greenhouse.io" && parts[0] === "v1" && parts[1] === "boards" && parts[2]) {
+      return boardSlugToEmployerDomain(parts[2]);
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 /** When the listing has no URL, infer a corporate domain from the employer name (substring match). */
@@ -96,6 +150,10 @@ const BRAND_HOST_BY_SUBSTRING: { needle: string; host: string }[] = [
 export function resolveCompanyLogoHost(company: string, sourceUrl: string | null | undefined): string | null {
   const fromUrl = hostnameFromSourceUrl(sourceUrl);
   if (fromUrl && !isLowSignalLogoHost(fromUrl)) return fromUrl;
+
+  const fromAtsSlug = inferEmployerDomainFromListingUrl(sourceUrl);
+  if (fromAtsSlug) return fromAtsSlug;
+
   const c = company.toLowerCase().trim();
   for (const { needle, host } of BRAND_HOST_BY_SUBSTRING) {
     if (c.includes(needle)) return host;

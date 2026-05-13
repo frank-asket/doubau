@@ -119,7 +119,16 @@ export function EmployerLogoDevPanel({
     };
   }, [domain, enabled]);
 
-  if (!enabled || !domain) return null;
+  if (!enabled) return null;
+
+  if (!domain) {
+    return (
+      <div className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
+        Employer directory (Logo.dev) needs a guessable corporate domain. Aggregator or ATS-only links often hide
+        this — we still show the listing employer name and initials above.
+      </div>
+    );
+  }
 
   if (loading) {
     return (
