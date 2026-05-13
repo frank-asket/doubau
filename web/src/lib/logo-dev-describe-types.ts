@@ -2,6 +2,11 @@ export type EmployerBrandPayload = {
   source: "logo.dev";
   /** True when only the Logo.dev image CDN is available (no Describe / secret key). */
   partial?: boolean;
+  /**
+   * When true with `partial`, `colors_hex` are local heuristics for UI only (not Logo.dev).
+   * Omitted or false when colours come from Describe API.
+   */
+  partial_palette_heuristic?: boolean;
   name: string;
   domain: string;
   description: string | null;

@@ -2,6 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import type { EmployerBrandPayload, LogoDevDescribeJson } from "@/lib/logo-dev-describe-types";
+import {
+  buildPartialEmployerDescription,
+  displayBrandNameFromDomain,
+  heuristicBrandPaletteHex,
+} from "@/lib/logo-dev-partial-brand";
 
 /** Logo.dev image CDN URL for the browser (publishable key; safe to expose to client). */
 function buildClientLogoDevImageUrl(domain: string): string | null {
@@ -74,15 +79,17 @@ export async function GET(req: Request) {
           "Employer metadata needs at least NEXT_PUBLIC_LOGO_DEV_KEY (logos) or LOGO_DEV_SECRET_KEY (full Describe API on a paid Logo.dev plan).",
       } satisfies LogoDevDescribeJson);
     }
+    const displayName = displayBrandNameFromDomain(domain);
     const partial: EmployerBrandPayload = {
       source: "logo.dev",
       partial: true,
-      name: domain,
+      partial_palette_heuristic: true,
+      name: displayName,
       domain,
-      description: null,
+      description: buildPartialEmployerDescription(domain, displayName),
       indexed_at: null,
       socials: {},
-      colors_hex: [],
+      colors_hex: heuristicBrandPaletteHex(domain),
       logo_url: logoUrl,
       blurhash: null,
     };
@@ -112,15 +119,17 @@ export async function GET(req: Request) {
 
     if (!resp.ok) {
       if (resp.status === 404 && logoUrl) {
+        const displayName404 = displayBrandNameFromDomain(domain);
         const fallback: EmployerBrandPayload = {
           source: "logo.dev",
           partial: true,
-          name: domain,
+          partial_palette_heuristic: true,
+          name: displayName404,
           domain,
-          description: null,
+          description: buildPartialEmployerDescription(domain, displayName404),
           indexed_at: null,
           socials: {},
-          colors_hex: [],
+          colors_hex: heuristicBrandPaletteHex(domain),
           logo_url: logoUrl,
           blurhash: null,
         };
@@ -170,6 +179,7 @@ export async function GET(req: Request) {
     const data: EmployerBrandPayload = {
       source: "logo.dev",
       partial: false,
+      partial_palette_heuristic: false,
       name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : resolvedDomain,
       domain: resolvedDomain,
       description: typeof raw.description === "string" && raw.description.trim() ? raw.description.trim() : null,

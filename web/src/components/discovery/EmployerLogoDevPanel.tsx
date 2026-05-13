@@ -190,7 +190,9 @@ export function EmployerLogoDevPanel({
 
       {payload.partial ? (
         <p className="rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-warning)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-2 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-          Showing the official{" "}
+          <span className="font-semibold text-[var(--app-text-primary)]">Publishable-key mode.</span> Logo image is from
+          Logo.dev CDN; Describe fields require{" "}
+          <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> on the server.{" "}
           <a
             href="https://logo.dev"
             target="_blank"
@@ -198,17 +200,28 @@ export function EmployerLogoDevPanel({
             className="font-semibold text-[var(--app-accent)] underline-offset-2 hover:underline"
           >
             Logo.dev
-          </a>{" "}
-          mark for this domain. Add <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> on the server for
-          descriptions, colors, and social links (Describe API).
+          </a>
         </p>
       ) : null}
 
       {companyName.trim() && payload.name.trim().toLowerCase() !== companyName.trim().toLowerCase() ? (
         <p className="text-[12px] text-[var(--app-text-tertiary)]">
-          Brand directory name: <span className="font-medium text-[var(--app-text-secondary)]">{payload.name}</span>
+          Listing employer: <span className="font-medium text-[var(--app-text-secondary)]">{companyName.trim()}</span>
+          {" · "}
+          Brand label: <span className="font-medium text-[var(--app-text-secondary)]">{payload.name}</span>
         </p>
       ) : null}
+
+      <a
+        href={`https://${payload.domain}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--app-accent)] underline-offset-2 hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <AppIcon name="arrow-up-right" className="size-3.5 shrink-0 opacity-80" />
+        Open {payload.domain}
+      </a>
 
       {payload.description ? (
         <p className="text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{payload.description}</p>
@@ -218,7 +231,14 @@ export function EmployerLogoDevPanel({
 
       {payload.colors_hex.length > 0 ? (
         <div>
-          <div className="mb-1.5 text-[11px] font-medium text-[var(--app-text-tertiary)]">Brand colors</div>
+          <div className="mb-1.5 text-[11px] font-medium text-[var(--app-text-tertiary)]">
+            {payload.partial_palette_heuristic ? "Suggested palette (local heuristic)" : "Brand colors"}
+          </div>
+          {payload.partial_palette_heuristic ? (
+            <p className="mb-2 text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
+              Not from Logo.dev — two stable accents derived from the domain string for layout only.
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {payload.colors_hex.slice(0, 6).map((hex, i) => (
               <span
@@ -255,6 +275,11 @@ export function EmployerLogoDevPanel({
               </li>
             ))}
           </ul>
+        </div>
+      ) : payload.partial ? (
+        <div className="rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-2 text-[12px] text-[var(--app-text-tertiary)]">
+          Social links load from the Describe API when <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span>{" "}
+          is set on the server.
         </div>
       ) : null}
 
