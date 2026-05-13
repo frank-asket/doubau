@@ -54,14 +54,21 @@ export default function ApprovalsPage() {
   const [gmailSendNotice, setGmailSendNotice] = useState<{
     recipient: string;
     messageId: string | null;
-    updatedAt: string | null;
+    submittedAt: string | null;
   } | null>(null);
+  const [queueSubmitNotice, setQueueSubmitNotice] = useState<{ submittedAt: string } | null>(null);
 
   useEffect(() => {
     if (!gmailSendNotice) return;
     const t = window.setTimeout(() => setGmailSendNotice(null), 14_000);
     return () => window.clearTimeout(t);
   }, [gmailSendNotice]);
+
+  useEffect(() => {
+    if (!queueSubmitNotice) return;
+    const t = window.setTimeout(() => setQueueSubmitNotice(null), 12_000);
+    return () => window.clearTimeout(t);
+  }, [queueSubmitNotice]);
 
   const googleMailboxQ = useQuery({
     queryKey: queryKeys.googleMailbox,
@@ -113,7 +120,7 @@ export default function ApprovalsPage() {
       setGmailSendNotice({
         recipient: app.recipient_email?.trim() ?? "",
         messageId: app.gmail_sent_message_id?.trim() || null,
-        updatedAt: app.updated_at ?? null,
+        submittedAt: app.submitted_at?.trim() || null,
       });
       await invalidateApprovalQueries();
     },
@@ -203,19 +210,23 @@ export default function ApprovalsPage() {
   const submitM = useMutation({
     mutationFn: async (appId: string) => {
       const resp = await fetch(`/api/applications/${appId}/submit`, { method: "POST" });
+      const data = (await resp.json().catch(() => ({}))) as ApplicationRow & { detail?: string };
       if (!resp.ok) {
-        const data = (await resp.json().catch(() => ({}))) as { detail?: string };
         throw new Error(
           typeof data.detail === "string" ? data.detail : "Submit failed (must be APPROVED first).",
         );
       }
+      return data as ApplicationRow;
     },
     onMutate: (appId) => {
       setBusyId(appId);
       setMutationError(null);
     },
     onSettled: () => setBusyId(null),
-    onSuccess: async () => {
+    onSuccess: async (app) => {
+      if (app?.submitted_at) {
+        setQueueSubmitNotice({ submittedAt: app.submitted_at });
+      }
       await invalidateApprovalQueries();
     },
     onError: (err) => {
@@ -340,12 +351,12 @@ export default function ApprovalsPage() {
                 <p>
                   <span className="text-[var(--app-text-tertiary)]">To</span>{" "}
                   <span className="font-medium text-[var(--app-text-primary)]">{gmailSendNotice.recipient}</span>
-                  {gmailSendNotice.updatedAt ? (
+                  {gmailSendNotice.submittedAt ? (
                     <>
                       {" "}
                       <span className="text-[var(--app-text-tertiary)]">·</span>{" "}
-                      <time className="tabular-nums text-[var(--app-text-tertiary)]" dateTime={gmailSendNotice.updatedAt}>
-                        {new Date(gmailSendNotice.updatedAt).toLocaleString(undefined, {
+                      <time className="tabular-nums text-[var(--app-text-tertiary)]" dateTime={gmailSendNotice.submittedAt}>
+                        {new Date(gmailSendNotice.submittedAt).toLocaleString(undefined, {
                           dateStyle: "medium",
                           timeStyle: "short",
                         })}
@@ -353,10 +364,20 @@ export default function ApprovalsPage() {
                     </>
                   ) : null}
                 </p>
+              ) : gmailSendNotice.submittedAt ? (
+                <p className="tabular-nums text-[var(--app-text-secondary)]">
+                  <span className="text-[var(--app-text-tertiary)]">Recorded</span>{" "}
+                  <time dateTime={gmailSendNotice.submittedAt}>
+                    {new Date(gmailSendNotice.submittedAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </time>
+                </p>
               ) : null}
               <p className="text-[12px] text-[var(--app-text-tertiary)]">
-                A BCC copy should appear in your inbox (unless you sent to your own address). Sent mail also lists the employer
-                line.
+                A separate &quot;[Doubow] Receipt&quot; email was sent to your Gmail with the same details. Check inbox and Sent for
+                the employer message. The employer may still send their own auto-reply later.
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
@@ -379,6 +400,35 @@ export default function ApprovalsPage() {
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {queueSubmitNotice ? (
+        <div
+          role="status"
+          className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_32%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_08%,var(--app-bg-elevated))] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]"
+        >
+          <p className="font-semibold text-[var(--app-text-primary)]">Submission recorded</p>
+          <p className="mt-1">
+            <span className="text-[var(--app-text-tertiary)]">Queued at</span>{" "}
+            <time className="tabular-nums font-medium text-[var(--app-text-primary)]" dateTime={queueSubmitNotice.submittedAt}>
+              {new Date(queueSubmitNotice.submittedAt).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </time>
+          </p>
+          <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
+            The API will send via SMTP when configured. Your acknowledgement of receipt is this timestamp in Doubow; you will not get
+            the separate Gmail receipt email from that path.
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-[12px] font-medium text-[var(--app-text-tertiary)] underline-offset-4 hover:text-[var(--app-text-secondary)] hover:underline"
+            onClick={() => setQueueSubmitNotice(null)}
+          >
+            Dismiss
+          </button>
         </div>
       ) : null}
 
@@ -576,20 +626,24 @@ export default function ApprovalsPage() {
 
           if (status === "SUBMITTED" || status === "FAILED" || status === "RETRY") {
             const submittedProof =
-              status === "SUBMITTED" && (app.recipient_email?.trim() || app.gmail_sent_message_id?.trim()) ? (
+              status === "SUBMITTED" &&
+              (app.recipient_email?.trim() || app.gmail_sent_message_id?.trim() || app.submitted_at) ? (
                 <div className="max-w-lg space-y-2 rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-success)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-success)_06%,var(--app-bg-page))] px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-                  <p className="font-semibold text-[var(--app-text-primary)]">Send record</p>
+                  <p className="font-semibold text-[var(--app-text-primary)]">Acknowledgement of receipt</p>
+                  <p className="text-[11px] text-[var(--app-text-tertiary)]">
+                    Doubow record of your submission (not the employer&apos;s reply).
+                  </p>
                   {app.recipient_email?.trim() ? (
                     <p>
-                      <span className="text-[var(--app-text-tertiary)]">To</span>{" "}
+                      <span className="text-[var(--app-text-tertiary)]">Sent to</span>{" "}
                       <span className="font-medium text-[var(--app-text-primary)]">{app.recipient_email.trim()}</span>
                     </p>
                   ) : null}
-                  {app.updated_at ? (
+                  {(app.submitted_at || app.updated_at) ? (
                     <p className="tabular-nums text-[var(--app-text-tertiary)]">
                       Recorded{" "}
-                      <time dateTime={app.updated_at}>
-                        {new Date(app.updated_at).toLocaleString(undefined, {
+                      <time dateTime={app.submitted_at || app.updated_at}>
+                        {new Date(app.submitted_at || app.updated_at || "").toLocaleString(undefined, {
                           dateStyle: "medium",
                           timeStyle: "short",
                         })}

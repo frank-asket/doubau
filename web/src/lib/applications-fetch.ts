@@ -8,6 +8,7 @@ export type ApplicationRow = {
   source_url?: string | null;
   recipient_email?: string | null;
   gmail_sent_message_id?: string | null;
+  submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };

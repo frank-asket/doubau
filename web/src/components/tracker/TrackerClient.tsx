@@ -227,6 +227,17 @@ export function TrackerClient() {
                             })()}
                           </a>
                         ) : null}
+                        {app.status === "SUBMITTED" && app.submitted_at ? (
+                          <p className="mt-2 text-[11px] tabular-nums text-[var(--app-text-tertiary)]">
+                            Submitted{" "}
+                            <time dateTime={app.submitted_at}>
+                              {new Date(app.submitted_at).toLocaleString(undefined, {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </time>
+                          </p>
+                        ) : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           {app.status === "DISCOVERED" || app.status === "RETRY" ? (
                             <AppButton

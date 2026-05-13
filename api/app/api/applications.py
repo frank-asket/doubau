@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
@@ -47,7 +47,10 @@ def _pipeline_signature(db, user_id: UUID) -> str:
         .where(Application.user_id == user_id)
         .order_by(OutreachDraft.id)
     ).all()
-    parts: list[str] = [f"a:{a.id}:{a.status.value}:{a.updated_at.isoformat()}" for a in apps]
+    parts: list[str] = [
+        f"a:{a.id}:{a.status.value}:{a.updated_at.isoformat()}:{a.submitted_at.isoformat() if a.submitted_at else ''}"
+        for a in apps
+    ]
     parts.extend(f"d:{d.id}:{d.status.value}:{len(d.content)}" for d in drafts)
     return "|".join(parts)
 
@@ -65,6 +68,7 @@ class ApplicationOut(BaseModel):
     source_url: str | None
     recipient_email: str | None
     gmail_sent_message_id: str | None
+    submitted_at: datetime | None
     status: ApplicationStatus
     created_at: datetime
     updated_at: datetime
@@ -105,6 +109,39 @@ def _touch_application(app: Application) -> None:
     app.updated_at = datetime.utcnow()
 
 
+def _send_submission_receipt_email(
+    *,
+    refresh_token_cipher: str,
+    from_addr: str,
+    application_id: UUID,
+    company: str,
+    job_title: str,
+    recipient_email: str,
+    outgoing_subject: str,
+    submitted_at: datetime,
+) -> None:
+    """Separate message to the job seeker only — does not affect employer thread."""
+    at = submitted_at.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    body = (
+        "This is your Doubow acknowledgement of receipt.\n\n"
+        f"Role: {job_title}\n"
+        f"Company: {company}\n"
+        f"Sent to (employer): {recipient_email}\n"
+        f"Your application email subject: {outgoing_subject}\n"
+        f"Recorded at: {at}\n\n"
+        f"The application message was sent from {from_addr} through Doubow. "
+        "Open Gmail → Sent to see the exact email to the employer.\n\n"
+        f"Reference ID (support): {application_id}\n"
+    )
+    send_plaintext_email(
+        refresh_token_cipher=refresh_token_cipher,
+        from_addr=from_addr,
+        to_addr=from_addr,
+        subject=f"[Doubow] Receipt: {job_title} · {company}",
+        body=body,
+    )
+
+
 def _application_out(app: Application) -> ApplicationOut:
     return ApplicationOut(
         id=app.id,
@@ -113,6 +150,7 @@ def _application_out(app: Application) -> ApplicationOut:
         source_url=app.source_url,
         recipient_email=app.recipient_email,
         gmail_sent_message_id=app.gmail_sent_message_id,
+        submitted_at=app.submitted_at,
         status=app.status,
         created_at=app.created_at,
         updated_at=app.updated_at,
@@ -409,6 +447,7 @@ def submit(
         raise HTTPException(status_code=409, detail="No approved outreach draft found.")
 
     app.status = ApplicationStatus.SUBMITTED
+    app.submitted_at = datetime.now(timezone.utc)
     _touch_application(app)
     db.commit()
     db.refresh(app)
@@ -537,10 +576,27 @@ def send_gmail_in_app(
         assert_transition(app.status, ApplicationStatus.SUBMITTED)
     except InvalidTransition as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
+    submitted_at = datetime.now(timezone.utc)
     app.status = ApplicationStatus.SUBMITTED
+    app.submitted_at = submitted_at
     _touch_application(app)
     db.commit()
     db.refresh(app)
+
+    try:
+        _send_submission_receipt_email(
+            refresh_token_cipher=g.refresh_ciphertext,
+            from_addr=from_addr,
+            application_id=app.id,
+            company=app.company,
+            job_title=app.job_title,
+            recipient_email=to_addr,
+            outgoing_subject=subj,
+            submitted_at=submitted_at,
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("submission receipt email failed (application already saved): %s", exc)
+
     return _application_out(app)
 
 
