@@ -1,16 +1,15 @@
 """
 Career dashboard scoring for the hero-style home layout.
 
-Scores are deterministic from résumé parsing, profile completeness, application outcomes,
-and recent activity windows. They are *proxies* for product concepts (e.g. there is no
-LinkedIn OAuth yet — “LinkedIn health” blends profile signals with application outcomes).
+Scores use résumé parsing, profile completeness (including optional Google / LinkedIn OAuth
+snapshots stored in ``profiles.goals``), application outcomes, and recent activity windows.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import desc, func, select
@@ -19,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.models.application import Application, ApplicationStatus
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
+from app.models.user_linkedin_token import UserLinkedInToken
 
 Phase = Literal["current", "next", "future"]
 Trend = Literal["up", "down", "flat"]
@@ -60,8 +60,10 @@ def _resume_readiness_int(status: str | None) -> int:
     return 0
 
 
-def _linkedin_completeness(profile: Profile | None, *, resume_embedded: bool) -> int:
-    """Static 0–100 checklist until a real LinkedIn integration exists."""
+def _linkedin_completeness(
+    profile: Profile | None, *, resume_embedded: bool, has_linkedin_oidc: bool = False
+) -> int:
+    """0–100 checklist: profile fields, manual LinkedIn URL/headline, optional LinkedIn OpenID."""
     score = 0
     if profile:
         if (profile.current_role or "").strip():
@@ -79,7 +81,24 @@ def _linkedin_completeness(profile: Profile | None, *, resume_embedded: bool) ->
             score += 14
     if resume_embedded:
         score += 12
+    if has_linkedin_oidc:
+        score += 18
     return min(100, score)
+
+
+def _linkedin_oidc_connected(db: Session, *, user_id: Any, now_utc: datetime) -> bool:
+    row = db.get(UserLinkedInToken, user_id)
+    if row is None:
+        return False
+    if row.refresh_ciphertext and str(row.refresh_ciphertext).strip():
+        return True
+    if row.access_ciphertext and str(row.access_ciphertext).strip():
+        exp = row.access_expires_at
+        if exp is None:
+            return True
+        exp_aware = exp if exp.tzinfo else exp.replace(tzinfo=UTC)
+        return exp_aware > now_utc
+    return False
 
 
 def _momentum_from_counts(*, submitted: int, approved: int, pending: int) -> float:
@@ -250,6 +269,7 @@ def compute_hero_dashboard_payload(
     profile: Profile | None,
 ) -> dict[str, Any]:
     now = datetime.utcnow()
+    now_utc = datetime.now(UTC)
     start_31 = now - timedelta(days=31)
     start_62 = now - timedelta(days=62)
     mid_31 = now - timedelta(days=31)
@@ -312,7 +332,10 @@ def compute_hero_dashboard_payload(
         _pct_change(float(skill_count), float(max(1, prior_skill_count))) if prior_doc else 0
     )
 
-    li_score = _linkedin_completeness(profile, resume_embedded=resume_embedded)
+    li_oidc = _linkedin_oidc_connected(db, user_id=user_id, now_utc=now_utc)
+    li_score = _linkedin_completeness(
+        profile, resume_embedded=resume_embedded, has_linkedin_oidc=li_oidc
+    )
 
     recent_st = _count_by_status_window(db, user_id=user_id, start=start_31, end=now)
     prev_st = _count_by_status_window(db, user_id=user_id, start=start_62, end=mid_31)

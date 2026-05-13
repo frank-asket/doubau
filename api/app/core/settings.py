@@ -215,6 +215,10 @@ class Settings(BaseSettings):
     google_oauth_client_id: str | None = None
     google_oauth_client_secret: str | None = None
     google_oauth_redirect_uri: str | None = None
+    # LinkedIn OpenID (Sign In with LinkedIn). Redirect = Next.js /api/me/linkedin/oauth/callback
+    linkedin_oauth_client_id: str | None = None
+    linkedin_oauth_client_secret: str | None = None
+    linkedin_oauth_redirect_uri: str | None = None
     # Optional Fernet key (44-char url-safe base64). If unset, token crypto derives from jwt_secret.
     oauth_token_fernet_key: str | None = None
 
@@ -222,11 +226,14 @@ class Settings(BaseSettings):
         "google_oauth_client_id",
         "google_oauth_client_secret",
         "google_oauth_redirect_uri",
+        "linkedin_oauth_client_id",
+        "linkedin_oauth_client_secret",
+        "linkedin_oauth_redirect_uri",
         "oauth_token_fernet_key",
         mode="before",
     )
     @classmethod
-    def empty_google_oauth_to_none(cls, v: object) -> object:
+    def empty_oauth_creds_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
             return None
         return v
@@ -259,6 +266,28 @@ class Settings(BaseSettings):
             v = os.getenv("GOOGLE_OAUTH_TOKEN_FERNET_KEY", "").strip()
             if v and _is_valid_fernet_key(v):
                 patch["oauth_token_fernet_key"] = v
+
+        if patch:
+            return self.model_copy(update=patch)
+        return self
+
+    @model_validator(mode="after")
+    def legacy_linkedin_oauth_env(self) -> Self:
+        """Allow unprefixed LINKEDIN_OAUTH_* when DOUBOW_LINKEDIN_OAUTH_* is unset."""
+        patch: dict[str, str | None] = {}
+
+        if not (self.linkedin_oauth_client_id or "").strip():
+            v = os.getenv("LINKEDIN_OAUTH_CLIENT_ID", "").strip()
+            if v:
+                patch["linkedin_oauth_client_id"] = v
+        if not (self.linkedin_oauth_client_secret or "").strip():
+            v = os.getenv("LINKEDIN_OAUTH_CLIENT_SECRET", "").strip()
+            if v:
+                patch["linkedin_oauth_client_secret"] = v
+        if not (self.linkedin_oauth_redirect_uri or "").strip():
+            v = os.getenv("LINKEDIN_OAUTH_REDIRECT_URI", "").strip()
+            if v:
+                patch["linkedin_oauth_redirect_uri"] = v
 
         if patch:
             return self.model_copy(update=patch)

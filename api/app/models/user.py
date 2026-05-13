@@ -13,6 +13,7 @@ from app.db import Base
 if TYPE_CHECKING:
     from app.models.profile import Profile
     from app.models.user_google_token import UserGoogleToken
+    from app.models.user_linkedin_token import UserLinkedInToken
 
 
 class User(Base):
@@ -26,5 +27,8 @@ class User(Base):
     profile: Mapped[Profile] = relationship(back_populates="user", uselist=False)
     google_token: Mapped[UserGoogleToken | None] = relationship(
         "UserGoogleToken", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    linkedin_token: Mapped[UserLinkedInToken | None] = relationship(
+        "UserLinkedInToken", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 

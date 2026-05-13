@@ -87,6 +87,18 @@ export function LinkedinAnalysisClient() {
 
   const overall = overallProfileScore(scores);
 
+  const linkedinOid = useMemo(() => {
+    const g = profileQ.data?.goals;
+    if (!g || typeof g !== "object") return null;
+    const lp = (g as Record<string, unknown>).linkedin_profile;
+    if (!lp || typeof lp !== "object") return null;
+    const o = lp as Record<string, unknown>;
+    const name = typeof o.name === "string" ? o.name : null;
+    const email = typeof o.email === "string" ? o.email : null;
+    if (!name && !email) return null;
+    return { name, email };
+  }, [profileQ.data?.goals]);
+
   const headlineText =
     typeof structured?.headline === "string" && structured.headline.trim()
       ? structured.headline.trim()
@@ -162,6 +174,27 @@ export function LinkedinAnalysisClient() {
       title="LinkedIn Analysis"
       description="Heuristic scoring from your latest Doubow résumé parse — optimize your CV, then re-upload."
     >
+      {linkedinOid ? (
+        <div className="mb-4 rounded-[24px] border border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_8%,var(--app-bg-elevated))] px-5 py-4">
+          <p className="text-[13px] leading-6 text-[var(--app-text-secondary)]">
+            <span className="font-semibold text-[var(--app-text-primary)]">LinkedIn (OpenID) synced</span>
+            {linkedinOid.name ? ` — ${linkedinOid.name}` : ""}
+            {linkedinOid.email ? (
+              <>
+                {" "}
+                <span className="text-[var(--app-text-tertiary)]">({linkedinOid.email})</span>
+              </>
+            ) : null}
+            . Add your public profile URL below if you want it on file; Doubow never posts for you.
+          </p>
+          <Link
+            href="/app/settings"
+            className="mt-2 inline-flex text-[13px] font-semibold text-[var(--app-accent)] hover:underline"
+          >
+            Manage in Settings
+          </Link>
+        </div>
+      ) : null}
       {resumeQ.isLoading ? (
         <p className="text-[13px] text-[var(--app-text-secondary)]">Loading résumé…</p>
       ) : resumeQ.isError ? (

@@ -10,6 +10,7 @@ from app.api.copilot import router as copilot_router
 from app.api.jobs import router as jobs_router
 from app.api.me import router as me_router
 from app.api.me_google import router as me_google_router
+from app.api.me_linkedin import router as me_linkedin_router
 from app.core.settings import settings
 from app.middleware.idempotency import IdempotencyMiddleware
 from app.startup_bootstrap import run_startup_bootstrap_ingest
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs_router)
     app.include_router(me_router)
     app.include_router(me_google_router)
+    app.include_router(me_linkedin_router)
 
     return app
 

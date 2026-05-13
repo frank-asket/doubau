@@ -19,10 +19,11 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 
-# openid + email for userinfo; gmail.send to post messages from the user's mailbox.
+# openid + email + profile for userinfo; gmail.send to post messages from the user's mailbox.
 DEFAULT_SCOPES = (
     "openid "
     "https://www.googleapis.com/auth/userinfo.email "
+    "https://www.googleapis.com/auth/userinfo.profile "
     "https://www.googleapis.com/auth/gmail.send"
 )
 
@@ -81,19 +82,40 @@ def refresh_access_token(*, refresh_token_plain: str) -> dict[str, Any]:
 
 
 def fetch_google_account_email(access_token: str) -> str | None:
+    prof = fetch_google_user_profile(access_token)
+    email = prof.get("email")
+    if isinstance(email, str) and email.strip():
+        return email.strip().lower()
+    return None
+
+
+def fetch_google_user_profile(access_token: str) -> dict[str, Any]:
+    """Subset of Google OIDC userinfo stored under ``profiles.goals['google_profile']``."""
     r = httpx.get(
         GOOGLE_USERINFO_URL,
         headers={"Authorization": f"Bearer {access_token}"},
         timeout=20.0,
     )
     if not r.is_success:
-        return None
+        return {}
     body = r.json()
-    if isinstance(body, dict):
-        email = body.get("email")
-        if isinstance(email, str) and email.strip():
-            return email.strip().lower()
-    return None
+    if not isinstance(body, dict):
+        return {}
+    out: dict[str, Any] = {}
+    keys = (
+        "sub",
+        "email",
+        "email_verified",
+        "name",
+        "given_name",
+        "family_name",
+        "picture",
+        "locale",
+    )
+    for key in keys:
+        if key in body:
+            out[key] = body[key]
+    return out
 
 
 def encrypt_refresh_token(refresh_token: str) -> str:

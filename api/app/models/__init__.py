@@ -12,10 +12,12 @@ from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument
 from app.models.user import User
 from app.models.user_google_token import UserGoogleToken
+from app.models.user_linkedin_token import UserLinkedInToken
 
 __all__ = [
     "User",
     "UserGoogleToken",
+    "UserLinkedInToken",
     "Profile",
     "Application",
     "OutreachDraft",

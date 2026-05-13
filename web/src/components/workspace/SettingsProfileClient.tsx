@@ -33,6 +33,7 @@ export function SettingsProfileClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [gmailBanner, setGmailBanner] = useState<string | null>(null);
+  const [linkedinBanner, setLinkedinBanner] = useState<string | null>(null);
 
   const googleQ = useQuery({
     queryKey: queryKeys.googleMailbox,
@@ -43,6 +44,23 @@ export function SettingsProfileClient() {
         oauth_configured: boolean;
         connected: boolean;
         google_account_email?: string | null;
+        google_display_name?: string | null;
+        google_picture_url?: string | null;
+      };
+    },
+  });
+
+  const linkedinQ = useQuery({
+    queryKey: queryKeys.linkedinConnect,
+    queryFn: async () => {
+      const r = await fetch("/api/me/linkedin/status", { cache: "no-store" });
+      if (!r.ok) throw new Error("linkedin");
+      return (await r.json()) as {
+        oauth_configured: boolean;
+        connected: boolean;
+        linkedin_email?: string | null;
+        linkedin_name?: string | null;
+        linkedin_picture_url?: string | null;
       };
     },
   });
@@ -62,6 +80,26 @@ export function SettingsProfileClient() {
     return () => window.clearTimeout(t);
   }, [searchParams, router, qc]);
 
+  useEffect(() => {
+    const li = searchParams.get("linkedin");
+    if (!li) return;
+    if (li === "connected") {
+      setLinkedinBanner(
+        "LinkedIn connected. Name, email, and photo allowed by LinkedIn are saved to your Doubow profile.",
+      );
+    } else if (li === "denied") {
+      setLinkedinBanner("LinkedIn authorization was cancelled.");
+    } else {
+      setLinkedinBanner(
+        "LinkedIn connection did not complete. Check the API redirect URI and LinkedIn app settings.",
+      );
+    }
+    void qc.invalidateQueries({ queryKey: queryKeys.linkedinConnect });
+    void qc.invalidateQueries({ queryKey: queryKeys.profile });
+    const t = window.setTimeout(() => router.replace("/app/settings"), 5000);
+    return () => window.clearTimeout(t);
+  }, [searchParams, router, qc]);
+
   const disconnectGmail = useMutation({
     mutationFn: async () => {
       const r = await fetch("/api/me/google/disconnect", { method: "DELETE" });
@@ -76,6 +114,29 @@ export function SettingsProfileClient() {
   const startGoogleOAuth = useMutation({
     mutationFn: async () => {
       const r = await fetch("/api/me/google/oauth-url", { cache: "no-store" });
+      const data = (await r.json()) as { authorization_url?: string; detail?: string };
+      if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "oauth_url");
+      const url = data.authorization_url;
+      if (!url) throw new Error("No authorization URL");
+      window.location.href = url;
+    },
+  });
+
+  const disconnectLinkedin = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/me/linkedin/disconnect", { method: "DELETE" });
+      if (!r.ok) throw new Error("disconnect");
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.linkedinConnect });
+      await qc.invalidateQueries({ queryKey: queryKeys.profile });
+      setLinkedinBanner("LinkedIn disconnected.");
+    },
+  });
+
+  const startLinkedinOAuth = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/me/linkedin/oauth-url", { cache: "no-store" });
       const data = (await r.json()) as { authorization_url?: string; detail?: string };
       if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "oauth_url");
       const url = data.authorization_url;
@@ -270,12 +331,30 @@ export function SettingsProfileClient() {
               </p>
             ) : googleQ.data.connected ? (
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-[13px] text-[var(--app-text-secondary)]">
-                  Connected as{" "}
-                  <span className="font-medium text-[var(--app-text-primary)]">
-                    {googleQ.data.google_account_email ?? "your Google account"}
-                  </span>
-                </p>
+                {googleQ.data.google_picture_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={googleQ.data.google_picture_url}
+                    alt=""
+                    className="size-9 shrink-0 rounded-full border border-[var(--app-border)] object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  {googleQ.data.google_display_name ? (
+                    <p className="text-[13px] font-semibold text-[var(--app-text-primary)]">
+                      {googleQ.data.google_display_name}
+                    </p>
+                  ) : null}
+                  <p className="text-[13px] text-[var(--app-text-secondary)]">
+                    Connected as{" "}
+                    <span className="font-medium text-[var(--app-text-primary)]">
+                      {googleQ.data.google_account_email ?? "your Google account"}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[12px] text-[var(--app-text-tertiary)]">
+                    Profile name and photo sync to Doubow for personalization (stored with your profile).
+                  </p>
+                </div>
                 <AppButton
                   type="button"
                   variant="outline"
@@ -299,6 +378,85 @@ export function SettingsProfileClient() {
             {startGoogleOAuth.isError ? (
               <p className="text-[13px] text-[var(--app-badge-red-fg)]">
                 {startGoogleOAuth.error instanceof Error ? startGoogleOAuth.error.message : "Could not start Google sign-in."}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-4 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-6">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--app-text-primary)]">LinkedIn profile (OpenID)</h2>
+              <p className="mt-2 text-[13px] leading-6 text-[var(--app-text-secondary)]">
+                Separate from Clerk sign-in: authorize Doubow to read the name, email, and profile image LinkedIn exposes via
+                Sign In with LinkedIn (OpenID). This fills your Doubow career profile and boosts LinkedIn health scoring. It
+                does not post or automate DMs.
+              </p>
+            </div>
+            {linkedinBanner ? (
+              <p className="rounded-md border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-3 py-2 text-[13px] text-[var(--app-text-secondary)]">
+                {linkedinBanner}
+              </p>
+            ) : null}
+            {linkedinQ.isLoading ? (
+              <p className="text-[13px] text-[var(--app-text-secondary)]">Checking LinkedIn connection…</p>
+            ) : linkedinQ.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">Could not load LinkedIn status.</p>
+            ) : !linkedinQ.data?.oauth_configured ? (
+              <p className="text-[13px] text-[var(--app-text-secondary)]">
+                LinkedIn OAuth is not enabled on this deployment yet (API missing{" "}
+                <span className="font-mono text-[12px]">DOUBOW_LINKEDIN_OAUTH_*</span>).
+              </p>
+            ) : linkedinQ.data.connected ? (
+              <div className="flex flex-wrap items-center gap-3">
+                {linkedinQ.data.linkedin_picture_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={linkedinQ.data.linkedin_picture_url}
+                    alt=""
+                    className="size-9 shrink-0 rounded-full border border-[var(--app-border)] object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  {linkedinQ.data.linkedin_name ? (
+                    <p className="text-[13px] font-semibold text-[var(--app-text-primary)]">
+                      {linkedinQ.data.linkedin_name}
+                    </p>
+                  ) : null}
+                  <p className="text-[13px] text-[var(--app-text-secondary)]">
+                    {linkedinQ.data.linkedin_email ? (
+                      <>
+                        Signed in to LinkedIn as{" "}
+                        <span className="font-medium text-[var(--app-text-primary)]">{linkedinQ.data.linkedin_email}</span>
+                      </>
+                    ) : (
+                      "LinkedIn connected."
+                    )}
+                  </p>
+                </div>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={disconnectLinkedin.isPending}
+                  onClick={() => disconnectLinkedin.mutate()}
+                >
+                  Disconnect LinkedIn
+                </AppButton>
+              </div>
+            ) : (
+              <AppButton
+                type="button"
+                variant="primary"
+                disabled={startLinkedinOAuth.isPending}
+                onClick={() => startLinkedinOAuth.mutate()}
+              >
+                {startLinkedinOAuth.isPending ? "Redirecting…" : "Connect LinkedIn"}
+              </AppButton>
+            )}
+            {startLinkedinOAuth.isError ? (
+              <p className="text-[13px] text-[var(--app-badge-red-fg)]">
+                {startLinkedinOAuth.error instanceof Error
+                  ? startLinkedinOAuth.error.message
+                  : "Could not start LinkedIn sign-in."}
               </p>
             ) : null}
           </div>
