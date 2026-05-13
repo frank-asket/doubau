@@ -12,4 +12,6 @@ export const queryKeys = {
   matchMetrics: (days: number) => ["match-metrics", days] as const,
   matchEvents: ["match-events"] as const,
   jobsFeed: (limit: number) => ["jobs-feed", limit] as const,
+  /** Shared cache for Search page + command palette (jobs catalog slice). */
+  workspaceSearchJobs: ["workspace-search", "jobs"] as const,
 };

@@ -5,15 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
-import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { fetchApplications } from "@/lib/applications-fetch";
 import { applicationStatusBadge } from "@/lib/application-status";
 import { queryKeys } from "@/lib/query-keys";
-
-/** Fallback polling; pipeline WebSocket invalidates this query when possible. */
-const APPLICATIONS_POLL_MS = 60_000;
 
 function statusOrder(s: string): number {
   const order: Record<string, number> = {
@@ -38,7 +35,7 @@ const PIPELINE_COLUMNS = [
 ];
 
 export function TrackerClient() {
-  useApplicationsPipelineWs(true);
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
 
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
@@ -48,7 +45,7 @@ export function TrackerClient() {
   const applicationsQuery = useQuery({
     queryKey: queryKeys.applications,
     queryFn: fetchApplications,
-    refetchInterval: APPLICATIONS_POLL_MS,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
 
   const generateDraftM = useMutation({

@@ -24,7 +24,7 @@ This document maps the Phase 4 roadmap bullets to concrete behavior in the repo.
 | Inline edit | **Edit** toggles `Textarea`; **Save** → `PATCH /api/applications/drafts/[draftId]` → FastAPI `PATCH /applications/drafts/{draft_id}` |
 | Approve → APPROVED | Existing POST approve |
 | Reject | Existing POST reject |
-| Real-time via WebSocket | FastAPI `GET ws /applications/ws` (JWT query token); signature polls pipeline every 2s; emits `applications_changed`. Web uses `useApplicationsPipelineWs` → invalidates queries. **Backup**: 60s TanStack refetch. |
+| Real-time via WebSocket | FastAPI `GET ws /applications/ws` (JWT query token); signature polls pipeline every 2s; emits `applications_changed`. Web uses `ApplicationsPipelineRealtimeProvider` (single socket per session) → invalidates `applications` + `applicationDrafts`. **Polling**: 6s when WS is down, 90s safety poll when WS is up; exponential backoff reconnect. |
 
 ## Route coverage (P1 / P2)
 

@@ -4,26 +4,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { AppIcon } from "@/components/ui/app-icon";
 import { fetchApplications, fetchDrafts } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
+import { fetchMatchEvents } from "@/lib/workspace-search-fetch";
 
 import { ProductPageChrome } from "./ProductPageChrome";
-
-type MatchEventRow = {
-  id: string;
-  job_id: string;
-  event_type: string;
-  reason?: string | null;
-  meta?: Record<string, unknown> | null;
-  created_at: string;
-};
-
-async function fetchMatchEvents(): Promise<MatchEventRow[]> {
-  const r = await fetch("/api/me/match/events?limit=50", { cache: "no-store" });
-  if (!r.ok) throw new Error("match-events");
-  return (await r.json()) as MatchEventRow[];
-}
 
 type FeedItem = {
   id: string;
@@ -46,8 +33,17 @@ function formatWhen(ts: number): string {
 }
 
 export function NotificationsClient() {
-  const appsQ = useQuery({ queryKey: queryKeys.applications, queryFn: fetchApplications });
-  const draftsQ = useQuery({ queryKey: queryKeys.applicationDrafts, queryFn: fetchDrafts });
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
+  const appsQ = useQuery({
+    queryKey: queryKeys.applications,
+    queryFn: fetchApplications,
+    refetchInterval: applicationsRefetchIntervalMs,
+  });
+  const draftsQ = useQuery({
+    queryKey: queryKeys.applicationDrafts,
+    queryFn: fetchDrafts,
+    refetchInterval: applicationsRefetchIntervalMs,
+  });
   const eventsQ = useQuery({ queryKey: queryKeys.matchEvents, queryFn: fetchMatchEvents });
 
   const items = useMemo(() => {

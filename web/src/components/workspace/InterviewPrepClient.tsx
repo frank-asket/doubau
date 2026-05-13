@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { ChromePrimaryButton } from "@/components/ui/chrome-motion";
 import { AppIcon } from "@/components/ui/app-icon";
 import { fetchApplications, type ApplicationRow } from "@/lib/applications-fetch";
@@ -31,9 +32,11 @@ function sortAppsForPrep(apps: ApplicationRow[]) {
 }
 
 export function InterviewPrepClient() {
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
   const appsQ = useQuery({
     queryKey: queryKeys.applications,
     queryFn: fetchApplications,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
 
   const sorted = useMemo(() => sortAppsForPrep(appsQ.data ?? []), [appsQ.data]);

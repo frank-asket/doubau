@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { AppIcon } from "@/components/ui/app-icon";
 import { fetchApplications, fetchDrafts } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
@@ -10,13 +11,16 @@ import { queryKeys } from "@/lib/query-keys";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 export function CoverLetterClient() {
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
   const draftsQ = useQuery({
     queryKey: queryKeys.applicationDrafts,
     queryFn: fetchDrafts,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
   const appsQ = useQuery({
     queryKey: queryKeys.applications,
     queryFn: fetchApplications,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
 
   const appById = new Map((appsQ.data ?? []).map((a) => [a.id, a]));

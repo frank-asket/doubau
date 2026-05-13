@@ -4,42 +4,33 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { AppIcon } from "@/components/ui/app-icon";
 import { fetchApplications } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  fetchWorkspaceSearchJobs,
+  fetchWorkspaceSearchMilestones,
+} from "@/lib/workspace-search-fetch";
 
 import { ProductPageChrome } from "./ProductPageChrome";
 
-type JobRow = {
-  id: string;
-  title: string;
-  company: string;
-  location: string | null;
-};
-
-type MilestoneRow = {
-  id: string;
-  title: string;
-  status: string;
-};
-
-async function fetchJobs(): Promise<JobRow[]> {
-  const r = await fetch("/api/jobs?limit=120&sort_by=created_at&order=desc", { cache: "no-store" });
-  if (!r.ok) throw new Error("jobs");
-  return (await r.json()) as JobRow[];
-}
-
-async function fetchMilestones(): Promise<MilestoneRow[]> {
-  const r = await fetch("/api/me/milestones?limit=100", { cache: "no-store" });
-  if (!r.ok) throw new Error("milestones");
-  return (await r.json()) as MilestoneRow[];
-}
-
 export function WorkspaceSearchClient() {
   const [q, setQ] = useState("");
-  const jobsQ = useQuery({ queryKey: ["workspace-search", "jobs"], queryFn: fetchJobs });
-  const appsQ = useQuery({ queryKey: queryKeys.applications, queryFn: fetchApplications });
-  const mileQ = useQuery({ queryKey: queryKeys.milestones, queryFn: fetchMilestones });
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
+  const jobsQ = useQuery({
+    queryKey: queryKeys.workspaceSearchJobs,
+    queryFn: fetchWorkspaceSearchJobs,
+  });
+  const appsQ = useQuery({
+    queryKey: queryKeys.applications,
+    queryFn: fetchApplications,
+    refetchInterval: applicationsRefetchIntervalMs,
+  });
+  const mileQ = useQuery({
+    queryKey: queryKeys.milestones,
+    queryFn: fetchWorkspaceSearchMilestones,
+  });
 
   const ql = q.trim().toLowerCase();
 
@@ -82,7 +73,7 @@ export function WorkspaceSearchClient() {
   return (
     <ProductPageChrome
       title="Search"
-      description="Fast client-side search across catalog jobs, your pipeline applications, and milestones. Results come from live API data — no separate search index."
+      description="Fast client-side search across catalog jobs, your pipeline applications, and milestones — same live data as the ⌘K workspace palette (no separate search index)."
     >
       <div className="relative">
         <AppIcon

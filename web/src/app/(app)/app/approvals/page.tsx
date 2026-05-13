@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
-import { useApplicationsPipelineWs } from "@/hooks/useApplicationsPipelineWs";
+import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
 import { AppApprovalCard } from "@/components/ui/approval-card";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
@@ -17,9 +17,6 @@ import {
 import { fetchApplications, fetchDrafts, gmailSentMessageWebUrl, type ApplicationRow, type DraftRow } from "@/lib/applications-fetch";
 import { queryKeys } from "@/lib/query-keys";
 import { suggestRecipientEmailFromJobUrl } from "@/lib/suggest-recipient-email";
-
-/** Safety-net polling when WS is unavailable; pipeline WS drives most updates. */
-const APPROVALS_POLL_MS = 60_000;
 
 type Application = ApplicationRow;
 type Draft = DraftRow;
@@ -46,7 +43,7 @@ function draftSubtitle(draft: Draft, app: Application | undefined): string {
 }
 
 export default function ApprovalsPage() {
-  useApplicationsPipelineWs(true);
+  const { applicationsRefetchIntervalMs } = useApplicationsPipelineRealtime();
 
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -82,13 +79,13 @@ export default function ApprovalsPage() {
   const applicationsQuery = useQuery({
     queryKey: queryKeys.applications,
     queryFn: fetchApplications,
-    refetchInterval: APPROVALS_POLL_MS,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
 
   const draftsQuery = useQuery({
     queryKey: queryKeys.applicationDrafts,
     queryFn: fetchDrafts,
-    refetchInterval: APPROVALS_POLL_MS,
+    refetchInterval: applicationsRefetchIntervalMs,
   });
 
   const invalidateApprovalQueries = async () => {
