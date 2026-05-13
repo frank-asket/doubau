@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useCallback, useState } from "react";
 
 import { AppIcon, type AppIconName } from "@/components/ui/app-icon";
 
@@ -144,22 +147,45 @@ export function Gauge({ value, label, icon = "circle" }: { value: number; label:
   );
 }
 
-export function SegmentedTabs({ items, active }: { items: string[]; active: string }) {
+export function SegmentedTabs({
+  items,
+  value,
+  onChange,
+  size = "md",
+  ariaLabel = "Section",
+}: {
+  items: string[];
+  value: string;
+  onChange: (item: string) => void;
+  size?: "sm" | "md";
+  ariaLabel?: string;
+}) {
+  const pad = size === "sm" ? "min-h-9 px-3 text-[13px]" : "min-h-10 px-5 text-[14px]";
   return (
-    <div className="flex flex-wrap gap-1 rounded-full bg-[var(--app-bg-muted)] p-1 shadow-[inset_0_0_0_1px_rgba(17,22,18,0.04)]">
-      {items.map((item) => (
-        <button
-          key={item}
-          type="button"
-          className={`min-h-10 flex-1 rounded-full px-5 text-[14px] font-bold transition ${
-            item === active
-              ? "bg-white text-[var(--app-blue-500)] shadow-[var(--app-shadow-1)]"
-              : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
-          }`}
-        >
-          {item}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex flex-wrap gap-1 rounded-full bg-[var(--app-bg-muted)] p-1 shadow-[inset_0_0_0_1px_rgba(17,22,18,0.04)]"
+    >
+      {items.map((item) => {
+        const selected = item === value;
+        return (
+          <button
+            key={item}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(item)}
+            className={`flex-1 rounded-full font-bold transition ${pad} ${
+              selected
+                ? "bg-white text-[var(--app-blue-500)] shadow-[var(--app-shadow-1)]"
+                : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+            }`}
+          >
+            {item}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -233,53 +259,184 @@ export function FieldShell({
 
 export function SectionRow({
   label,
-  active = false,
+  defaultOpen = false,
   children,
 }: {
   label: string;
-  active?: boolean;
+  /** When true, section starts expanded (uncontrolled). */
+  defaultOpen?: boolean;
   children?: ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const toggle = useCallback(() => setOpen((o) => !o), []);
+
   return (
     <div className="border-t border-dashed border-[var(--app-border)]">
       <button
         type="button"
+        aria-expanded={open}
+        onClick={toggle}
         className={`flex min-h-14 w-full items-center justify-between px-5 text-left text-[15px] font-black ${
-          active ? "text-[var(--app-blue-500)]" : "text-[var(--app-text-primary)]"
+          open ? "text-[var(--app-blue-500)]" : "text-[var(--app-text-primary)]"
         }`}
       >
         {label}
-        <span className="text-[12px]" aria-hidden>
-          {active ? "^" : "v"}
-        </span>
+        <AppIcon name="chevron-down" className={`size-4 shrink-0 transition-transform ${open ? "-rotate-180" : ""}`} />
       </button>
-      {active ? <div className="px-5 pb-5">{children}</div> : null}
+      {open ? <div className="px-5 pb-5">{children}</div> : null}
     </div>
   );
 }
 
-export function JobPickCard({ favorite = false }: { favorite?: boolean }) {
+/** Soft panel using theme accent / danger / success mixed into border and fill (replaces repeated `color-mix` blocks). */
+export function MixPanel({
+  variant = "accent",
+  children,
+  className = "",
+}: {
+  variant?: "accent" | "danger" | "success" | "muted";
+  children: ReactNode;
+  className?: string;
+}) {
+  const skin: Record<typeof variant, string> = {
+    accent:
+      "border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_06%,var(--app-bg-elevated))]",
+    danger:
+      "border-[color-mix(in_srgb,var(--app-danger)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_08%,var(--app-bg-elevated))]",
+    success:
+      "border-[color-mix(in_srgb,var(--app-success)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-success)_08%,var(--app-bg-page))]",
+    muted: "border-[var(--app-border)] bg-[var(--app-bg-muted)]/30",
+  };
+  return (
+    <div className={`rounded-[var(--app-radius-lg)] border-[0.5px] border-solid p-5 ${skin[variant]} ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+/** Three-band skills layout: critical gaps, partial / emerging, strengths (spec: Skill gap page). */
+export function SkillTriadBoard({
+  critical,
+  partial = [],
+  strengths,
+  criticalTitle = "Critical gaps",
+  partialTitle = "Partial / emerging",
+  strengthsTitle = "Strengths",
+  emptyHint = "None listed for this band.",
+  partialEmptyHint = "JD-fit does not emit a partial band yet — use gaps and strengths as your triage list.",
+}: {
+  critical: string[];
+  partial?: string[];
+  strengths: string[];
+  criticalTitle?: string;
+  partialTitle?: string;
+  strengthsTitle?: string;
+  emptyHint?: string;
+  partialEmptyHint?: string;
+}) {
+  const col = (title: string, tone: "red" | "amber" | "green", items: string[], bandEmpty?: string) => (
+    <div className="flex min-h-[140px] flex-col rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-page)] p-4">
+      <p
+        className={`text-[11px] font-semibold uppercase tracking-[0.06em] ${
+          tone === "red"
+            ? "text-[var(--app-danger)]"
+            : tone === "amber"
+              ? "text-[var(--app-warning)]"
+              : "text-[var(--app-success)]"
+        }`}
+      >
+        {title}
+      </p>
+      <ul className="mt-3 flex flex-1 flex-wrap content-start gap-2">
+        {items.length ? (
+          items.map((s) => (
+            <li key={s}>
+              <Tag active={tone === "green"}>{s}</Tag>
+            </li>
+          ))
+        ) : (
+          <li className="text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">{bandEmpty ?? emptyHint}</li>
+        )}
+      </ul>
+    </div>
+  );
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {col(criticalTitle, "red", critical)}
+      {col(partialTitle, "amber", partial ?? [], partialEmptyHint)}
+      {col(strengthsTitle, "green", strengths)}
+    </div>
+  );
+}
+
+/** Compact metric pair for sidebars and callouts. */
+export function InlineStatPair({
+  leftLabel,
+  leftValue,
+  rightLabel,
+  rightValue,
+}: {
+  leftLabel: string;
+  leftValue: string;
+  rightLabel: string;
+  rightValue: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-6">
+      <div>
+        <div className="tabular-nums text-[28px] font-bold text-[var(--app-text-primary)]">{leftValue}</div>
+        <div className="text-[11px] text-[var(--app-text-tertiary)]">{leftLabel}</div>
+      </div>
+      <div>
+        <div className="tabular-nums text-[28px] font-bold text-[var(--app-text-primary)]">{rightValue}</div>
+        <div className="text-[11px] text-[var(--app-text-tertiary)]">{rightLabel}</div>
+      </div>
+    </div>
+  );
+}
+
+export function JobPickCard({
+  favorite = false,
+  title = "Project Manager",
+  company = "HAYS",
+  lead = "Outcomes First Group has renewed focus on their online customer experience...",
+  salary = "£50,000",
+  salarySuffix = "/year",
+  tags = ["3 year exp", "Full time", "Office"],
+  initial = "C",
+}: {
+  favorite?: boolean;
+  title?: string;
+  company?: string;
+  lead?: string;
+  salary?: string;
+  salarySuffix?: string;
+  tags?: string[];
+  initial?: string;
+}) {
   return (
     <article className="ch-soft-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-full bg-[#111827] text-[var(--app-accent)]">C</span>
+          <span className="grid size-12 place-items-center rounded-full bg-[#111827] text-[var(--app-accent)]">{initial}</span>
           <div>
-            <h3 className="font-bold text-[var(--app-text-primary)]">Project Manager</h3>
-            <p className="text-[13px] font-semibold text-[var(--app-accent)]">HAYS</p>
+            <h3 className="font-bold text-[var(--app-text-primary)]">{title}</h3>
+            <p className="text-[13px] font-semibold text-[var(--app-accent)]">{company}</p>
           </div>
         </div>
         <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5 text-[var(--app-accent)]" />
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Tag>3 year exp</Tag>
-        <Tag>Full time</Tag>
-        <Tag>Office</Tag>
+        {tags.map((t) => (
+          <Tag key={t}>{t}</Tag>
+        ))}
       </div>
-      <p className="mt-4 text-[14px] leading-5 text-[var(--app-text-primary)]">
-        Outcomes First Group has renewed focus on their online customer experience...
+      <p className="mt-4 text-[14px] leading-5 text-[var(--app-text-primary)]">{lead}</p>
+      <p className="mt-5 text-[20px] font-bold text-[var(--app-accent)]">
+        {salary}{" "}
+        <span className="text-[13px] font-medium text-[var(--app-text-secondary)]">{salarySuffix}</span>
       </p>
-      <p className="mt-5 text-[20px] font-bold text-[var(--app-accent)]">£50,000 <span className="text-[13px] font-medium text-[var(--app-text-secondary)]">/year</span></p>
     </article>
   );
 }

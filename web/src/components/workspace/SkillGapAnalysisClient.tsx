@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { ChromePrimaryButton } from "@/components/ui/chrome-motion";
 
-import { Tag } from "./CareerHeroMockSections";
+import { InlineStatPair, MixPanel, SkillTriadBoard } from "./CareerHeroMockSections";
 import { ProductPageChrome } from "./ProductPageChrome";
 
 type FitScoreOut = {
@@ -123,59 +123,39 @@ export function SkillGapAnalysisClient() {
         <aside className="space-y-4">
           {result ? (
             <>
-              <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
+              <MixPanel variant="accent">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
                   Fit snapshot
                 </p>
-                <div className="mt-3 flex flex-wrap gap-4">
-                  <div>
-                    <div className="text-[28px] font-bold tabular-nums text-[var(--app-text-primary)]">
-                      {Math.round(result.score)}
-                    </div>
-                    <div className="text-[11px] text-[var(--app-text-tertiary)]">Overall score</div>
-                  </div>
-                  <div>
-                    <div className="text-[28px] font-bold tabular-nums text-[var(--app-text-primary)]">
-                      {Math.round(result.match_pct)}%
-                    </div>
-                    <div className="text-[11px] text-[var(--app-text-tertiary)]">Role alignment</div>
-                  </div>
+                <div className="mt-3">
+                  <InlineStatPair
+                    leftLabel="Overall score"
+                    leftValue={String(Math.round(result.score))}
+                    rightLabel="Role alignment"
+                    rightValue={`${Math.round(result.match_pct)}%`}
+                  />
                 </div>
                 <p className="mt-4 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">{result.rationale}</p>
-              </div>
+              </MixPanel>
 
               <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                  Skills to strengthen
+                  Critical / partial / strengths
                 </p>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {result.gap_skills.length ? (
-                    result.gap_skills.map((s) => (
-                      <li key={s}>
-                        <Tag>{s}</Tag>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="text-[13px] text-[var(--app-text-secondary)]">None highlighted — see rationale.</li>
-                  )}
-                </ul>
-              </div>
-
-              <div className="rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">
-                  Strengths to emphasize
+                <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
+                  Gaps map to “critical”; the model does not return a partial band yet — that column explains the gap.
                 </p>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {result.strength_skills.length ? (
-                    result.strength_skills.map((s) => (
-                      <li key={s}>
-                        <Tag>{s}</Tag>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="text-[13px] text-[var(--app-text-secondary)]">None highlighted — see rationale.</li>
-                  )}
-                </ul>
+                <div className="mt-4">
+                  <SkillTriadBoard
+                    critical={result.gap_skills}
+                    partial={[]}
+                    strengths={result.strength_skills}
+                    criticalTitle="Skills to strengthen"
+                    partialTitle="Partial / emerging"
+                    strengthsTitle="Strengths to emphasize"
+                    emptyHint="None highlighted — see rationale."
+                  />
+                </div>
               </div>
             </>
           ) : (
