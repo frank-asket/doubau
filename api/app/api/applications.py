@@ -199,6 +199,11 @@ def generate_draft(
         try:
             assert_transition(app.status, ApplicationStatus.PENDING_APPROVAL)
         except InvalidTransition as e:
+            if app.status == ApplicationStatus.SUBMITTED:
+                raise HTTPException(
+                    status_code=409,
+                    detail="This application is already submitted. You cannot regenerate outreach drafts for it from this flow.",
+                ) from e
             raise HTTPException(status_code=409, detail=str(e)) from e
 
     app.status = ApplicationStatus.PENDING_APPROVAL

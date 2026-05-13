@@ -12,6 +12,7 @@ import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ChromeIconButton } from "@/components/ui/chrome-motion";
+import type { ApplicationRow } from "@/lib/applications-fetch";
 import { parseJobDescriptionSections } from "@/lib/job-detail-parse";
 import { cn } from "@/lib/utils";
 
@@ -193,7 +194,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           source_url: job.source_url ?? undefined,
         }),
       });
-      const appBody = (await cr.json().catch(() => ({}))) as { id?: string; detail?: string };
+      const appBody = (await cr.json().catch(() => ({}))) as Partial<ApplicationRow> & { detail?: string };
       if (!cr.ok) {
         setOutreachMsg(typeof appBody.detail === "string" ? appBody.detail : `Could not create application (${cr.status})`);
         return;
@@ -203,10 +204,45 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         setOutreachMsg("Unexpected response from server.");
         return;
       }
+      const status = (appBody.status ?? "").trim();
+
+      // Re-using an existing application row: only some statuses can run generate_draft (state machine → PENDING_APPROVAL).
+      if (status === "SUBMITTED") {
+        setOutreachMsg(
+          "You already completed outreach for this role. Open the tracker to see it, or pick another listing.",
+        );
+        router.push(`/app/tracker?highlight=${encodeURIComponent(appId)}`);
+        return;
+      }
+      if (status === "FAILED") {
+        setOutreachMsg("This application was closed. Open the tracker to retry or pick another role.");
+        router.push(`/app/tracker?highlight=${encodeURIComponent(appId)}`);
+        return;
+      }
+      if (status === "APPROVED") {
+        router.push("/app/approvals");
+        return;
+      }
+      if (status === "SCORING" || status === "RETRY") {
+        setOutreachMsg("This application is mid pipeline or awaiting retry. Continue from the tracker.");
+        router.push(`/app/tracker?highlight=${encodeURIComponent(appId)}`);
+        return;
+      }
+      if (status && status !== "DISCOVERED" && status !== "DRAFTED" && status !== "PENDING_APPROVAL") {
+        setOutreachMsg("This application is in an unexpected state. Open the tracker to continue.");
+        router.push(`/app/tracker?highlight=${encodeURIComponent(appId)}`);
+        return;
+      }
+
       const dr = await fetch(`/api/applications/${appId}/generate_draft`, { method: "POST" });
       if (!dr.ok) {
         const d = (await dr.json().catch(() => ({}))) as { detail?: string };
-        setOutreachMsg(typeof d.detail === "string" ? d.detail : "Draft generation failed.");
+        const raw = typeof d.detail === "string" ? d.detail : "Draft generation failed.";
+        setOutreachMsg(
+          raw.includes("Invalid transition")
+            ? "This job is already tied to an application that cannot start a new draft from here. Use the tracker or approvals queue."
+            : raw,
+        );
         return;
       }
       router.push("/app/approvals");
