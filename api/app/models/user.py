@@ -24,7 +24,12 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
-    profile: Mapped[Profile] = relationship(back_populates="user", uselist=False)
+    profile: Mapped["Profile | None"] = relationship(
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     google_token: Mapped[UserGoogleToken | None] = relationship(
         "UserGoogleToken", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
