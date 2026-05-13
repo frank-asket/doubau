@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import calendar
 import logging
-from datetime import datetime, timedelta
+import re
+from datetime import date, datetime, timedelta
 from uuid import UUID, uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import desc, func, select
+from sqlalchemy import and_, desc, func, or_, select
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score_from_jd_text
 from app.api.deps import CurrentUserDep, DbDep
@@ -28,6 +30,8 @@ from app.api.schemas import (
     HeroTopPickOut,
     HeroTrendBucketOut,
     JdFitRequest,
+    MilestoneCalendarCell,
+    MilestoneCalendarOut,
     MilestoneCreate,
     MilestoneOut,
     MilestonePatch,
@@ -602,6 +606,64 @@ def list_milestones(
         .limit(limit)
     ).all()
     return [MilestoneOut.model_validate(r) for r in rows]
+
+
+_MONTH_KEY_RE = re.compile(r"^(\d{4})-(\d{2})$")
+
+
+def _build_milestone_calendar(year: int, month: int, rows: list[Milestone]) -> MilestoneCalendarOut:
+    first = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    last = date(year, month, last_day)
+    by_day: dict[date, list[MilestoneOut]] = {}
+    undated: list[MilestoneOut] = []
+    for r in rows:
+        out = MilestoneOut.model_validate(r)
+        if r.due_date is None:
+            undated.append(out)
+        elif first <= r.due_date <= last:
+            by_day.setdefault(r.due_date, []).append(out)
+    pad = first.weekday()
+    cells: list[MilestoneCalendarCell] = []
+    for _ in range(pad):
+        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
+    for d in range(1, last_day + 1):
+        dd = date(year, month, d)
+        cells.append(MilestoneCalendarCell(date=dd, milestones=list(by_day.get(dd, []))))
+    while len(cells) % 7 != 0:
+        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
+    weeks = [cells[i : i + 7] for i in range(0, len(cells), 7)]
+    return MilestoneCalendarOut(month=f"{year}-{month:02d}", weeks=weeks, undated=undated)
+
+
+@router.get("/milestones/calendar", response_model=MilestoneCalendarOut)
+def milestones_calendar(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    month: str,
+) -> MilestoneCalendarOut:
+    """Month grid (Monday-first) plus milestones with no due date for scheduling UX."""
+    m = _MONTH_KEY_RE.match(month.strip())
+    if not m:
+        raise HTTPException(status_code=400, detail="month must be YYYY-MM")
+    year, mo = int(m.group(1)), int(m.group(2))
+    if mo < 1 or mo > 12:
+        raise HTTPException(status_code=400, detail="invalid month")
+    first = date(year, mo, 1)
+    last_day = calendar.monthrange(year, mo)[1]
+    last = date(year, mo, last_day)
+    rows = db.scalars(
+        select(Milestone)
+        .where(
+            Milestone.user_id == current_user.id,
+            or_(
+                Milestone.due_date.is_(None),
+                and_(Milestone.due_date >= first, Milestone.due_date <= last),
+            ),
+        )
+        .order_by(desc(Milestone.created_at))
+    ).all()
+    return _build_milestone_calendar(year, mo, list(rows))
 
 
 @router.post("/milestones", response_model=MilestoneOut)

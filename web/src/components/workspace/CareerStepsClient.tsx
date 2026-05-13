@@ -92,6 +92,7 @@ export function CareerStepsClient() {
       setTitle("");
       setDue("");
       await qc.invalidateQueries({ queryKey: queryKeys.milestones });
+      await qc.invalidateQueries({ queryKey: ["milestones-calendar"] });
     },
   });
 
@@ -107,6 +108,7 @@ export function CareerStepsClient() {
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.milestones });
+      await qc.invalidateQueries({ queryKey: ["milestones-calendar"] });
     },
   });
 

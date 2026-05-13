@@ -119,6 +119,19 @@ class MilestoneOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MilestoneCalendarCell(BaseModel):
+    """One cell in a Monday-first month grid; ``date`` null means padding outside the month."""
+
+    date: date | None = None
+    milestones: list[MilestoneOut] = Field(default_factory=list)
+
+
+class MilestoneCalendarOut(BaseModel):
+    month: str
+    weeks: list[list[MilestoneCalendarCell]]
+    undated: list[MilestoneOut]
+
+
 HeroTrend = Literal["up", "down", "flat"]
 HeroGoalPhase = Literal["current", "next", "future"]
 
