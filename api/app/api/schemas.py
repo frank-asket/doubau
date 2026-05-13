@@ -34,6 +34,46 @@ class ProfileOut(ProfileUpsert):
     email: EmailStr
 
 
+class PathfinderCta(BaseModel):
+    label: str
+    href: str
+
+
+class CareerPathCardOut(BaseModel):
+    """Deterministic path card — same shape as the former client-only builder."""
+
+    id: str
+    title: str
+    subtitle: str
+    body: str
+    meta: list[str] = Field(default_factory=list)
+    match: int
+    timeframe: str
+    required: list[str] = Field(default_factory=list)
+    transferable: list[str] = Field(default_factory=list)
+    primary_cta: PathfinderCta
+    secondary_cta: PathfinderCta | None = None
+
+
+class PathfinderWizardStateOut(BaseModel):
+    completed: bool = False
+    current_step: int = 0
+    answers: dict[str, str] = Field(default_factory=dict)
+    completed_at: str | None = None
+
+
+class PathfinderBundleOut(BaseModel):
+    wizard: PathfinderWizardStateOut
+    paths: list[CareerPathCardOut]
+
+
+class PathfinderPut(BaseModel):
+    answers: dict[str, str | None] | None = None
+    current_step: int | None = None
+    completed: bool | None = None
+    reset: bool = False
+
+
 class WorkspaceSummaryOut(BaseModel):
     """Aggregates profile + pipeline counts for dashboard-style roadmap pages."""
 
@@ -120,9 +160,9 @@ class MilestoneOut(BaseModel):
 
 
 class MilestoneCalendarCell(BaseModel):
-    """One cell in a Monday-first month grid; ``day`` null means padding outside the month."""
+    """One cell in a Monday-first month grid; ``date`` null means padding outside the month."""
 
-    day: date | None = None
+    date: date | None = None
     milestones: list[MilestoneOut] = Field(default_factory=list)
 
 

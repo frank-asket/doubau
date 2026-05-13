@@ -10,6 +10,7 @@ export const queryKeys = {
   checkIns: ["me-check-ins"] as const,
   milestones: ["milestones"] as const,
   milestonesCalendar: (month: string) => ["milestones-calendar", month] as const,
+  pathfinder: ["pathfinder"] as const,
   matchMetrics: (days: number) => ["match-metrics", days] as const,
   matchEvents: ["match-events"] as const,
   jobsFeed: (limit: number) => ["jobs-feed", limit] as const,

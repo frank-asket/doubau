@@ -35,6 +35,8 @@ from app.api.schemas import (
     MilestoneCreate,
     MilestoneOut,
     MilestonePatch,
+    PathfinderBundleOut,
+    PathfinderPut,
     ProfileOut,
     ProfileUpsert,
     WorkspaceSummaryOut,
@@ -48,6 +50,7 @@ from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.models.user import User
 from app.services.hero_dashboard import compute_hero_dashboard_payload
+from app.services.pathfinder_bundle import build_pathfinder_bundle, merge_pathfinder_into_goals
 from app.storage.s3 import ensure_bucket, s3_client
 from app.tasks import process_resume_document, run_process_resume_document_sync
 
@@ -128,7 +131,12 @@ def put_profile(
     if payload.contact_preferences is not None:
         profile.contact_preferences = payload.contact_preferences
     if payload.goals is not None:
-        profile.goals = payload.goals
+        merged = dict(payload.goals)
+        prev = profile.goals if isinstance(profile.goals, dict) else {}
+        prev_pf = prev.get("pathfinder") if isinstance(prev.get("pathfinder"), dict) else None
+        if prev_pf is not None and "pathfinder" not in merged:
+            merged["pathfinder"] = prev_pf
+        profile.goals = merged
     if payload.plan_tier is not None:
         profile.plan_tier = payload.plan_tier
 
@@ -145,6 +153,37 @@ def put_profile(
         goals=profile.goals,
         plan_tier=profile.plan_tier,
     )
+
+
+@router.get("/pathfinder", response_model=PathfinderBundleOut)
+def get_pathfinder(db: DbDep, current_user: CurrentUserDep) -> PathfinderBundleOut:
+    """Wizard state (stored under ``profile.goals.pathfinder``) plus server-built path cards."""
+    return build_pathfinder_bundle(db, current_user)
+
+
+@router.put("/pathfinder", response_model=PathfinderBundleOut)
+def put_pathfinder(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    payload: PathfinderPut,
+) -> PathfinderBundleOut:
+    profile = current_user.profile
+    if profile is None:
+        profile = Profile(user_id=current_user.id, goals={})
+        db.add(profile)
+        db.flush()
+    goals = dict(profile.goals or {})
+    goals = merge_pathfinder_into_goals(
+        goals,
+        answers_patch=payload.answers,
+        current_step=payload.current_step,
+        completed=payload.completed,
+        reset=bool(payload.reset),
+    )
+    profile.goals = goals
+    db.commit()
+    db.refresh(profile)
+    return build_pathfinder_bundle(db, current_user)
 
 
 @router.post("/resume", response_model=dict)
@@ -626,12 +665,12 @@ def _build_milestone_calendar(year: int, month: int, rows: list[Milestone]) -> M
     pad = first.weekday()
     cells: list[MilestoneCalendarCell] = []
     for _ in range(pad):
-        cells.append(MilestoneCalendarCell(day=None, milestones=[]))
+        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
     for d in range(1, last_day + 1):
         dd = date(year, month, d)
-        cells.append(MilestoneCalendarCell(day=dd, milestones=list(by_day.get(dd, []))))
+        cells.append(MilestoneCalendarCell(date=dd, milestones=list(by_day.get(dd, []))))
     while len(cells) % 7 != 0:
-        cells.append(MilestoneCalendarCell(day=None, milestones=[]))
+        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
     weeks = [cells[i : i + 7] for i in range(0, len(cells), 7)]
     return MilestoneCalendarOut(month=f"{year}-{month:02d}", weeks=weeks, undated=undated)
 
