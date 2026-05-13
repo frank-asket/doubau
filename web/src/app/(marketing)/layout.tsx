@@ -8,6 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
-  return <div className="flex-1 hirslamsScope">{children}</div>;
+  return (
+    <div className="hirslamsScope font-sans flex min-h-0 flex-1 flex-col bg-[var(--bg)] text-[var(--text)]">
+      {children}
+    </div>
+  );
 }
 

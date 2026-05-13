@@ -50,7 +50,7 @@ export function AppTopbar() {
 
   return (
     <header className="sticky top-0 z-20 shrink-0 bg-[linear-gradient(180deg,rgba(244,247,242,0.98),rgba(244,247,242,0.78))] px-2 pt-3 backdrop-blur md:px-3">
-      <div className="doubow-orb flex h-[var(--app-topbar-h)] items-center justify-between gap-4 rounded-[28px] border border-[var(--app-border)] bg-[rgba(255,255,255,0.84)] px-5 shadow-[var(--app-shadow-1)] backdrop-blur-xl">
+      <div className="doubow-orb flex h-[var(--app-topbar-h)] items-center justify-between gap-4 rounded-[32px] border border-[color-mix(in_srgb,white_72%,var(--app-border))] bg-[rgba(255,255,255,0.88)] px-5 shadow-[var(--app-shadow-1)] backdrop-blur-xl">
         <div className="relative flex min-w-0 items-start gap-3 md:items-center">
           <span
             className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-elevated)] text-[var(--app-accent)] shadow-[var(--app-shadow-0)] md:mt-0 md:size-11"

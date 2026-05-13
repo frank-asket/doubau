@@ -72,10 +72,10 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
   const yTicks = [yMax, Math.round(yMax / 2), 0];
 
   const legend = (
-    <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-[var(--app-border)] pt-4 text-[12px] font-medium text-[var(--app-text-secondary)]">
+    <ul className="mt-6 flex flex-wrap gap-x-7 gap-y-2 border-t border-[color-mix(in_srgb,var(--app-border)_75%,transparent)] pt-5 text-[12px] font-semibold text-[var(--app-text-secondary)]">
       <li className="flex items-center gap-2">
         <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
+          className="size-2.5 shrink-0 rounded-full ring-1 ring-black/[0.06]"
           style={{ backgroundColor: OUTCOME_COLORS.awaiting }}
           aria-hidden
         />
@@ -83,7 +83,7 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
       </li>
       <li className="flex items-center gap-2">
         <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
+          className="size-2.5 shrink-0 rounded-full ring-1 ring-black/[0.06]"
           style={{ backgroundColor: OUTCOME_COLORS.response }}
           aria-hidden
         />
@@ -91,7 +91,7 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
       </li>
       <li className="flex items-center gap-2">
         <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
+          className="size-2.5 shrink-0 rounded-full ring-1 ring-black/[0.06]"
           style={{ backgroundColor: OUTCOME_COLORS.rejected }}
           aria-hidden
         />
@@ -101,23 +101,23 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
   );
 
   return (
-    <section className="dashboard-card rounded-[28px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-1)]">
-      <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[var(--app-border)] pb-5">
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--app-text-primary)]">
+    <section className="dashboard-chart-card p-6 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[color-mix(in_srgb,var(--app-border)_75%,transparent)] pb-6">
+        <div className="min-w-0 space-y-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--app-text-secondary)]">
             Application outcomes
           </h2>
-          <p className="max-w-xl text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
+          <p className="max-w-xl text-[14px] leading-relaxed text-[var(--app-text-secondary)]">
             Stacked counts by calendar day band (last 31 days). Segments sum to applications created in each band; split
             reflects current pipeline status.
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-text-tertiary)]">
             Window total
           </p>
           <motion.p
-            className="mt-1 tabular-nums text-[26px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]"
+            className="mt-1.5 tabular-nums text-[30px] font-black leading-none tracking-[-0.03em] text-[var(--app-text-primary)]"
             initial={reduceMotion ? false : { opacity: 0.35 }}
             animate={{ opacity: 1 }}
             transition={{ duration: reduceMotion ? 0 : 0.35, delay: reduceMotion ? 0 : 0.2 }}
@@ -179,7 +179,7 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
                         className="flex min-w-0 flex-1 flex-col items-stretch justify-end"
                       >
                         <motion.div
-                          className="mx-auto flex w-full max-w-[52px] flex-col justify-end overflow-hidden rounded-t-[5px] bg-[var(--app-bg-muted)] ring-1 ring-[var(--app-border)]"
+                          className="mx-auto flex w-full max-w-[52px] flex-col justify-end overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--app-bg-muted)_65%,white)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_70%,white)]"
                           style={{ height: columnPx }}
                           initial={reduceMotion ? false : { height: 0 }}
                           animate={{ height: columnPx }}
@@ -254,7 +254,7 @@ export function ApplicationTrendsChart({ data }: { data: ApplicationTrendsChartD
           </figcaption>
         </figure>
       ) : (
-        <div className="mt-6 flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/80 px-6 text-center">
+        <div className="mt-6 flex min-h-[240px] items-center justify-center rounded-[32px] border border-dashed border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] bg-white/35 px-6 text-center backdrop-blur-sm">
           <p className="max-w-md text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
             No applications recorded in this window. Data will appear when roles are saved from Job Discovery and show up
             in your tracker.

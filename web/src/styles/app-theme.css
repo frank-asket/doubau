@@ -81,15 +81,15 @@
   /* Radius */
   --app-radius-sm: 4px;
   --app-radius-badge: 6px;
-  --app-radius-md: 8px;
-  --app-radius-lg: 16px;
-  --app-radius-xl: 20px;
+  --app-radius-md: 10px;
+  --app-radius-lg: 28px;
+  --app-radius-xl: 32px;
   --app-radius-pill: 999px;
 
   /* Elevation */
   --app-shadow-0: 0 1px 0 rgba(20, 24, 32, 0.02);
-  --app-shadow-1: 0 1px 0 rgba(12, 22, 16, 0.03), 0 20px 48px rgba(9, 28, 17, 0.07);
-  --app-shadow-2: 0 1px 0 rgba(12, 22, 16, 0.04), 0 28px 70px rgba(9, 28, 17, 0.13);
+  --app-shadow-1: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 20px 52px rgba(15, 23, 42, 0.055), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --app-shadow-2: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 28px 70px rgba(15, 23, 42, 0.09), 0 1px 2px rgba(15, 23, 42, 0.05);
 
   /* Typography scale */
   --app-text-display: 32px;
@@ -111,9 +111,9 @@
   --app-content-max: 100%;
 
   background:
-    radial-gradient(circle at 72% -10%, rgba(32, 209, 125, 0.2), transparent 34%),
-    radial-gradient(circle at 8% 8%, rgba(52, 142, 246, 0.1), transparent 28%),
-    linear-gradient(180deg, #f8fbf5 0%, var(--app-bg-page) 44%, #eef4ed 100%);
+    radial-gradient(circle at 72% -10%, rgba(32, 209, 125, 0.14), transparent 36%),
+    radial-gradient(circle at 8% 8%, rgba(52, 142, 246, 0.08), transparent 30%),
+    linear-gradient(180deg, #fafbfd 0%, var(--app-bg-page) 48%, #eef1f4 100%);
   color: var(--app-text-primary);
 
   /**
@@ -127,6 +127,53 @@
   --ch-bg: #f8fafc;
   --ch-grn: #22c55e;
   --ch-red: #ef4444;
+
+  /* Dashboard — soft modular cards (clean marketing / JobForge-style) */
+  --dashboard-radius: 32px;
+  --dashboard-shadow-soft:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 20px 52px rgba(15, 23, 42, 0.055),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  --dashboard-border-frost: color-mix(in srgb, white 78%, var(--app-border));
+}
+
+.theme-app .dashboard-metric-card {
+  border-radius: var(--dashboard-radius);
+  border: 1px solid var(--dashboard-border-frost);
+  box-shadow: var(--dashboard-shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.theme-app .dashboard-metric-card--peach {
+  background: linear-gradient(152deg, #fff1e8 0%, #fde8db 42%, #fffaf6 100%);
+}
+
+.theme-app .dashboard-metric-card--blush {
+  background: linear-gradient(152deg, #f7ecf8 0%, #efe6fb 45%, #faf8ff 100%);
+}
+
+.theme-app .dashboard-metric-card--sky {
+  background: linear-gradient(152deg, #e8f0fc 0%, #dfeefb 48%, #f6f9ff 100%);
+}
+
+.theme-app .dashboard-metric-card--cream {
+  background: linear-gradient(152deg, #f5f2ea 0%, #efeae0 44%, #fcfaf6 100%);
+}
+
+.theme-app .dashboard-rail-card {
+  border-radius: var(--dashboard-radius);
+  border: 1px solid var(--dashboard-border-frost);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(250, 251, 253, 0.94) 100%);
+  box-shadow: var(--dashboard-shadow-soft);
+  backdrop-filter: blur(16px);
+}
+
+.theme-app .dashboard-chart-card {
+  border-radius: var(--dashboard-radius);
+  border: 1px solid var(--dashboard-border-frost);
+  background: linear-gradient(165deg, #fdf8ff 0%, #f3f6fd 38%, #ffffff 92%);
+  box-shadow: var(--dashboard-shadow-soft);
+  backdrop-filter: blur(14px);
 }
 
 .theme-app ::selection {
@@ -138,35 +185,39 @@
 }
 
 .theme-app .app-surface {
-  border: 0.5px solid var(--app-border);
+  border: 1px solid var(--dashboard-border-frost);
   background: color-mix(in srgb, var(--app-bg-elevated) 94%, transparent);
   box-shadow: var(--app-shadow-0);
   backdrop-filter: blur(16px);
+  border-radius: var(--app-radius-lg);
 }
 
 .theme-app .ch-panel {
-  border: 1px solid var(--app-border);
+  border: 1px solid var(--dashboard-border-frost);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 253, 248, 0.94)),
-    radial-gradient(circle at 100% 0%, rgba(52, 142, 246, 0.08), transparent 26%);
-  border-radius: 24px;
-  box-shadow: var(--app-shadow-1);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(250, 251, 253, 0.93) 100%),
+    radial-gradient(circle at 100% 0%, rgba(52, 142, 246, 0.06), transparent 28%);
+  border-radius: var(--dashboard-radius);
+  box-shadow: var(--dashboard-shadow-soft);
   backdrop-filter: blur(20px);
 }
 
 .theme-app .ch-soft-card {
-  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  border: 1px solid var(--dashboard-border-frost);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 249, 252, 0.88) 100%),
-    radial-gradient(circle at 100% 0%, rgba(52, 142, 246, 0.1), transparent 32%);
-  border-radius: 20px;
-  box-shadow: 0 1px 0 rgba(12, 22, 16, 0.03), 0 18px 44px rgba(17, 24, 39, 0.045);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.9) 100%),
+    radial-gradient(circle at 100% 0%, rgba(52, 142, 246, 0.07), transparent 30%);
+  border-radius: var(--app-radius-xl);
+  box-shadow: var(--dashboard-shadow-soft);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .theme-app .ch-soft-card:hover {
-  border-color: color-mix(in srgb, var(--app-blue-500) 22%, var(--app-border));
-  box-shadow: 0 1px 0 rgba(12, 22, 16, 0.04), 0 24px 58px rgba(17, 24, 39, 0.07);
+  border-color: color-mix(in srgb, var(--app-blue-500) 18%, var(--dashboard-border-frost));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 26px 62px rgba(15, 23, 42, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.05);
   transform: translateY(-1px);
 }
 

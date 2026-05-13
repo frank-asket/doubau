@@ -70,21 +70,21 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               </ul>
 
               <div className="mt-10 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[var(--shadow-sm)]">
                   <div className="text-xs text-[var(--muted)]">Setup</div>
                   <div className="mt-1 text-sm font-semibold">~5 min</div>
                 </div>
-                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[var(--shadow-sm)]">
                   <div className="text-xs text-[var(--muted)]">Approvals</div>
                   <div className="mt-1 text-sm font-semibold">Always</div>
                 </div>
-                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 py-3 shadow-[var(--shadow-sm)]">
                   <div className="text-xs text-[var(--muted)]">Flow</div>
                   <div className="mt-1 text-sm font-semibold">End-to-end</div>
                 </div>
               </div>
 
-              <div className="mt-10 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_86%,transparent)] p-5">
+              <div className="mt-10 rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_86%,transparent)] p-5 shadow-[var(--shadow-sm)]">
                 <p className="text-sm leading-6 text-[var(--muted)]">
                   “It feels like a project dashboard for my job search. The drafts save time, and approvals keep me in control.”
                 </p>
