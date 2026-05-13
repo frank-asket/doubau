@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 
 import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
@@ -14,6 +15,13 @@ const DEFAULT_LAUNCH_DOCS_HREF =
 function launchDocsHref(): string {
   const u = (process.env.NEXT_PUBLIC_LAUNCH_DOCS_URL ?? "").trim();
   return u || DEFAULT_LAUNCH_DOCS_HREF;
+}
+
+function discoveryPrefsHref(match: "default" | "worldwide", remoteOnly: boolean): string {
+  const p = new URLSearchParams();
+  if (match === "worldwide") p.set("match_scope", "worldwide");
+  if (remoteOnly) p.set("remote_only", "true");
+  return p.toString() ? `/app/discovery?${p.toString()}` : "/app/discovery";
 }
 
 export type JobRow = {
@@ -460,6 +468,8 @@ export function DiscoveryClient({
   catalogSummary,
   resumeStatus,
   loadError,
+  matchScope = "default",
+  remoteOnly = false,
 }: {
   initialFeed: FeedRow[];
   initialJobs: JobRow[];
@@ -467,6 +477,10 @@ export function DiscoveryClient({
   catalogSummary: CatalogSummary | null;
   resumeStatus?: string | null;
   loadError: boolean;
+  /** When ``worldwide``, discovery feed ranks with lower geography weight vs résumé similarity. */
+  matchScope?: "default" | "worldwide";
+  /** When true, feed only includes listings whose location text suggests remote / anywhere. */
+  remoteOnly?: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("all");
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
@@ -632,6 +646,44 @@ export function DiscoveryClient({
           </div>
         </div>
       </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-3 text-[12px] text-[var(--app-text-secondary)] shadow-[var(--app-shadow-1)]">
+        <span className="mr-1 font-bold uppercase tracking-[0.1em] text-[var(--app-text-tertiary)]">Match</span>
+        <Link
+          href={discoveryPrefsHref("default", remoteOnly)}
+          scroll={false}
+          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
+            matchScope === "default"
+              ? "bg-[var(--app-accent)] text-white shadow-sm"
+              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
+          }`}
+        >
+          Balanced
+        </Link>
+        <Link
+          href={discoveryPrefsHref("worldwide", remoteOnly)}
+          scroll={false}
+          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
+            matchScope === "worldwide"
+              ? "bg-[var(--app-accent)] text-white shadow-sm"
+              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
+          }`}
+        >
+          Worldwide (CV-first)
+        </Link>
+        <Link
+          href={discoveryPrefsHref(matchScope === "worldwide" ? "worldwide" : "default", !remoteOnly)}
+          scroll={false}
+          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
+            remoteOnly
+              ? "bg-[color-mix(in_srgb,var(--app-accent)_18%,var(--app-bg-muted))] text-[var(--app-accent)] ring-1 ring-[color-mix(in_srgb,var(--app-accent)_35%,var(--app-border))]"
+              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
+          }`}
+        >
+          Remote-style listings only
+        </Link>
+      </div>
+
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex w-full max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1">
           <button

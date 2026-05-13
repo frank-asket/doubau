@@ -14,8 +14,23 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DiscoveryPage() {
+type DiscoverySearchParams = Record<string, string | string[] | undefined>;
+
+export default async function DiscoveryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<DiscoverySearchParams>;
+}) {
   const base = getApiBaseUrl();
+  const sp = searchParams != null ? await searchParams : {};
+  const matchScopeRaw = sp.match_scope;
+  const matchScope =
+    typeof matchScopeRaw === "string" && matchScopeRaw === "worldwide" ? "worldwide" : "default";
+  const remoteRaw = sp.remote_only;
+  const remoteOnly =
+    remoteRaw === "true" ||
+    remoteRaw === "1" ||
+    (Array.isArray(remoteRaw) && remoteRaw.some((v) => v === "true" || v === "1"));
 
   let feed: FeedRow[] = [];
   let jobs: JobRow[] = [];
@@ -26,8 +41,12 @@ export default async function DiscoveryPage() {
 
   try {
     const headers = await getBackendAuthHeaders();
+    const feedQs = new URLSearchParams({ limit: "100" });
+    if (matchScope === "worldwide") feedQs.set("match_scope", "worldwide");
+    if (remoteOnly) feedQs.set("remote_only", "true");
+
     const [feedRes, jobsRes, hiddenRes, summaryRes, workspaceRes] = await Promise.all([
-      fetch(`${base}/jobs/feed?limit=100`, { headers, cache: "no-store" }),
+      fetch(`${base}/jobs/feed?${feedQs.toString()}`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs?limit=100&sort_by=created_at&order=desc`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs/hidden?limit=50`, { headers, cache: "no-store" }),
       fetch(`${base}/jobs/catalog/summary`, { headers, cache: "no-store" }),
@@ -56,6 +75,8 @@ export default async function DiscoveryPage() {
       catalogSummary={catalogSummary}
       resumeStatus={resumeStatus}
       loadError={loadError}
+      matchScope={matchScope}
+      remoteOnly={remoteOnly}
     />
   );
 }

@@ -2,6 +2,100 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from typing import Literal
+
+MatchScope = Literal["default", "worldwide"]
+
+# Coarse region tokens for cheap matching (substring on lowercased free text).
+# Order: more specific phrases before broad country names where needed.
+_TOKEN_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "gh": ("ghana", "accra", "kumasi", "tema"),
+    "ng": ("nigeria", "lagos", "abuja", "port harcourt"),
+    "sn": ("senegal", "dakar"),
+    "ke": ("kenya", "nairobi"),
+    "za": ("south africa", "johannesburg", "cape town", "durban"),
+    "eg": ("egypt", "cairo"),
+    "ma": ("morocco", "casablanca"),
+    "us": (
+        "united states",
+        "u.s.",
+        "usa",
+        ", us",
+        " us ",
+        "new york",
+        "san francisco",
+        "los angeles",
+        "chicago",
+        "seattle",
+        "austin",
+        "boston",
+        "denver",
+        "atlanta",
+        "miami",
+        "houston",
+        "dallas",
+        "phoenix",
+        "philadelphia",
+        "detroit",
+        "minneapolis",
+        "portland",
+        "california",
+        "texas",
+        "florida",
+        "washington dc",
+        "washington, dc",
+    ),
+    "ca": ("canada", "toronto", "vancouver", "montreal", "calgary", "ottawa"),
+    "uk": (
+        "united kingdom",
+        " england",
+        " scotland",
+        " wales",
+        "london",
+        "manchester",
+        "birmingham",
+        "glasgow",
+        "edinburgh",
+        "bristol",
+        "leeds",
+        "liverpool",
+    ),
+    "ie": ("ireland", "dublin", "cork", "galway"),
+    "de": ("germany", "deutschland", "berlin", "munich", "hamburg", "frankfurt", "cologne", "stuttgart"),
+    "fr": ("france", "paris", "lyon", "marseille", "toulouse", "bordeaux"),
+    "nl": ("netherlands", "holland", "amsterdam", "rotterdam", "utrecht", "eindhoven"),
+    "es": ("spain", "madrid", "barcelona", "valencia", "seville"),
+    "pt": ("portugal", "lisbon", "porto"),
+    "it": ("italy", "rome", "milan", "turin", "florence", "naples"),
+    "ch": ("switzerland", "zurich", "geneva", "basel", "bern"),
+    "at": ("austria", "vienna"),
+    "be": ("belgium", "brussels", "antwerp"),
+    "se": ("sweden", "stockholm", "gothenburg", "malmö", "malmo"),
+    "no": ("norway", "oslo", "bergen"),
+    "dk": ("denmark", "copenhagen", "aarhus"),
+    "fi": ("finland", "helsinki"),
+    "pl": ("poland", "warsaw", "krakow", "wrocław", "gdansk"),
+    "cz": ("czechia", "czech republic", "prague", "brno"),
+    "ro": ("romania", "bucharest", "cluj"),
+    "gr": ("greece", "athens", "thessaloniki"),
+    "ae": ("uae", "united arab emirates", "dubai", "abu dhabi"),
+    "sa": ("saudi arabia", "riyadh", "jeddah"),
+    "il": ("israel", "tel aviv", "jerusalem", "haifa"),
+    "in": ("india", "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", "chennai", "kolkata"),
+    "sg": ("singapore",),
+    "hk": ("hong kong",),
+    "jp": ("japan", "tokyo", "osaka", "kyoto", "yokohama"),
+    "kr": ("south korea", "korea", "seoul", "busan"),
+    "cn": ("china", "beijing", "shanghai", "shenzhen", "guangzhou"),
+    "tw": ("taiwan", "taipei"),
+    "au": ("australia", "sydney", "melbourne", "brisbane", "perth", "adelaide"),
+    "nz": ("new zealand", "auckland", "wellington"),
+    "mx": ("mexico", "mexico city", "guadalajara", "monterrey"),
+    "br": ("brazil", "são paulo", "sao paulo", "rio de janeiro", "brasília", "brasilia"),
+    "ar": ("argentina", "buenos aires"),
+    "cl": ("chile", "santiago"),
+    "co": ("colombia", "bogotá", "bogota", "medellín", "medellin"),
+}
 
 
 def normalize_location_token(s: str | None) -> str | None:
@@ -16,34 +110,57 @@ def normalize_location_token(s: str | None) -> str | None:
     if not v:
         return None
 
-    if "remote" in v:
+    if any(
+        x in v
+        for x in (
+            "remote",
+            "anywhere",
+            "worldwide",
+            "distributed",
+            "fully remote",
+            "work from home",
+            "wfh",
+        )
+    ):
         return "remote"
 
-    # Country hints (West Africa focus)
-    if "ghana" in v or re.search(r"\bgh\b", v):
-        return "gh"
-    if "nigeria" in v or re.search(r"\bng\b", v):
-        return "ng"
-    if "senegal" in v or re.search(r"\bsn\b", v):
-        return "sn"
+    for token, keywords in _TOKEN_KEYWORDS.items():
+        if any(k in v for k in keywords):
+            return token
 
-    # Major cities (map to country token)
-    if any(x in v for x in ("lagos", "abuja", "port harcourt")):
-        return "ng"
-    if any(x in v for x in ("accra", "kumasi", "tema")):
-        return "gh"
-    if any(x in v for x in ("dakar",)):
-        return "sn"
+    # ISO-like 2-letter country hints at end ", xx"
+    m = re.search(r",\s*([a-z]{2})\s*$", v)
+    if m:
+        return m.group(1)
 
     return v[:32]
 
 
-def location_match_score(*, user_location: str | None, job_location: str | None) -> float:
+def location_match_score(
+    *,
+    user_location: str | None,
+    job_location: str | None,
+    match_scope: MatchScope = "default",
+) -> float:
     """
-    Soft match: remote always "good"; exact coarse token match is best.
+    Soft match: remote always strong; same coarse token is best.
+    ``match_scope=worldwide`` de-emphasizes mismatched countries so résumé similarity can dominate.
     """
     u = normalize_location_token(user_location)
     j = normalize_location_token(job_location)
+
+    if match_scope == "worldwide":
+        if j == "remote":
+            return 0.92
+        if not u:
+            return 0.58
+        if u and j and u == j:
+            return 1.0
+        if u and j and u != j:
+            return 0.42
+        return 0.52
+
+    # default scope — stricter regional behaviour (legacy)
     if not u and not j:
         return 0.5
     if j == "remote":
@@ -53,6 +170,13 @@ def location_match_score(*, user_location: str | None, job_location: str | None)
     if u and j and ("remote" in (u, j)):
         return 0.8
     return 0.0
+
+
+def feed_blend_weights(*, match_scope: MatchScope) -> tuple[float, float, float, float]:
+    """(w_vec, w_loc, w_sen, w_rec) for ``weighted_match_score`` — worldwide favors semantic fit."""
+    if match_scope == "worldwide":
+        return (0.58, 0.12, 0.2, 0.1)
+    return (0.5, 0.2, 0.2, 0.1)
 
 
 def _parse_years_experience(s: str | None) -> float | None:
@@ -142,11 +266,10 @@ def weighted_match_score(
     w_rec: float = 0.1,
 ) -> float:
     """
-    Weighted blend in [0..1]. Keep weights stable for v1.
+    Weighted blend in [0..1]. Keep weights stable for v1 unless overridden by ``feed_blend_weights``.
     """
     vec = max(0.0, min(1.0, vector_sim))
     loc = max(0.0, min(1.0, location_score))
     sen = max(0.0, min(1.0, seniority_score))
     rec = max(0.0, min(1.0, recency_score_))
     return (w_vec * vec) + (w_loc * loc) + (w_sen * sen) + (w_rec * rec)
-

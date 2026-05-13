@@ -7,7 +7,7 @@ from typing import Literal
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import and_, asc, delete, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +17,7 @@ from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score
 from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
 from app.jobs.matching import (
+    feed_blend_weights,
     location_match_score,
     recency_score,
     seniority_match_score,
@@ -686,19 +687,45 @@ def _score_reason(
     return ", ".join(parts[:3]) or "ranked from your profile and listing freshness"
 
 
+def _job_location_remote_filter():
+    """Loose SQL filter for remote-first / distributed roles (listing text varies by provider)."""
+    loc = func.lower(func.coalesce(Job.location, ""))
+    return or_(
+        loc.like("%remote%"),
+        loc.like("%anywhere%"),
+        loc.like("%distributed%"),
+        loc.like("%worldwide%"),
+        loc.like("%fully remote%"),
+    )
+
+
 @router.get("/feed", response_model=list[FeedOut])
 def feed(
     db: DbDep,
     current_user: CurrentUserDep,
     limit: int = 30,
     offset: int = 0,
+    match_scope: Literal["default", "worldwide"] = Query(
+        "default",
+        description="default: regional location weighting; worldwide: favor résumé similarity over geography",
+    ),
+    remote_only: bool = Query(
+        False,
+        description="Restrict to listings whose location text suggests remote / anywhere / distributed",
+    ),
 ) -> list[FeedOut]:
     """
     Personalized ordering: cosine similarity vs latest embedded résumé when available;
     otherwise persona/heuristic ranking (Phase 2 fallback).
+
+    Query ``match_scope=worldwide`` lowers the weight of geography vs semantic fit for
+    cross-border / remote-first job seekers. ``remote_only=true`` restricts candidates to
+    listings whose location text suggests remote or distributed work.
     """
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
+    w_vec, w_loc, w_sen, w_rec = feed_blend_weights(match_scope=match_scope)
+    remote_filter = _job_location_remote_filter() if remote_only else None
 
     profile = current_user.profile
     persona = profile.persona if profile else None
@@ -730,9 +757,10 @@ def feed(
                 )
                 .exists()
             )
-            .order_by(dist_expr.asc())
-            .limit(500)
         )
+        if remote_filter is not None:
+            stmt = stmt.where(remote_filter)
+        stmt = stmt.order_by(dist_expr.asc()).limit(500)
         rows = db.execute(stmt).all()
         if rows:
             user_loc = profile.location if profile else None
@@ -749,7 +777,11 @@ def feed(
                 job = row[0]
                 dist = float(row[1])
                 vec_sim = max(0.0, min(1.0, 1.0 - dist / 2.0))
-                loc_s = location_match_score(user_location=user_loc, job_location=job.location)
+                loc_s = location_match_score(
+                    user_location=user_loc,
+                    job_location=job.location,
+                    match_scope=match_scope,
+                )
                 sen_s = seniority_match_score(
                     years_experience=user_yrs,
                     job_seniority=job.seniority,
@@ -765,6 +797,10 @@ def feed(
                     location_score=loc_s,
                     seniority_score=sen_s,
                     recency_score_=rec_s,
+                    w_vec=w_vec,
+                    w_loc=w_loc,
+                    w_sen=w_sen,
+                    w_rec=w_rec,
                 )
                 adj = fb_adj.get(job.id, 0.0)
                 blended = max(0.0, min(1.0, blended + adj))
@@ -799,7 +835,7 @@ def feed(
 
             return out[offset : offset + limit]
 
-    jobs = db.scalars(
+    jobs_stmt = (
         select(Job)
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
         .where(Job.is_stale.is_(False))
@@ -814,9 +850,11 @@ def feed(
             )
             .exists()
         )
-        .order_by(desc(Job.created_at))
-        .limit(500)
-    ).all()
+    )
+    if remote_filter is not None:
+        jobs_stmt = jobs_stmt.where(remote_filter)
+    jobs_stmt = jobs_stmt.order_by(desc(Job.created_at)).limit(500)
+    jobs = db.scalars(jobs_stmt).all()
     user_loc = profile.location if profile else None
     user_yrs = profile.years_experience if profile else None
     window = max(1, settings.jobs_stale_after_days)
@@ -830,7 +868,11 @@ def feed(
     for j in jobs:
         heur = _score_job_heuristic(job=j, persona=persona, focus=focus)
         base_sim = max(0.0, min(1.0, heur / heur_max))
-        loc_s = location_match_score(user_location=user_loc, job_location=j.location)
+        loc_s = location_match_score(
+            user_location=user_loc,
+            job_location=j.location,
+            match_scope=match_scope,
+        )
         sen_s = seniority_match_score(
             years_experience=user_yrs,
             job_seniority=j.seniority,
@@ -846,6 +888,10 @@ def feed(
             location_score=loc_s,
             seniority_score=sen_s,
             recency_score_=rec_s,
+            w_vec=w_vec,
+            w_loc=w_loc,
+            w_sen=w_sen,
+            w_rec=w_rec,
         )
         adj = fb_adj2.get(j.id, 0.0)
         blended = max(0.0, min(1.0, blended + adj))
