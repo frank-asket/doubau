@@ -57,9 +57,14 @@ export function EmployerLogoDevPanel({
 
   if (!domain) {
     return (
-      <div className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]">
-        Employer directory (Logo.dev) needs a guessable corporate domain. Aggregator or ATS-only links often hide
-        this — we still show the listing employer name and initials above.
+      <div
+        role="note"
+        aria-label="Logo.dev employer directory unavailable for this listing"
+        className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]"
+      >
+        <span className="font-medium text-[var(--app-text-secondary)]">Logo.dev directory:</span>{" "}
+        we need a guessable corporate domain from this posting. Aggregator or ATS-only links often hide it — the
+        employer name and initials above still reflect the listing.
       </div>
     );
   }

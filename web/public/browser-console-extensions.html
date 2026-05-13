@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Browser console — extension errors</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; line-height: 1.55; max-width: 44rem; margin: 2rem auto; padding: 0 1.25rem; }
+    h1 { font-size: 1.25rem; }
+    code { font-size: 0.9em; padding: 0.1em 0.35em; border-radius: 4px; background: color-mix(in srgb, CanvasText 8%, Canvas); }
+    ol { padding-left: 1.25rem; }
+    .muted { opacity: 0.85; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>Chrome console: “message channel closed”</h1>
+  <p class="muted">
+    If you see <code>Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received</code> (or <code>runtime.lastError</code> with the same text), it almost always comes from a <strong>browser extension</strong>, not from the Doubow web app.
+  </p>
+  <p>
+    Extensions that inject scripts sometimes tell Chrome they will reply asynchronously to a message, then never call the reply callback or the tab navigates away first. That is a bug or race in the extension, not something Doubow can fix in application JavaScript.
+  </p>
+  <h2>What to do</h2>
+  <ol>
+    <li><strong>Incognito with extensions disabled</strong> (or a fresh profile). If the message disappears, confirm it is an extension.</li>
+    <li><strong>Disable extensions one by one</strong> (ad blockers, grammar tools, wallet extensions, “enhancer” scripts, etc.) until the noise stops.</li>
+    <li>If the app behaves correctly, <strong>you can ignore</strong> this console line for production debugging of Doubow itself.</li>
+  </ol>
+  <p class="muted">
+    Doubow does not use <code>chrome.runtime</code> message channels in the shipped web app; there is nothing to patch on our side for this specific error.
+  </p>
+</body>
+</html>

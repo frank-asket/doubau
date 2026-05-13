@@ -34,6 +34,14 @@ export default function DesignSystemPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <a
+                href="/browser-console-extensions.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-accent)]"
+              >
+                Console errors (extensions)
+              </a>
+              <a
                 href="/product-userflow-spec.html"
                 target="_blank"
                 rel="noopener noreferrer"
