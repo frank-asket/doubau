@@ -28,7 +28,7 @@ export function hostnameFromSourceUrl(url: string | null | undefined): string | 
  * Hosts where the public site favicon is the job board / ATS, not the hiring company.
  * We skip these for logo resolution so we fall back to employer name heuristics or initials.
  */
-function isLowSignalLogoHost(host: string): boolean {
+export function isLowSignalLogoHost(host: string): boolean {
   const h = host.toLowerCase();
   if (h === "remoteok.com" || h.endsWith(".remoteok.com")) return true;
   if (h.includes("adzuna.")) return true;
@@ -161,6 +161,21 @@ export function resolveCompanyLogoHost(company: string, sourceUrl: string | null
   return null;
 }
 
+function isTrustedBrandImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    return (
+      u.hostname === "img.logo.dev" ||
+      u.hostname === "logo.clearbit.com" ||
+      u.hostname === "unavatar.io" ||
+      (u.hostname === "www.google.com" && u.pathname.startsWith("/s2/favicons/"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Ordered logo URLs for a corporate domain (high-res brand assets where available). */
 export function buildCompanyLogoCandidates(host: string): string[] {
   const safe = host.trim().toLowerCase().replace(/[^a-z0-9.-]/g, "");
@@ -194,24 +209,35 @@ export type JobCompanyMarkSize = "card" | "detail" | "hero";
 export function JobCompanyMark({
   company,
   sourceUrl,
+  preferredLogoSrc,
   size = "card",
   presentation = "default",
   className = "",
 }: {
   company: string;
   sourceUrl?: string | null;
+  /** When set (e.g. Logo.dev Describe `logo_url`), tried before CDN / Clearbit chain. Must match `next/image` allowlist. */
+  preferredLogoSrc?: string | null;
   size?: JobCompanyMarkSize;
   /** Muted logos — soft grayscale for dense lists (e.g. dashboard picks). */
   presentation?: "default" | "muted";
   className?: string;
 }) {
   const host = useMemo(() => resolveCompanyLogoHost(company, sourceUrl), [company, sourceUrl]);
-  const candidates = useMemo(() => (host ? buildCompanyLogoCandidates(host) : []), [host]);
+  const candidates = useMemo(() => {
+    if (!host) return [];
+    const base = buildCompanyLogoCandidates(host);
+    const pref = preferredLogoSrc?.trim();
+    if (pref && isTrustedBrandImageUrl(pref)) {
+      return [pref, ...base.filter((u) => u !== pref)];
+    }
+    return base;
+  }, [host, preferredLogoSrc]);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     setAttempt(0);
-  }, [host]);
+  }, [host, preferredLogoSrc]);
 
   const initials = companyInitials(company);
   const src: string | undefined =

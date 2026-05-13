@@ -38,10 +38,18 @@ export function heuristicBrandPaletteHex(domain: string): string[] {
   return [accent, "#64748b"];
 }
 
-export function buildPartialEmployerDescription(domain: string, displayName: string): string {
-  return [
-    `Official logo from the Logo.dev image CDN for ${displayName} (${domain}).`,
+export function buildPartialEmployerDescription(
+  domain: string,
+  displayName: string,
+  opts?: { hasLogoUrl?: boolean },
+): string {
+  const hasLogo = opts?.hasLogoUrl !== false;
+  const lines = [
+    hasLogo
+      ? `Official logo from the Logo.dev image CDN for ${displayName} (${domain}).`
+      : `No Logo.dev image is available yet for ${displayName} (${domain}) — Describe returned 404 for this domain and no publishable CDN key is configured on this deployment.`,
     "Long-form company description, verified brand colours, and social links come from the Logo.dev Describe API. Set LOGO_DEV_SECRET_KEY on your Next.js server (never as NEXT_PUBLIC_*) to load that data.",
     "The two colour chips below are a local heuristic (domain hash) for UI balance only — they are not from Logo.dev.",
-  ].join(" ");
+  ];
+  return lines.join(" ");
 }

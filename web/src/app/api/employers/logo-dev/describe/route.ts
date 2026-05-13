@@ -19,6 +19,41 @@ function buildClientLogoDevImageUrl(domain: string): string | null {
   return `https://img.logo.dev/${encodeURIComponent(safe)}?token=${encodeURIComponent(pk)}&size=128`;
 }
 
+/** Describe API may return a ready-to-use `logo` URL (img.logo.dev with token) when no local publishable key is set. */
+function trustedDescribeLogoUrl(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    const u = new URL(raw.trim());
+    if (u.protocol !== "https:") return null;
+    if (u.hostname !== "img.logo.dev") return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildPartialPayload(
+  domain: string,
+  logoUrl: string | null,
+  partialWhy: "publishable_key_only" | "describe_404",
+): EmployerBrandPayload {
+  const displayName = displayBrandNameFromDomain(domain);
+  return {
+    source: "logo.dev",
+    partial: true,
+    partial_why: partialWhy,
+    partial_palette_heuristic: true,
+    name: displayName,
+    domain,
+    description: buildPartialEmployerDescription(domain, displayName, { hasLogoUrl: Boolean(logoUrl) }),
+    indexed_at: null,
+    socials: {},
+    colors_hex: heuristicBrandPaletteHex(domain),
+    logo_url: logoUrl,
+    blurhash: null,
+  };
+}
+
 /** Sanitize `domain` query for Logo.dev `/describe/:domain` (no path, scheme, or port). */
 function sanitizeEmployerDomain(raw: string | null): string | null {
   if (!raw?.trim()) return null;
@@ -47,6 +82,8 @@ type RawDescribe = {
   socials?: Record<string, string>;
   colors?: Array<{ hex?: string }>;
   blurhash?: string;
+  /** Present on successful Describe responses — CDN URL (often includes token). */
+  logo?: string;
 };
 
 export async function GET(req: Request) {
@@ -79,20 +116,7 @@ export async function GET(req: Request) {
           "Employer metadata needs at least NEXT_PUBLIC_LOGO_DEV_KEY (logos) or LOGO_DEV_SECRET_KEY (full Describe API on a paid Logo.dev plan).",
       } satisfies LogoDevDescribeJson);
     }
-    const displayName = displayBrandNameFromDomain(domain);
-    const partial: EmployerBrandPayload = {
-      source: "logo.dev",
-      partial: true,
-      partial_palette_heuristic: true,
-      name: displayName,
-      domain,
-      description: buildPartialEmployerDescription(domain, displayName),
-      indexed_at: null,
-      socials: {},
-      colors_hex: heuristicBrandPaletteHex(domain),
-      logo_url: logoUrl,
-      blurhash: null,
-    };
+    const partial = buildPartialPayload(domain, logoUrl, "publishable_key_only");
     return NextResponse.json({ ok: true as const, data: partial } satisfies LogoDevDescribeJson);
   }
 
@@ -118,21 +142,8 @@ export async function GET(req: Request) {
     }
 
     if (!resp.ok) {
-      if (resp.status === 404 && logoUrl) {
-        const displayName404 = displayBrandNameFromDomain(domain);
-        const fallback: EmployerBrandPayload = {
-          source: "logo.dev",
-          partial: true,
-          partial_palette_heuristic: true,
-          name: displayName404,
-          domain,
-          description: buildPartialEmployerDescription(domain, displayName404),
-          indexed_at: null,
-          socials: {},
-          colors_hex: heuristicBrandPaletteHex(domain),
-          logo_url: logoUrl,
-          blurhash: null,
-        };
+      if (resp.status === 404) {
+        const fallback = buildPartialPayload(domain, logoUrl, "describe_404");
         return NextResponse.json({ ok: true as const, data: fallback } satisfies LogoDevDescribeJson);
       }
       const msg =
@@ -176,6 +187,7 @@ export async function GET(req: Request) {
     const resolvedDomain =
       typeof raw.domain === "string" && raw.domain.trim() ? raw.domain.trim() : domain;
     const blurhashRaw = typeof raw.blurhash === "string" ? raw.blurhash.trim() : "";
+    const logoFromDescribe = trustedDescribeLogoUrl(raw.logo);
     const data: EmployerBrandPayload = {
       source: "logo.dev",
       partial: false,
@@ -186,7 +198,7 @@ export async function GET(req: Request) {
       indexed_at: typeof raw.indexed_at === "string" ? raw.indexed_at : null,
       socials,
       colors_hex: colorsHex,
-      logo_url: buildClientLogoDevImageUrl(resolvedDomain),
+      logo_url: buildClientLogoDevImageUrl(resolvedDomain) ?? logoFromDescribe,
       blurhash: blurhashRaw || null,
     };
 

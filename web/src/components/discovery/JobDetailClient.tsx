@@ -6,12 +6,18 @@ import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNod
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { EmployerLogoDevPanel } from "@/components/discovery/EmployerLogoDevPanel";
-import { JobCompanyMark, hostnameFromSourceUrl, resolveCompanyLogoHost } from "@/components/discovery/JobCompanyMark";
+import {
+  JobCompanyMark,
+  hostnameFromSourceUrl,
+  isLowSignalLogoHost,
+  resolveCompanyLogoHost,
+} from "@/components/discovery/JobCompanyMark";
 import type { JobRow } from "@/components/discovery/DiscoveryClient";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ChromeIconButton } from "@/components/ui/chrome-motion";
+import { useLogoDevEmployerDescribe } from "@/hooks/use-logo-dev-employer-describe";
 import type { ApplicationRow } from "@/lib/applications-fetch";
 import { parseJobDescriptionSections } from "@/lib/job-detail-parse";
 import { cn } from "@/lib/utils";
@@ -137,13 +143,18 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const skillTags = useMemo(() => job.tags.filter((t) => !benefitTags.includes(t)), [job.tags, benefitTags]);
 
   const companySiteHost = useMemo(() => {
-    return hostnameFromSourceUrl(job.source_url) ?? resolveCompanyLogoHost(job.company, job.source_url);
+    const fromListing = hostnameFromSourceUrl(job.source_url);
+    const employer = resolveCompanyLogoHost(job.company, job.source_url);
+    if (fromListing && !isLowSignalLogoHost(fromListing)) return fromListing;
+    return employer;
   }, [job.company, job.source_url]);
 
   const logoDevDescribeDomain = useMemo(() => {
     if (isPreviewJob(job)) return null;
     return resolveCompanyLogoHost(job.company, job.source_url);
   }, [job.company, job.source_url, job.id]);
+
+  const employerLogoDev = useLogoDevEmployerDescribe(logoDevDescribeDomain, !isPreviewJob(job));
 
   const salaryLine = extractSalaryHint(job.description);
   const posted = formatDateLong(job.source_posted_at ?? job.created_at);
@@ -526,7 +537,12 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-1)]">
             <div className="mb-4 text-[13px] font-semibold text-[var(--app-text-primary)]">Company</div>
             <div className="flex items-start gap-3">
-              <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="detail" />
+              <JobCompanyMark
+                company={job.company}
+                sourceUrl={job.source_url}
+                preferredLogoSrc={employerLogoDev.payload?.logo_url}
+                size="detail"
+              />
               <div className="min-w-0">
                 <div className="text-[15px] font-semibold text-[var(--app-text-primary)]">{job.company}</div>
                 {job.location?.trim() ? (
@@ -550,6 +566,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   domain={logoDevDescribeDomain}
                   enabled={!isPreviewJob(job)}
                   companyName={job.company}
+                  remote={employerLogoDev}
                 />
               </div>
             </div>

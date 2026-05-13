@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
 
 import { AppIcon } from "@/components/ui/app-icon";
+import type { LogoDevEmployerDescribeState } from "@/hooks/use-logo-dev-employer-describe";
+import { useLogoDevEmployerDescribe } from "@/hooks/use-logo-dev-employer-describe";
 
-import type { EmployerBrandPayload, LogoDevDescribeJson } from "@/lib/logo-dev-describe-types";
+import type { EmployerBrandPayload } from "@/lib/logo-dev-describe-types";
 
 const SOCIAL_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -27,97 +28,30 @@ function socialLabel(key: string): string {
   return SOCIAL_LABEL[key] ?? key.replace(/_/g, " ");
 }
 
-function isEmployerPayload(d: Partial<EmployerBrandPayload>): d is EmployerBrandPayload {
-  if (d.source !== "logo.dev" || typeof d.domain !== "string" || typeof d.name !== "string") return false;
-  if (!Array.isArray(d.colors_hex) || !d.socials || typeof d.socials !== "object" || Array.isArray(d.socials)) {
-    return false;
-  }
-  if (typeof d.logo_url !== "string" && d.logo_url !== null) return false;
-  if (d.description !== null && typeof d.description !== "string") return false;
-  if (d.indexed_at !== null && typeof d.indexed_at !== "string") return false;
-  return true;
-}
-
 /**
  * Default employer context from Logo.dev: Describe JSON when configured, otherwise the
  * Logo.dev image CDN (partial). ``LOGO_DEV_SECRET_KEY`` never reaches the browser.
+ *
+ * Pass ``remote`` from a parent that already calls ``useLogoDevEmployerDescribe`` (e.g. job detail)
+ * so the panel and ``JobCompanyMark`` share one request.
  */
 export function EmployerLogoDevPanel({
   domain,
   enabled,
   companyName,
+  remote,
 }: {
   domain: string | null;
   enabled: boolean;
   /** Listing employer string — shown when it differs from Logo.dev canonical name */
   companyName: string;
+  /** When set, render this state instead of fetching internally (avoids duplicate describe calls). */
+  remote?: LogoDevEmployerDescribeState;
 }) {
-  const [payload, setPayload] = useState<EmployerBrandPayload | null>(null);
-  const [blocked, setBlocked] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!enabled || !domain) {
-      setPayload(null);
-      setBlocked(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setBlocked(null);
-    setPayload(null);
-
-    void (async () => {
-      try {
-        const r = await fetch(`/api/employers/logo-dev/describe?domain=${encodeURIComponent(domain)}`, {
-          cache: "no-store",
-        });
-        const raw = (await r.json().catch(() => null)) as unknown;
-        if (cancelled) return;
-
-        const json = raw as Partial<LogoDevDescribeJson>;
-        if (json && typeof json === "object" && json.ok === true && json.data && typeof json.data === "object") {
-          const d = json.data as Partial<EmployerBrandPayload>;
-          if (isEmployerPayload(d)) {
-            setPayload(d);
-            return;
-          }
-        }
-
-        if (json && typeof json === "object" && json.ok === false && typeof json.reason === "string") {
-          if (json.reason === "not_signed_in") {
-            setBlocked("Sign in to load employer brand data.");
-            return;
-          }
-          if (json.reason === "not_configured") {
-            setBlocked(
-              "Add NEXT_PUBLIC_LOGO_DEV_KEY for Logo.dev logos, or LOGO_DEV_SECRET_KEY on the server for full brand metadata.",
-            );
-            return;
-          }
-          if (json.reason === "upstream" && r.status === 404) {
-            setBlocked("No brand profile found for this domain in Logo.dev yet.");
-            return;
-          }
-          const msg = typeof json.message === "string" ? json.message : "Could not load brand data.";
-          setBlocked(msg);
-          return;
-        }
-
-        setBlocked("Could not load brand data.");
-      } catch {
-        if (!cancelled) setBlocked("Brand data is temporarily unavailable.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [domain, enabled]);
+  const internal = useLogoDevEmployerDescribe(domain, Boolean(enabled && remote === undefined));
+  const payload = remote !== undefined ? remote.payload : internal.payload;
+  const blocked = remote !== undefined ? remote.blocked : internal.blocked;
+  const loading = remote !== undefined ? remote.loading : internal.loading;
 
   if (!enabled) return null;
 
@@ -153,6 +87,10 @@ export function EmployerLogoDevPanel({
 
   if (!payload) return null;
 
+  return <EmployerLogoDevPanelBody companyName={companyName} payload={payload} />;
+}
+
+function EmployerLogoDevPanelBody({ companyName, payload }: { companyName: string; payload: EmployerBrandPayload }) {
   const socialEntries = Object.entries(payload.socials);
   const indexed =
     payload.indexed_at && !Number.isNaN(Date.parse(payload.indexed_at))
@@ -190,9 +128,19 @@ export function EmployerLogoDevPanel({
 
       {payload.partial ? (
         <p className="rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-warning)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-2 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-          <span className="font-semibold text-[var(--app-text-primary)]">Publishable-key mode.</span> Logo image is from
-          Logo.dev CDN; Describe fields require{" "}
-          <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> on the server.{" "}
+          {payload.partial_why === "describe_404" ? (
+            <>
+              <span className="font-semibold text-[var(--app-text-primary)]">Describe miss.</span> Logo.dev has no
+              directory match for this domain yet. Heuristic colours and the note below stand in until the brand is
+              indexed or the domain is corrected.{" "}
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-[var(--app-text-primary)]">Publishable-key mode.</span> The logo uses
+              the Logo.dev image CDN; long-form directory fields need{" "}
+              <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> on the server.{" "}
+            </>
+          )}
           <a
             href="https://logo.dev"
             target="_blank"
@@ -201,6 +149,14 @@ export function EmployerLogoDevPanel({
           >
             Logo.dev
           </a>
+        </p>
+      ) : null}
+
+      {payload.partial && !payload.logo_url ? (
+        <p className="rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-2 text-[12px] text-[var(--app-text-tertiary)]">
+          No logo image for this domain yet. Add <span className="font-mono text-[11px]">NEXT_PUBLIC_LOGO_DEV_KEY</span>{" "}
+          for the CDN, or rely on the <span className="font-mono text-[11px]">logo</span> field when Describe returns
+          200.
         </p>
       ) : null}
 
@@ -278,8 +234,14 @@ export function EmployerLogoDevPanel({
         </div>
       ) : payload.partial ? (
         <div className="rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-2 text-[12px] text-[var(--app-text-tertiary)]">
-          Social links load from the Describe API when <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span>{" "}
-          is set on the server.
+          {payload.partial_why === "describe_404" ? (
+            <>No social links — Describe had no profile for this domain.</>
+          ) : (
+            <>
+              Social links load from the Describe API when{" "}
+              <span className="font-mono text-[11px]">LOGO_DEV_SECRET_KEY</span> is set on the server.
+            </>
+          )}
         </div>
       ) : null}
 

@@ -3,6 +3,11 @@ export type EmployerBrandPayload = {
   /** True when only the Logo.dev image CDN is available (no Describe / secret key). */
   partial?: boolean;
   /**
+   * When `partial` is true, explains why Describe-backed fields are absent.
+   * Omitted when `partial` is false or undefined.
+   */
+  partial_why?: "publishable_key_only" | "describe_404";
+  /**
    * When true with `partial`, `colors_hex` are local heuristics for UI only (not Logo.dev).
    * Omitted or false when colours come from Describe API.
    */
