@@ -92,13 +92,11 @@ export function MetricSparkline({
 
   const strokeColor = toneStroke[tone];
   const fillRgb = toneFill[tone];
-  const lineTransition = {
-    pathLength: {
-      duration: reduceMotion ? 0 : 0.88,
-      ease: [0.22, 1, 0.36, 1] as const,
-      delay: reduceMotion ? 0 : drawDelay,
-    },
-  };
+  const clipId = `ms-clip-${rawId}`;
+  /** Left-to-right reveal matches API order (oldest sample → newest). */
+  const revealDuration = reduceMotion ? 0 : 0.82;
+  const revealEase = [0.22, 1, 0.36, 1] as const;
+  const revealDoneAt = drawDelay + revealDuration;
 
   return (
     <svg
@@ -113,29 +111,33 @@ export function MetricSparkline({
           <stop offset="85%" stopColor={fillRgb} stopOpacity="0.04" />
           <stop offset="100%" stopColor={fillRgb} stopOpacity="0" />
         </linearGradient>
+        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+          <motion.rect
+            x={0}
+            y={0}
+            height={h}
+            fill="white"
+            initial={{ width: reduceMotion ? w : 0 }}
+            animate={{ width: w }}
+            transition={{
+              duration: revealDuration,
+              delay: reduceMotion ? 0 : drawDelay,
+              ease: revealEase,
+            }}
+          />
+        </clipPath>
       </defs>
-      <motion.path
-        d={areaPath}
-        fill={`url(#${gradId})`}
-        initial={{ opacity: reduceMotion ? 1 : 0 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          duration: reduceMotion ? 0 : 0.38,
-          delay: reduceMotion ? 0 : drawDelay,
-          ease: [0.22, 1, 0.36, 1],
-        }}
-      />
-      <motion.path
-        d={linePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={{ pathLength: reduceMotion ? 1 : 0 }}
-        animate={{ pathLength: 1 }}
-        transition={lineTransition}
-      />
+      <g clipPath={`url(#${clipId})`}>
+        <path d={areaPath} fill={`url(#${gradId})`} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
       {last ? (
         <motion.circle
           cx={last.x}
@@ -144,12 +146,12 @@ export function MetricSparkline({
           fill="var(--app-bg-elevated)"
           stroke={strokeColor}
           strokeWidth={2}
-          initial={{ opacity: reduceMotion ? 1 : 0, scale: reduceMotion ? 1 : 0.6 }}
+          initial={{ opacity: reduceMotion ? 1 : 0, scale: reduceMotion ? 1 : 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
-            delay: reduceMotion ? 0 : drawDelay + 0.72,
-            duration: reduceMotion ? 0 : 0.28,
-            ease: [0.22, 1, 0.36, 1],
+            delay: reduceMotion ? 0 : revealDoneAt,
+            duration: reduceMotion ? 0 : 0.22,
+            ease: revealEase,
           }}
         />
       ) : null}

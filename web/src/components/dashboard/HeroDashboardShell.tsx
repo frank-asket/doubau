@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ApplicationTrendsChart } from "@/components/dashboard/ApplicationTrendsChart";
 import { HeroMetricCard } from "@/components/dashboard/HeroMetricCard";
 import { Tag } from "@/components/workspace/CareerHeroMockSections";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -53,13 +54,6 @@ export type HeroDashboardPayload = {
   }[];
 };
 
-/** Stacked outcome chart — muted palette reads as analytics, not marketing. */
-const OUTCOME_COLORS = {
-  awaiting: "#64748b",
-  response: "#0f766e",
-  rejected: "#a63d52",
-} as const;
-
 function formatDelta(deltaPercent: number, trend: HeroTrend) {
   if (trend === "flat") return "Stable";
   const sign = deltaPercent > 0 ? "+" : "";
@@ -67,228 +61,10 @@ function formatDelta(deltaPercent: number, trend: HeroTrend) {
   return `${sign}${deltaPercent}% ${arrow}`;
 }
 
-function formatPeriodDeltaLabel(deltaPercent: number, trend: HeroTrend): string {
-  if (trend === "flat") return "Flat vs prior 31-day window";
-  const sign = deltaPercent > 0 ? "+" : "";
-  const dir = trend === "up" ? "Up" : "Down";
-  return `${dir} ${sign}${Math.abs(deltaPercent)}% vs prior 31 days`;
-}
-
 function metricTone(trend: HeroTrend): "green" | "red" | "blue" {
   if (trend === "up") return "green";
   if (trend === "down") return "red";
   return "blue";
-}
-
-function niceYAxisMax(n: number): number {
-  if (n <= 0) return 1;
-  if (n <= 5) return 5;
-  if (n <= 10) return 10;
-  const exp = 10 ** Math.floor(Math.log10(n));
-  const f = n / exp;
-  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
-  return nice * exp;
-}
-
-function segmentHeightsPx(
-  awaiting: number,
-  response: number,
-  rejected: number,
-  total: number,
-  columnPx: number,
-): { awaiting: number; response: number; rejected: number } {
-  if (!total || columnPx <= 0) return { awaiting: 0, response: 0, rejected: 0 };
-  const ha = Math.floor((awaiting / total) * columnPx);
-  const hr = Math.floor((response / total) * columnPx);
-  const hj = columnPx - ha - hr;
-  return { awaiting: ha, response: hr, rejected: Math.max(0, hj) };
-}
-
-function ApplicationTrendsChart({ data }: { data: HeroDashboardPayload["application_trends"] }) {
-  const bucketTotals = data.buckets.map(
-    (p) => p.awaiting_response + p.response_received + p.rejected,
-  );
-  const dataMax = Math.max(0, ...bucketTotals);
-  const yMax = niceYAxisMax(dataMax);
-  const hasActivity = bucketTotals.some((t) => t > 0);
-
-  const deltaStr = formatPeriodDeltaLabel(data.window_delta_percent, data.trend);
-  const deltaClass =
-    data.trend === "up"
-      ? "text-[#0f766e]"
-      : data.trend === "down"
-        ? "text-[#a63d52]"
-        : "text-[var(--app-text-tertiary)]";
-
-  const plotH = 216;
-  const yTicks = [yMax, Math.round(yMax / 2), 0];
-
-  const legend = (
-    <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-[var(--app-border)] pt-4 text-[12px] font-medium text-[var(--app-text-secondary)]">
-      <li className="flex items-center gap-2">
-        <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
-          style={{ backgroundColor: OUTCOME_COLORS.awaiting }}
-          aria-hidden
-        />
-        Awaiting response
-      </li>
-      <li className="flex items-center gap-2">
-        <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
-          style={{ backgroundColor: OUTCOME_COLORS.response }}
-          aria-hidden
-        />
-        Response received
-      </li>
-      <li className="flex items-center gap-2">
-        <span
-          className="size-2.5 shrink-0 rounded-sm ring-1 ring-black/[0.08]"
-          style={{ backgroundColor: OUTCOME_COLORS.rejected }}
-          aria-hidden
-        />
-        Rejected
-      </li>
-    </ul>
-  );
-
-  return (
-    <section className="dashboard-card rounded-[28px] border border-[var(--app-border)] bg-white/90 p-6 shadow-[var(--app-shadow-1)]">
-      <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[var(--app-border)] pb-5">
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--app-text-primary)]">
-            Application outcomes
-          </h2>
-          <p className="max-w-xl text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-            Stacked counts by calendar day band (last 31 days). Segments sum to applications created in each band; split
-            reflects current pipeline status.
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
-            Window total
-          </p>
-          <p className="mt-1 tabular-nums text-[26px] font-semibold leading-none tracking-tight text-[var(--app-text-primary)]">
-            {data.window_total}
-          </p>
-          <p className={`mt-2 text-[12px] font-medium tabular-nums ${deltaClass}`}>{deltaStr}</p>
-        </div>
-      </div>
-
-      {legend}
-
-      {hasActivity ? (
-        <figure className="mt-6">
-          <div className="flex gap-0 sm:gap-1">
-            <div
-              className="flex w-9 shrink-0 flex-col justify-between text-right text-[10px] font-medium tabular-nums leading-none text-[var(--app-text-tertiary)] sm:w-10 sm:text-[11px]"
-              style={{ height: plotH }}
-              aria-hidden
-            >
-              <span>{yMax}</span>
-              <span>{yTicks[1]}</span>
-              <span>0</span>
-            </div>
-            <div className="relative min-w-0 flex-1">
-              <div className="relative" style={{ height: plotH }}>
-                <div
-                  className="pointer-events-none absolute inset-0 flex flex-col justify-between"
-                  aria-hidden
-                >
-                  <div className="h-px w-full bg-[var(--app-border)]" />
-                  <div className="h-px w-full bg-[var(--app-border)]" />
-                  <div className="h-px w-full bg-[var(--app-border-strong)]" />
-                </div>
-                <div
-                  className="relative z-[1] flex h-full items-end gap-1.5 sm:gap-2"
-                  role="group"
-                  aria-label="Application outcome stacks by day band"
-                >
-                  {data.buckets.map((point) => {
-                    const total = point.awaiting_response + point.response_received + point.rejected;
-                    const columnPx =
-                      total > 0 ? Math.max(4, Math.round((total / yMax) * plotH)) : 0;
-                    const { awaiting: ha, response: hr, rejected: hj } = segmentHeightsPx(
-                      point.awaiting_response,
-                      point.response_received,
-                      point.rejected,
-                      total,
-                      columnPx,
-                    );
-
-                    return (
-                      <div
-                        key={point.label}
-                        className="flex min-w-0 flex-1 flex-col items-stretch justify-end"
-                      >
-                        <div
-                          className="mx-auto flex w-full max-w-[52px] flex-col justify-end overflow-hidden rounded-t-[5px] bg-[var(--app-bg-muted)] ring-1 ring-[var(--app-border)]"
-                          style={{ height: columnPx }}
-                          title={`${total} applications · ${point.awaiting_response} awaiting · ${point.response_received} response · ${point.rejected} rejected`}
-                        >
-                          {point.awaiting_response > 0 ? (
-                            <div
-                              className="w-full shrink-0 border-t border-white/[0.18] first:border-t-0"
-                              style={{
-                                height: ha,
-                                backgroundColor: OUTCOME_COLORS.awaiting,
-                              }}
-                            />
-                          ) : null}
-                          {point.response_received > 0 ? (
-                            <div
-                              className="w-full shrink-0 border-t border-white/[0.18]"
-                              style={{
-                                height: hr,
-                                backgroundColor: OUTCOME_COLORS.response,
-                              }}
-                            />
-                          ) : null}
-                          {point.rejected > 0 ? (
-                            <div
-                              className="w-full shrink-0 border-t border-white/[0.18]"
-                              style={{
-                                height: hj,
-                                backgroundColor: OUTCOME_COLORS.rejected,
-                              }}
-                            />
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="mt-2 grid grid-cols-8 gap-1.5 sm:gap-2">
-                {data.buckets.map((point) => {
-                  const total = point.awaiting_response + point.response_received + point.rejected;
-                  return (
-                    <div key={`x-${point.label}`} className="min-w-0 text-center">
-                      <p className="tabular-nums text-[12px] font-semibold text-[var(--app-text-primary)]">{total}</p>
-                      <p className="mt-1 truncate text-[10px] font-medium text-[var(--app-text-tertiary)] sm:text-[11px]">
-                        {point.label}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <figcaption className="sr-only">
-            Stacked bar chart of application outcomes over eight day ranges in the last month. Maximum axis value{" "}
-            {yMax}.
-          </figcaption>
-        </figure>
-      ) : (
-        <div className="mt-6 flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/80 px-6 text-center">
-          <p className="max-w-md text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
-            No applications recorded in this window. Data will appear when roles are saved from Job Discovery and show up
-            in your tracker.
-          </p>
-        </div>
-      )}
-    </section>
-  );
 }
 
 function CareerGoalsPanel({ goals }: { goals: HeroDashboardPayload["career_goals"] }) {
@@ -490,7 +266,17 @@ export function HeroDashboardShell({ data }: { data: HeroDashboardPayload }) {
           </HeroMetricCard>
         </div>
 
-        <ApplicationTrendsChart data={data.application_trends} />
+        <ApplicationTrendsChart
+          key={[
+            data.application_trends.window_total,
+            ...data.application_trends.buckets.flatMap((b) => [
+              b.awaiting_response,
+              b.response_received,
+              b.rejected,
+            ]),
+          ].join(":")}
+          data={data.application_trends}
+        />
       </div>
 
       <aside className="space-y-5">

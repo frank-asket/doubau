@@ -69,7 +69,12 @@ export function HeroMetricCard({
         </div>
       </div>
       <div className="mt-7 grid gap-4 sm:grid-cols-[minmax(0,220px)_1fr] sm:items-center">
-        <MetricSparkline values={sparkline} tone={tone} drawDelay={drawDelay} />
+        <MetricSparkline
+          key={sparkline.join("-")}
+          values={sparkline}
+          tone={tone}
+          drawDelay={drawDelay}
+        />
         <p className="text-[13px] leading-5 text-[var(--app-text-secondary)]">
           {children ??
             "Earlier samples on the left, today on the right. The curve is anchored to your recent baseline and current reading."}
