@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -136,14 +136,14 @@ class CheckInOut(BaseModel):
 class MilestoneCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     status: str = Field(default="todo", max_length=40)
-    due_date: date | None = None
+    due_date: Date | None = None
     meta: dict = Field(default_factory=dict)
 
 
 class MilestonePatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     status: str | None = Field(default=None, max_length=40)
-    due_date: date | None = None
+    due_date: Date | None = None
     meta: dict | None = None
 
 
@@ -151,7 +151,7 @@ class MilestoneOut(BaseModel):
     id: UUID
     title: str
     status: str
-    due_date: date | None
+    due_date: Date | None
     meta: dict
     created_at: datetime
     updated_at: datetime
@@ -162,7 +162,7 @@ class MilestoneOut(BaseModel):
 class MilestoneCalendarCell(BaseModel):
     """One cell in a Monday-first month grid; ``date`` null means padding outside the month."""
 
-    date: date | None = None
+    date: Date | None = None
     milestones: list[MilestoneOut] = Field(default_factory=list)
 
 
