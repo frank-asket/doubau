@@ -62,7 +62,9 @@ Or from the repo: `sh api/scripts/trigger_catalog_ingest.sh` (same two env vars)
    - **`CLERK_JWT_TEMPLATE`** — optional; defaults to `doubow-api`.
 2. Clerk dashboard: allowed origins / redirect URLs for your Vercel domain(s).
 3. Pre-flight: `cd web && npm run launch:check`.
-4. Build: `cd web && npm ci && npm run typecheck && npm run build`.
+4. Build (matches CI order): `cd web && npm ci && npm run test && npm run typecheck && npm run build`.
+
+GitHub Actions **CI** (`.github/workflows/ci.yml`) runs `npm run test` and `npm run typecheck` on every push/PR to `main`/`master` before the Next.js production build.
 
 Vercel **Production** builds validate env: **`NEXT_PUBLIC_API_BASE_URL`** must be HTTPS (not
 localhost). Clerk keys must be a **matching pair** — `pk_test_` with `sk_test_` (demo on

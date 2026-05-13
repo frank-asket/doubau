@@ -14,6 +14,8 @@
     "start": "next start",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "launch:check": "node scripts/check-launch-env.mjs"
   },
   "dependencies": {
@@ -38,6 +40,7 @@
     "eslint-config-next": "^15.5.18",
     "rimraf": "^6.1.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
