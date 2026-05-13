@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ApplicationTrendsChart } from "@/components/dashboard/ApplicationTrendsChart";
 import { HeroMetricCard } from "@/components/dashboard/HeroMetricCard";
+import { JobCompanyMark } from "@/components/discovery/JobCompanyMark";
 import { Tag } from "@/components/workspace/CareerHeroMockSections";
 import { AppIcon } from "@/components/ui/app-icon";
 
@@ -129,9 +130,12 @@ function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) 
               <article className="ch-soft-card p-5 transition-[transform,box-shadow] duration-150 hover:shadow-[var(--app-shadow-1)]">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#111827] text-[12px] font-black text-white">
-                      {job.company.slice(0, 1).toUpperCase()}
-                    </span>
+                    <JobCompanyMark
+                      company={job.company}
+                      sourceUrl={job.source_url}
+                      size="detail"
+                      className="!rounded-full shadow-none ring-1 ring-[color-mix(in_srgb,var(--app-border)_80%,transparent)]"
+                    />
                     <div className="min-w-0">
                       <h3 className="truncate font-bold text-[var(--app-text-primary)]">{job.title}</h3>
                       <p className="truncate text-[13px] font-semibold text-[var(--app-accent)]">{job.company}</p>
