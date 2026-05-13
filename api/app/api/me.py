@@ -12,11 +12,21 @@ from sqlalchemy import desc, func, select
 
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score_from_jd_text
 from app.api.deps import CurrentUserDep, DbDep
+from app.api.jobs import FeedOut
+from app.api.jobs import feed as jobs_personalized_feed
 from app.api.schemas import (
     CheckInCreate,
     CheckInOut,
     DashboardSummaryOut,
     DashboardTrendPoint,
+    HeroApplicationTrendsOut,
+    HeroCareerGoalOut,
+    HeroDashboardOut,
+    HeroMetricsBundleOut,
+    HeroScoreMetricOut,
+    HeroSubscriptionOut,
+    HeroTopPickOut,
+    HeroTrendBucketOut,
     JdFitRequest,
     MilestoneCreate,
     MilestoneOut,
@@ -33,6 +43,7 @@ from app.models.milestone import Milestone
 from app.models.profile import Profile
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.models.user import User
+from app.services.hero_dashboard import compute_hero_dashboard_payload
 from app.storage.s3 import ensure_bucket, s3_client
 from app.tasks import process_resume_document, run_process_resume_document_sync
 
@@ -462,6 +473,94 @@ def dashboard_summary(db: DbDep, current_user: CurrentUserDep) -> DashboardSumma
             }
             for app in recent
         ],
+    )
+
+
+def _workplace_caption(location: str | None) -> str:
+    loc = (location or "").lower()
+    if "remote" in loc or "anywhere" in loc or "wfh" in loc:
+        return "Remote"
+    if "hybrid" in loc:
+        return "Hybrid"
+    return "On-site"
+
+
+def _seniority_caption(job_seniority: str | None, profile_years: str | None) -> str:
+    s = (job_seniority or "").strip()
+    if s:
+        return s if "exp" in s.lower() else f"{s} experience"
+    y = (profile_years or "").strip()
+    if y:
+        return f"{y} experience"
+    return "Experience varies"
+
+
+def _salary_from_tags(tags: list[str]) -> str | None:
+    for raw in tags or []:
+        t = str(raw).strip()
+        if not t:
+            continue
+        lower = t.lower()
+        has_k_with_digit = "k" in lower and any(c.isdigit() for c in t)
+        if "£" in t or "gbp" in lower or "salary" in lower or "/yr" in lower or has_k_with_digit:
+            return t
+    return None
+
+
+def _hero_top_picks(feed_rows: list[FeedOut], profile: Profile | None) -> list[HeroTopPickOut]:
+    yrs = profile.years_experience if profile else None
+    out: list[HeroTopPickOut] = []
+    for row in feed_rows:
+        j = row.job
+        et = (j.employment_type or "").strip() or None
+        out.append(
+            HeroTopPickOut(
+                job_id=j.id,
+                title=j.title,
+                company=j.company,
+                seniority_caption=_seniority_caption(j.seniority, yrs),
+                employment_type=et,
+                workplace_caption=_workplace_caption(j.location),
+                salary_caption=_salary_from_tags(j.tags),
+                match_percent=int(round(max(0.0, min(100.0, row.score)))),
+                source_url=j.source_url,
+            )
+        )
+    return out
+
+
+@router.get("/hero-dashboard", response_model=HeroDashboardOut)
+def hero_dashboard(db: DbDep, current_user: CurrentUserDep) -> HeroDashboardOut:
+    """Scores + layout data for the CareerHero-style home dashboard."""
+    profile = current_user.profile
+    raw = compute_hero_dashboard_payload(
+        db,
+        user_id=current_user.id,
+        email=current_user.email,
+        profile=profile,
+    )
+    feed_rows = jobs_personalized_feed(db=db, current_user=current_user, limit=4, offset=0)
+    top = _hero_top_picks(feed_rows, profile)
+
+    m = raw["metrics"]
+    return HeroDashboardOut(
+        display_name=raw["display_name"],
+        subscription=HeroSubscriptionOut(**raw["subscription"]),
+        metrics=HeroMetricsBundleOut(
+            career_score=HeroScoreMetricOut(**m["career_score"]),
+            skills_growth=HeroScoreMetricOut(**m["skills_growth"]),
+            linkedin_health=HeroScoreMetricOut(**m["linkedin_health"]),
+            cv_score=HeroScoreMetricOut(**m["cv_score"]),
+        ),
+        career_goals=[HeroCareerGoalOut(**g) for g in raw["career_goals"]],
+        application_trends=HeroApplicationTrendsOut(
+            buckets=[HeroTrendBucketOut(**b) for b in raw["application_trends"]["buckets"]],
+            window_total=raw["application_trends"]["window_total"],
+            window_delta_percent=raw["application_trends"]["window_delta_percent"],
+            trend=raw["application_trends"]["trend"],
+        ),
+        top_picks=top,
+        algorithm_version=raw["algorithm_version"],
     )
 
 

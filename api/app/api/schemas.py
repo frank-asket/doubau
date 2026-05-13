@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -116,3 +117,72 @@ class MilestoneOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+HeroTrend = Literal["up", "down", "flat"]
+HeroGoalPhase = Literal["current", "next", "future"]
+
+
+class HeroScoreMetricOut(BaseModel):
+    value: int
+    unit: str
+    delta_percent: int
+    trend: HeroTrend
+
+
+class HeroSubscriptionOut(BaseModel):
+    show_upgrade_banner: bool
+    plan_tier: str | None = None
+    price_gbp_month: int = 18
+    headline: str
+
+
+class HeroTrendBucketOut(BaseModel):
+    label: str
+    awaiting_response: int = 0
+    response_received: int = 0
+    rejected: int = 0
+
+
+class HeroApplicationTrendsOut(BaseModel):
+    buckets: list[HeroTrendBucketOut]
+    window_total: int
+    window_delta_percent: int
+    trend: HeroTrend
+
+
+class HeroCareerGoalOut(BaseModel):
+    phase: HeroGoalPhase
+    title: str
+    salary_label: str | None = None
+
+
+class HeroTopPickOut(BaseModel):
+    job_id: UUID
+    title: str
+    company: str
+    seniority_caption: str
+    employment_type: str | None = None
+    workplace_caption: str
+    salary_caption: str | None = None
+    match_percent: int
+    source_url: str | None = None
+
+
+class HeroMetricsBundleOut(BaseModel):
+    career_score: HeroScoreMetricOut
+    skills_growth: HeroScoreMetricOut
+    linkedin_health: HeroScoreMetricOut
+    cv_score: HeroScoreMetricOut
+
+
+class HeroDashboardOut(BaseModel):
+    """Career-style home dashboard: scores, goals, application funnel chart, and feed picks."""
+
+    display_name: str
+    subscription: HeroSubscriptionOut
+    metrics: HeroMetricsBundleOut
+    career_goals: list[HeroCareerGoalOut]
+    application_trends: HeroApplicationTrendsOut
+    top_picks: list[HeroTopPickOut]
+    algorithm_version: int = 1
