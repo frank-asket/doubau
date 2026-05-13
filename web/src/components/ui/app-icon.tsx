@@ -14,6 +14,7 @@ export type AppIconName =
   | "chevron-down"
   | "chevron-right"
   | "circle"
+  | "eye"
   | "clipboard-check"
   | "clock"
   | "file-text"
@@ -100,6 +101,12 @@ const paths: Record<AppIconName, SVGProps<SVGSVGElement>["children"]> = {
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "chevron-right": <path d="m9 6 6 6-6 6" />,
   circle: <circle cx="12" cy="12" r="8" />,
+  eye: (
+    <>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
   "clipboard-check": (
     <>
       <path d="M9 5h6" />

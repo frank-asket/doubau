@@ -105,6 +105,25 @@ function normalizedRow(row: DisplayRow): DisplayRow {
   };
 }
 
+/** Office / Remote / Hybrid chip from catalog location text (aligned with feed ``remote_only`` heuristics). */
+function workModeFromLocation(location: string | null | undefined): "Remote" | "Hybrid" | "Office" {
+  const s = (location || "").toLowerCase();
+  if (!s.trim()) return "Office";
+  if (/\bhybrid\b/.test(s)) return "Hybrid";
+  if (
+    /\bremote\b/.test(s) ||
+    /\banywhere\b/.test(s) ||
+    /\bworldwide\b/.test(s) ||
+    /\bdistributed\b/.test(s) ||
+    /\bwfh\b/.test(s) ||
+    /\bwork from home\b/.test(s) ||
+    /\bfully\s+remote\b/.test(s)
+  ) {
+    return "Remote";
+  }
+  return "Office";
+}
+
 function isPreviewJob(job: JobRow) {
   return job.id.startsWith("mock-");
 }
@@ -144,9 +163,18 @@ function DiscoveryScoringExplainer({
   }
 
   return (
-    <div className="mb-6 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_06%,var(--app-bg-elevated))] px-4 py-4 sm:px-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h3 className="text-[13px] font-semibold text-[var(--app-text-primary)]">Ranking</h3>
+    <details className="group mb-6 rounded-[var(--app-radius-lg)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_22%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_05%,var(--app-bg-elevated))] [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--app-accent)]">Ranking</p>
+          <p className="mt-0.5 text-[13px] font-semibold text-[var(--app-text-primary)]">How listings are matched to your profile</p>
+        </div>
+        <AppIcon
+          name="chevron-down"
+          className="size-5 shrink-0 text-[var(--app-text-tertiary)] transition-transform duration-200 group-open:rotate-180"
+        />
+      </summary>
+      <div className="border-t border-[color-mix(in_srgb,var(--app-border)_80%,transparent)] px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
         <div className="flex flex-wrap gap-2 text-[12px]">
           <span
             className={`rounded-full px-3 py-1 font-medium ${
@@ -163,7 +191,6 @@ function DiscoveryScoringExplainer({
           </span>
           <span className={`rounded-full px-3 py-1 font-medium ${rankingChipClass}`}>{rankingChipLabel}</span>
         </div>
-      </div>
 
       {catalogEmpty ? (
         <p className="mt-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]">
@@ -235,7 +262,8 @@ function DiscoveryScoringExplainer({
           </a>
         </p>
       </details>
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -326,113 +354,127 @@ function DiscoveryCard({
 }) {
   const reducedMotion = useReducedMotion();
   const job = row.job;
-  const tags = [
-    job.seniority || "3 year exp",
-    job.employment_type || "Full time",
-    job.location || "Office",
-  ];
+  const workMode = workModeFromLocation(job.location);
+  const tags = [job.seniority || "3 year exp", job.employment_type || "Full time", workMode];
   const detailHref = isPreviewJob(job) ? "#" : `/app/discovery/${job.id}`;
+  const rawListingUrl = job.source_url?.trim() ?? "";
+  const listingIsExternal = Boolean(rawListingUrl && /^https?:\/\//i.test(rawListingUrl));
+  const listingHref =
+    !isPreviewJob(job) && listingIsExternal ? rawListingUrl : detailHref;
   const description = job.description || "";
   const score = typeof row.score === "number" ? Math.round(row.score) : null;
   const components = Object.entries(row.components || {}).slice(0, 3);
 
+  const linkClass =
+    "grid size-10 shrink-0 place-items-center rounded-full border border-transparent text-[var(--app-text-secondary)] transition-colors duration-150 ease-out hover:border-[color-mix(in_srgb,var(--app-accent)_22%,var(--app-border))] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]";
+
   return (
     <motion.article
-      className="group relative overflow-hidden rounded-[26px] border border-[color-mix(in_srgb,var(--app-border)_70%,transparent)] bg-[rgba(255,255,255,0.86)] shadow-[0_20px_48px_rgba(9,28,17,0.07)] backdrop-blur transition-[border-color,box-shadow] duration-200 ease-out hover:border-[color-mix(in_srgb,var(--app-accent)_38%,var(--app-border))] hover:shadow-[0_28px_70px_rgba(9,28,17,0.13)]"
-      initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
+      className="group/card ch-soft-card relative flex h-full flex-col overflow-hidden rounded-[22px] p-5"
+      initial={{ opacity: 0, y: reducedMotion ? 0 : 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={reducedMotion ? undefined : { y: -4 }}
-      transition={{ duration: 0.28, delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25) }}
+      whileHover={reducedMotion ? undefined : { y: -3 }}
+      transition={{ duration: 0.26, delay: reducedMotion ? 0 : Math.min(index * 0.03, 0.22) }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--app-accent)] via-[#348ef6] to-[#ffb454] opacity-80" />
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
-            <div className="min-w-0">
-              <h2 className="truncate text-[20px] font-bold tracking-[-0.01em] text-[var(--app-text-primary)]">
-                {job.title}
-              </h2>
-              <p className="mt-1 truncate text-[15px] font-semibold text-[var(--app-accent)]">
-                {job.company}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
+          <div className="min-w-0 pr-1">
             {!isPreviewJob(job) ? (
-              <ChromeIconLink
-                href={detailHref}
-                className="size-10 shrink-0 text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"
-                aria-label={`Job details — ${job.title}`}
-                title="Job details"
-              >
-                <AppIcon name="file-text" className="size-5" />
-              </ChromeIconLink>
-            ) : null}
-            <motion.button
-              type="button"
-              className={`grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_14%,white)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--app-accent)_18%,transparent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"}`}
-              aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-              title={favorite ? "Remove from favorites" : "Save to favorites"}
-              onClick={onToggleFavorite}
-              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
-              transition={{ type: "spring", stiffness: 520, damping: 28 }}
-            >
-              <motion.span
-                key={favorite ? "on" : "off"}
-                initial={reducedMotion ? false : { scale: 0.86, rotate: -8 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                className="grid place-items-center"
-              >
-                <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
-              </motion.span>
-            </motion.button>
+              <Link href={detailHref} className="block min-w-0 rounded-md outline-none ring-[var(--app-accent)] focus-visible:ring-2">
+                <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)] group-hover/card:text-[var(--app-accent)]">
+                  {job.title}
+                </h2>
+                <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
+              </Link>
+            ) : (
+              <>
+                <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-[var(--app-text-primary)]">{job.title}</h2>
+                <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--app-text-secondary)]">{job.company}</p>
+              </>
+            )}
           </div>
         </div>
+        <motion.button
+          type="button"
+          className={`grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out ${favorite ? "bg-[color-mix(in_srgb,var(--app-accent)_14%,white)] text-[var(--app-accent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--app-accent)_18%,transparent)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-bg-muted)] hover:text-[var(--app-accent)]"}`}
+          aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+          title={favorite ? "Remove from favorites" : "Save to favorites"}
+          onClick={onToggleFavorite}
+          whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+          transition={{ type: "spring", stiffness: 520, damping: 28 }}
+        >
+          <motion.span
+            key={favorite ? "on" : "off"}
+            initial={reducedMotion ? false : { scale: 0.86, rotate: -8 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+            className="grid place-items-center"
+          >
+            <AppIcon name={favorite ? "star-filled" : "star"} filled={favorite} className="size-5" />
+          </motion.span>
+        </motion.button>
+      </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {tags.map((tag) => (
-            <Tag key={tag}>{tag}</Tag>
-          ))}
-          <Tag>{sourceLabel(job)}</Tag>
-          {score !== null ? <Tag active>{score}% match</Tag> : null}
-          <Tag>{postedLabel(job)}</Tag>
-        </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <Tag key={`${job.id}-${tag}`}>{tag}</Tag>
+        ))}
+      </div>
 
-        <p className="mt-6 line-clamp-3 min-h-[78px] text-[15px] leading-[1.55] text-[var(--app-text-primary)]">
-          {description}
-        </p>
+      <p className="mt-4 line-clamp-3 min-h-[4.5rem] text-[14px] leading-[1.55] text-[var(--app-text-primary)]">{description}</p>
 
-        {row.scoreReason ? (
-          <p className="mt-4 line-clamp-1 text-[13px] font-semibold text-[var(--app-text-secondary)]">
-            {row.scoreReason}
-          </p>
+      <p className="mt-2 line-clamp-1 text-[12px] text-[var(--app-text-tertiary)]">
+        <span className="font-medium text-[var(--app-text-secondary)]">{sourceLabel(job)}</span>
+        <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
+          ·
+        </span>
+        <span>{postedLabel(job)}</span>
+        {score !== null ? (
+          <>
+            <span aria-hidden className="mx-1.5 text-[var(--app-border)]">
+              ·
+            </span>
+            <span className="font-semibold text-[var(--app-accent)]">{score}% match</span>
+          </>
         ) : null}
+      </p>
 
-        {components.length ? (
-          <div className="mt-5 grid gap-2">
+      {row.scoreReason ? (
+        <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-snug text-[var(--app-text-secondary)]">{row.scoreReason}</p>
+      ) : null}
+
+      {components.length ? (
+        <details className="mt-3 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/60 px-2 py-1.5 text-[11px] text-[var(--app-text-tertiary)]">
+          <summary className="cursor-pointer select-none font-semibold text-[var(--app-text-secondary)] [&::-webkit-details-marker]:hidden">
+            Score breakdown
+          </summary>
+          <div className="mt-2 grid gap-2 pb-1">
             {components.map(([name, value]) => (
-              <div key={name} className="grid grid-cols-[92px_1fr_42px] items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
-                <span>{name}</span>
+              <div
+                key={name}
+                className="grid grid-cols-[88px_1fr_40px] items-center gap-2 font-bold uppercase tracking-[0.06em]"
+              >
+                <span className="truncate">{name}</span>
                 <span className="h-1.5 overflow-hidden rounded-full bg-[var(--app-bg-muted)]">
                   <span
                     className="block h-full rounded-full bg-[var(--app-accent)]"
                     style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
                   />
                 </span>
-                <span className="text-right tabular-nums">{Math.round(value)}%</span>
+                <span className="text-right tabular-nums text-[var(--app-text-primary)]">{Math.round(value)}%</span>
               </div>
             ))}
           </div>
-        ) : null}
-      </div>
+        </details>
+      ) : null}
 
-      <div className="flex items-center justify-between border-t border-dashed border-[var(--app-border)] px-6 py-5">
-        <p className="max-w-[220px] text-[13px] font-medium leading-snug text-[var(--app-text-secondary)]">
-          Compensation is not stored in the catalog — check the posting for salary or range.
+      <div className="mt-auto flex items-center justify-between border-t border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] pt-4">
+        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[var(--app-text-primary)]">
+          <AppIcon name="banknote" className="size-4 shrink-0 text-[var(--app-text-tertiary)]" />
+          <span className="truncate text-[var(--app-text-secondary)]">See posting for salary</span>
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           {!isPreviewJob(job) ? (
             <motion.button
               type="button"
@@ -446,14 +488,28 @@ function DiscoveryCard({
             </motion.button>
           ) : null}
           {!isPreviewJob(job) ? (
-            <ChromeIconLink
-              href={detailHref}
-              className="size-10 text-[var(--app-text-secondary)] group-hover:bg-[var(--app-bg-muted)] group-hover:text-[var(--app-accent)]"
-              aria-label={`View ${job.title} and apply in Doubow`}
-              title="View role and apply in Doubow"
-            >
-              <AppIcon name="arrow-up-right" className="size-5" />
-            </ChromeIconLink>
+            listingIsExternal ? (
+              <motion.a
+                href={listingHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkClass}
+                aria-label={`Open original listing — ${job.title}`}
+                title="Original listing"
+                whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+              >
+                <AppIcon name="arrow-up-right" className="size-5" />
+              </motion.a>
+            ) : (
+              <ChromeIconLink
+                href={detailHref}
+                className={linkClass}
+                aria-label={`View ${job.title} in Doubow`}
+                title="View role"
+              >
+                <AppIcon name="arrow-up-right" className="size-5" />
+              </ChromeIconLink>
+            )
           ) : null}
         </div>
       </div>
@@ -493,7 +549,6 @@ export function DiscoveryClient({
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [visibleLimit, setVisibleLimit] = useState(12);
   const [isPending, startTransition] = useTransition();
-  const reducedMotion = useReducedMotion();
 
   const rows = useMemo(() => {
     const fromFeed: DisplayRow[] = initialFeed.map((row) => ({
@@ -525,6 +580,13 @@ export function DiscoveryClient({
 
   const favoriteCount = favorites.size;
   const totalCount = catalogSummary?.active_total || initialJobs.length || initialFeed.length;
+  const embeddedTotal = catalogSummary?.embedded_total ?? 0;
+  const missingEmb = catalogSummary?.missing_embedding_total ?? 0;
+  const activeTotal = catalogSummary?.active_total ?? 0;
+  const showCatalogHint =
+    !loadError &&
+    catalogSummary != null &&
+    (missingEmb > 0 || (activeTotal > 0 && embeddedTotal < activeTotal));
   const visibleRows = rows.filter(({ job }) => {
     if (hiddenIds.has(job.id)) return false;
     if (tab === "favorites" && !favorites.has(job.id)) return false;
@@ -609,148 +671,149 @@ export function DiscoveryClient({
   }
 
   return (
-    <section className="ch-panel min-h-[calc(100vh-104px)] p-6">
-      <div className="doubow-orb mb-6 overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--app-accent)_20%,var(--app-border))] bg-[#07110d] p-7 text-white shadow-[0_28px_70px_rgba(9,28,17,0.18)]">
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--app-accent)]">
-              Curated role network
-            </p>
-            <h2 className="mt-3 text-[32px] font-black leading-[1.02] tracking-[-0.045em] md:text-[44px]">
-              High-signal opportunities, ranked for your next move.
-            </h2>
-            <p className="mt-4 max-w-xl text-[15px] leading-7 text-white/68">
-              When your résumé is embedded and jobs are indexed, we rank by semantic fit vs your CV — otherwise by profile, location,
-              seniority, and freshness until ingest + workers catch up.
-            </p>
+    <section className="ch-panel min-h-[calc(100vh-104px)] p-5 sm:p-6">
+      {showCatalogHint ? (
+        <p className="mb-4 text-[14px] leading-relaxed text-[var(--app-text-secondary)]">
+          {missingEmb > 0 ? (
+            <>
+              <span className="font-semibold text-[var(--app-text-primary)]">{missingEmb}</span>{" "}
+              {missingEmb === 1 ? "listing is" : "listings are"} still embedding — semantic ranking fills in as indexing finishes.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-[var(--app-text-primary)]">{embeddedTotal}</span> of{" "}
+              <span className="font-semibold text-[var(--app-text-primary)]">{activeTotal}</span> roles are embedded for semantic match;
+              the rest use profile and keyword-style ranking until embeddings complete.
+            </>
+          )}
+        </p>
+      ) : null}
+
+      <div className="mb-5 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-3 shadow-[var(--app-shadow-0)] sm:p-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
+            <div className="flex w-full min-w-0 max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1 lg:max-w-md">
+              <button
+                type="button"
+                className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-3 text-[14px] font-semibold transition-colors duration-150 ease-out sm:px-4 sm:text-[15px] ${
+                  tab === "all" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+                }`}
+                onClick={() => setTab("all")}
+              >
+                {tab === "all" ? (
+                  <motion.span
+                    layoutId="discovery-tab-pill"
+                    className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  />
+                ) : null}
+                <span className="relative z-[1] flex items-center justify-center gap-2">
+                  <AppIcon name="briefcase" className="size-4 shrink-0" />
+                  <span>All Jobs</span>
+                  <Tag active={tab === "all"}>{totalCount}</Tag>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-3 text-[14px] font-semibold transition-colors duration-150 ease-out sm:px-4 sm:text-[15px] ${
+                  tab === "favorites"
+                    ? "text-[var(--app-accent)]"
+                    : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+                }`}
+                onClick={() => setTab("favorites")}
+              >
+                {tab === "favorites" ? (
+                  <motion.span
+                    layoutId="discovery-tab-pill"
+                    className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  />
+                ) : null}
+                <span className="relative z-[1] flex items-center justify-center gap-2">
+                  <AppIcon name="star" className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Favorites Jobs</span>
+                  <span className="sm:hidden">Favorites</span>
+                  <Tag active={tab === "favorites"}>{favoriteCount}</Tag>
+                </span>
+              </button>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-2 border-t border-[var(--app-border)] pt-3 sm:flex-row sm:items-center sm:gap-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+              <span
+                className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--app-text-tertiary)] sm:pt-0.5"
+                id="discovery-match-label"
+              >
+                Match
+              </span>
+              <div
+                className="inline-flex min-w-0 flex-wrap items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--app-border)_90%,transparent)] bg-[var(--app-bg-muted)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]"
+                role="group"
+                aria-labelledby="discovery-match-label"
+              >
+                <Link
+                  href={discoveryPrefsHref("default", remoteOnly)}
+                  scroll={false}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
+                    matchScope === "default"
+                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                      : "text-[var(--app-text-primary)] hover:bg-white/70"
+                  }`}
+                >
+                  Balanced
+                </Link>
+                <Link
+                  href={discoveryPrefsHref("worldwide", remoteOnly)}
+                  scroll={false}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
+                    matchScope === "worldwide"
+                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
+                      : "text-[var(--app-text-primary)] hover:bg-white/70"
+                  }`}
+                >
+                  Worldwide
+                </Link>
+                <Link
+                  href={discoveryPrefsHref(matchScope === "worldwide" ? "worldwide" : "default", !remoteOnly)}
+                  scroll={false}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
+                    remoteOnly
+                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))]"
+                      : "text-[var(--app-text-primary)] hover:bg-white/70"
+                  }`}
+                >
+                  Remote only
+                </Link>
+              </div>
+            </div>
           </div>
-          <div className="grid min-w-[260px] grid-cols-2 gap-3">
-            <motion.div
-              className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur"
-              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32, delay: reducedMotion ? 0 : 0.06 }}
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--app-border)] pt-3 xl:border-t-0 xl:pt-0">
+            <ToolbarButton label="Filters" icon="filter" />
+            <ToolbarButton label="Sort" icon="analytics" />
+            <label className="group flex min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)] transition-[box-shadow,border-color,ring] duration-200 ease-out focus-within:border-[color-mix(in_srgb,var(--app-accent)_42%,var(--app-border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--app-accent)_18%,transparent),var(--app-shadow-1)] sm:min-w-[14rem] sm:flex-none sm:w-52">
+              <AppIcon
+                name="search"
+                className="size-5 shrink-0 text-[var(--app-text-secondary)] transition-colors duration-200 group-focus-within:text-[var(--app-accent)]"
+              />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search…"
+                aria-label="Search roles by keyword"
+              />
+            </label>
+            <ChromePrimaryButton
+              className={`min-h-12 min-w-0 shrink-0 px-4 sm:min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
+              type="button"
+              onClick={() => setOpenToWork((value) => !value)}
             >
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Active roles</span>
-              <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{totalCount}</strong>
-            </motion.div>
-            <motion.div
-              className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur"
-              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32, delay: reducedMotion ? 0 : 0.12 }}
-            >
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/48">Embedded</span>
-              <strong className="mt-2 block text-[30px] font-black tracking-[-0.04em]">{catalogSummary?.embedded_total ?? initialFeed.length}</strong>
-            </motion.div>
+              <AppIcon name="eye" className="size-5" /> Open to Work
+            </ChromePrimaryButton>
+            <ChromePrimaryButton className="min-h-12 min-w-0 shrink-0 px-4 sm:min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
+              <AppIcon name="plus" className="size-5" /> Add Job
+            </ChromePrimaryButton>
           </div>
-        </div>
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-elevated)] px-4 py-3 text-[12px] text-[var(--app-text-secondary)] shadow-[var(--app-shadow-1)]">
-        <span className="mr-1 font-bold uppercase tracking-[0.1em] text-[var(--app-text-tertiary)]">Match</span>
-        <Link
-          href={discoveryPrefsHref("default", remoteOnly)}
-          scroll={false}
-          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
-            matchScope === "default"
-              ? "bg-[var(--app-accent)] text-white shadow-sm"
-              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
-          }`}
-        >
-          Balanced
-        </Link>
-        <Link
-          href={discoveryPrefsHref("worldwide", remoteOnly)}
-          scroll={false}
-          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
-            matchScope === "worldwide"
-              ? "bg-[var(--app-accent)] text-white shadow-sm"
-              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
-          }`}
-        >
-          Worldwide (CV-first)
-        </Link>
-        <Link
-          href={discoveryPrefsHref(matchScope === "worldwide" ? "worldwide" : "default", !remoteOnly)}
-          scroll={false}
-          className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
-            remoteOnly
-              ? "bg-[color-mix(in_srgb,var(--app-accent)_18%,var(--app-bg-muted))] text-[var(--app-accent)] ring-1 ring-[color-mix(in_srgb,var(--app-accent)_35%,var(--app-border))]"
-              : "text-[var(--app-text-primary)] hover:bg-[var(--app-bg-muted)]"
-          }`}
-        >
-          Remote-style listings only
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex w-full max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1">
-          <button
-            type="button"
-            className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold transition-colors duration-150 ease-out ${
-              tab === "all" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
-            }`}
-            onClick={() => setTab("all")}
-          >
-            {tab === "all" ? (
-              <motion.span
-                layoutId="discovery-tab-pill"
-                className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              />
-            ) : null}
-            <span className="relative z-[1] flex items-center justify-center gap-2">
-              <AppIcon name="briefcase" className="size-4 shrink-0" />
-              <span>All jobs</span>
-              <Tag active={tab === "all"}>{totalCount}</Tag>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold transition-colors duration-150 ease-out ${
-              tab === "favorites" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
-            }`}
-            onClick={() => setTab("favorites")}
-          >
-            {tab === "favorites" ? (
-              <motion.span
-                layoutId="discovery-tab-pill"
-                className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              />
-            ) : null}
-            <span className="relative z-[1] flex items-center justify-center gap-2">
-              <AppIcon name="star" className="size-4 shrink-0" />
-              <span>Favorites</span>
-              <Tag active={tab === "favorites"}>{favoriteCount}</Tag>
-            </span>
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <ToolbarButton label="Filters" icon="filter" />
-          <ToolbarButton label="Sort" icon="analytics" />
-          <label className="group flex min-h-12 w-52 min-w-[13rem] items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)] transition-[box-shadow,border-color,ring] duration-200 ease-out focus-within:border-[color-mix(in_srgb,var(--app-accent)_42%,var(--app-border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--app-accent)_18%,transparent),var(--app-shadow-1)]">
-            <AppIcon name="search" className="size-5 shrink-0 text-[var(--app-text-secondary)] transition-colors duration-200 group-focus-within:text-[var(--app-accent)]" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter roles"
-              aria-label="Filter roles by keyword"
-            />
-          </label>
-          <ChromePrimaryButton
-            className={`min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
-            type="button"
-            onClick={() => setOpenToWork((value) => !value)}
-          >
-            <AppIcon name="check-circle" className="size-5" /> Open to Work
-          </ChromePrimaryButton>
-          <ChromePrimaryButton className="min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
-            <AppIcon name="plus" className="size-5" /> Add Job
-          </ChromePrimaryButton>
         </div>
       </div>
 
@@ -813,7 +876,7 @@ export function DiscoveryClient({
             : "No live roles are available yet. Run a provider sync to populate Discovery."}
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {displayedRows.map((row, index) => (
             <DiscoveryCard
               key={row.job.id}
