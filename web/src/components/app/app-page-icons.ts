@@ -25,7 +25,6 @@ export const APP_PAGE_ICONS: Record<string, AppIconName> = {
   "/app/approvals": "check-circle",
   "/app/analytics": "analytics",
   "/app/interview-prep": "clipboard-check",
-  "/app/demo-milestone": "clipboard-check",
   "/app/design-system": "layers",
 };
 

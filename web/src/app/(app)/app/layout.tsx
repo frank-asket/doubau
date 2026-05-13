@@ -26,12 +26,6 @@ const NAV_SECTIONS: AppNavSection[] = [
         icon: "home",
         subtitle: "Your job search at a glance",
       },
-      {
-        href: "/app/demo-milestone",
-        label: "Demo checklist",
-        icon: "clipboard-check",
-        subtitle: "Smoke the full résumé → prep path",
-      },
     ],
   },
   {
