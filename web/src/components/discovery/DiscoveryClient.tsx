@@ -58,7 +58,6 @@ export type CatalogSummary = {
 };
 
 type TabKey = "all" | "favorites";
-type ImportKind = "url" | "rss";
 
 type DisplayRow = {
   job: JobRow;
@@ -332,9 +331,9 @@ function ToolbarButton({ label, icon }: { label: string; icon: AppIconName }) {
     <ChromeIconButton
       aria-label={label}
       title={label}
-      className="size-11 border border-transparent text-[var(--app-text-secondary)] shadow-none transition-colors hover:border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-accent)_07%,var(--app-bg-elevated))] hover:text-[var(--app-accent)]"
+      className="size-9 border border-transparent text-[var(--app-text-secondary)] shadow-none transition-colors hover:border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] hover:bg-[color-mix(in_srgb,var(--app-accent)_07%,var(--app-bg-elevated))] hover:text-[var(--app-accent)]"
     >
-      <AppIcon name={icon} className="size-[22px]" />
+      <AppIcon name={icon} className="size-[18px]" />
     </ChromeIconButton>
   );
 }
@@ -542,13 +541,8 @@ export function DiscoveryClient({
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const [openToWork, setOpenToWork] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [importUrl, setImportUrl] = useState("");
-  const [importKind, setImportKind] = useState<ImportKind>("url");
-  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [visibleLimit, setVisibleLimit] = useState(12);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const rows = useMemo(() => {
     const fromFeed: DisplayRow[] = initialFeed.map((row) => ({
@@ -644,214 +638,168 @@ export function DiscoveryClient({
     }
   }
 
-  function submitImport(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const url = importUrl.trim();
-    if (!url) return;
-    setImportStatus("Queueing import...");
-    startTransition(() => {
-      void fetch("/api/jobs/scrape", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, kind: importKind }),
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
-            throw new Error(typeof body.detail === "string" ? body.detail : "Import failed");
-          }
-          setImportStatus("Import queued. New roles appear after the worker finishes.");
-          setImportUrl("");
-        })
-        .catch((error) => {
-          const message = error instanceof Error ? error.message : "Could not queue that import.";
-          setImportStatus(message);
-        });
-    });
-  }
-
   return (
-    <section className="ch-panel min-h-[calc(100vh-104px)] p-5 sm:p-6">
+    <section className="ch-panel min-h-[calc(100vh-104px)] p-4 sm:p-5">
       {showCatalogHint ? (
-        <p className="mb-4 text-[14px] leading-relaxed text-[var(--app-text-secondary)]">
+        <p className="mb-3 text-[12px] leading-snug text-[var(--app-text-secondary)]">
           {missingEmb > 0 ? (
             <>
-              <span className="font-semibold text-[var(--app-text-primary)]">{missingEmb}</span>{" "}
-              {missingEmb === 1 ? "listing is" : "listings are"} still embedding — semantic ranking fills in as indexing finishes.
+              <span className="font-semibold text-[var(--app-text-primary)]">{missingEmb}</span> still embedding — ranking will sharpen
+              shortly.
             </>
           ) : (
             <>
-              <span className="font-semibold text-[var(--app-text-primary)]">{embeddedTotal}</span> of{" "}
-              <span className="font-semibold text-[var(--app-text-primary)]">{activeTotal}</span> roles are embedded for semantic match;
-              the rest use profile and keyword-style ranking until embeddings complete.
+              <span className="font-semibold text-[var(--app-text-primary)]">{embeddedTotal}</span> /{" "}
+              <span className="font-semibold text-[var(--app-text-primary)]">{activeTotal}</span> embedded — others ranked heuristically
+              until indexing finishes.
             </>
           )}
         </p>
       ) : null}
 
-      <div className="mb-5 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-3 shadow-[var(--app-shadow-0)] sm:p-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
-            <div className="flex w-full min-w-0 max-w-xl rounded-full bg-[var(--app-bg-muted)] p-1 lg:max-w-md">
-              <button
-                type="button"
-                className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-3 text-[14px] font-semibold transition-colors duration-150 ease-out sm:px-4 sm:text-[15px] ${
-                  tab === "all" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
-                }`}
-                onClick={() => setTab("all")}
-              >
-                {tab === "all" ? (
-                  <motion.span
-                    layoutId="discovery-tab-pill"
-                    className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                  />
-                ) : null}
-                <span className="relative z-[1] flex items-center justify-center gap-2">
-                  <AppIcon name="briefcase" className="size-4 shrink-0" />
-                  <span>All Jobs</span>
-                  <Tag active={tab === "all"}>{totalCount}</Tag>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`relative z-0 flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-3 text-[14px] font-semibold transition-colors duration-150 ease-out sm:px-4 sm:text-[15px] ${
-                  tab === "favorites"
-                    ? "text-[var(--app-accent)]"
-                    : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
-                }`}
-                onClick={() => setTab("favorites")}
-              >
-                {tab === "favorites" ? (
-                  <motion.span
-                    layoutId="discovery-tab-pill"
-                    className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-[var(--app-shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                  />
-                ) : null}
-                <span className="relative z-[1] flex items-center justify-center gap-2">
-                  <AppIcon name="star" className="size-4 shrink-0" />
-                  <span className="hidden sm:inline">Favorites Jobs</span>
-                  <span className="sm:hidden">Favorites</span>
-                  <Tag active={tab === "favorites"}>{favoriteCount}</Tag>
-                </span>
-              </button>
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-2 border-t border-[var(--app-border)] pt-3 sm:flex-row sm:items-center sm:gap-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-              <span
-                className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--app-text-tertiary)] sm:pt-0.5"
-                id="discovery-match-label"
-              >
-                Match
-              </span>
-              <div
-                className="inline-flex min-w-0 flex-wrap items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--app-border)_90%,transparent)] bg-[var(--app-bg-muted)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]"
-                role="group"
-                aria-labelledby="discovery-match-label"
-              >
-                <Link
-                  href={discoveryPrefsHref("default", remoteOnly)}
-                  scroll={false}
-                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
-                    matchScope === "default"
-                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                      : "text-[var(--app-text-primary)] hover:bg-white/70"
-                  }`}
-                >
-                  Balanced
-                </Link>
-                <Link
-                  href={discoveryPrefsHref("worldwide", remoteOnly)}
-                  scroll={false}
-                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
-                    matchScope === "worldwide"
-                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_55%,transparent)]"
-                      : "text-[var(--app-text-primary)] hover:bg-white/70"
-                  }`}
-                >
-                  Worldwide
-                </Link>
-                <Link
-                  href={discoveryPrefsHref(matchScope === "worldwide" ? "worldwide" : "default", !remoteOnly)}
-                  scroll={false}
-                  className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors sm:text-[13px] ${
-                    remoteOnly
-                      ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))]"
-                      : "text-[var(--app-text-primary)] hover:bg-white/70"
-                  }`}
-                >
-                  Remote only
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--app-border)] pt-3 xl:border-t-0 xl:pt-0">
-            <ToolbarButton label="Filters" icon="filter" />
-            <ToolbarButton label="Sort" icon="analytics" />
-            <label className="group flex min-h-12 min-w-[12rem] flex-1 items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] shadow-[var(--app-shadow-1)] transition-[box-shadow,border-color,ring] duration-200 ease-out focus-within:border-[color-mix(in_srgb,var(--app-accent)_42%,var(--app-border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--app-accent)_18%,transparent),var(--app-shadow-1)] sm:min-w-[14rem] sm:flex-none sm:w-52">
-              <AppIcon
-                name="search"
-                className="size-5 shrink-0 text-[var(--app-text-secondary)] transition-colors duration-200 group-focus-within:text-[var(--app-accent)]"
-              />
-              <input
-                className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search…"
-                aria-label="Search roles by keyword"
-              />
-            </label>
-            <ChromePrimaryButton
-              className={`min-h-12 min-w-0 shrink-0 px-4 sm:min-w-44 ${openToWork ? "bg-[var(--app-success)]" : ""}`}
+      <div className="mb-4 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-2.5 shadow-[var(--app-shadow-0)] sm:p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+          <div className="flex max-w-full min-w-0 rounded-full bg-[var(--app-bg-muted)] p-0.5 sm:max-w-[17rem]">
+            <button
               type="button"
-              onClick={() => setOpenToWork((value) => !value)}
+              className={`relative z-0 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold transition-colors duration-150 ease-out sm:px-3 sm:text-[13px] ${
+                tab === "all" ? "text-[var(--app-accent)]" : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+              }`}
+              onClick={() => setTab("all")}
             >
-              <AppIcon name="eye" className="size-5" /> Open to Work
-            </ChromePrimaryButton>
-            <ChromePrimaryButton className="min-h-12 min-w-0 shrink-0 px-4 sm:min-w-44" type="button" onClick={() => setShowImport((value) => !value)}>
-              <AppIcon name="plus" className="size-5" /> Add Job
-            </ChromePrimaryButton>
+              {tab === "all" ? (
+                <motion.span
+                  layoutId="discovery-tab-pill"
+                  className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_50%,transparent)]"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative z-[1] flex items-center justify-center gap-1.5">
+                <AppIcon name="briefcase" className="size-3.5 shrink-0" />
+                <span>All</span>
+                <Tag active={tab === "all"}>{totalCount}</Tag>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`relative z-0 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold transition-colors duration-150 ease-out sm:px-3 sm:text-[13px] ${
+                tab === "favorites"
+                  ? "text-[var(--app-accent)]"
+                  : "text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]"
+              }`}
+              onClick={() => setTab("favorites")}
+            >
+              {tab === "favorites" ? (
+                <motion.span
+                  layoutId="discovery-tab-pill"
+                  className="pointer-events-none absolute inset-0 rounded-full bg-white shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_50%,transparent)]"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative z-[1] flex items-center justify-center gap-1.5">
+                <AppIcon name="star" className="size-3.5 shrink-0" />
+                <span>Saved</span>
+                <Tag active={tab === "favorites"}>{favoriteCount}</Tag>
+              </span>
+            </button>
           </div>
+
+          <div className="hidden h-7 w-px shrink-0 bg-[var(--app-border)] sm:block" aria-hidden />
+
+          <div
+            className="flex min-w-0 flex-wrap items-center gap-1.5"
+            title="Reloads ranked results from the API. Balanced weighs location; Worldwide stresses CV fit."
+          >
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--app-text-tertiary)]">Location</span>
+            <div
+              className="inline-flex rounded-full border border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] bg-[var(--app-bg-muted)] p-0.5"
+              role="group"
+              aria-label="Location emphasis"
+            >
+              <Link
+                href={discoveryPrefsHref("default", remoteOnly)}
+                scroll={false}
+                className={`flex min-h-8 items-center justify-center rounded-full px-2.5 text-[12px] font-semibold transition-colors sm:px-3 ${
+                  matchScope === "default"
+                    ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_45%,transparent)]"
+                    : "text-[var(--app-text-primary)] hover:bg-white/80"
+                }`}
+              >
+                Balanced
+              </Link>
+              <Link
+                href={discoveryPrefsHref("worldwide", remoteOnly)}
+                scroll={false}
+                className={`flex min-h-8 items-center justify-center rounded-full px-2.5 text-[12px] font-semibold transition-colors sm:px-3 ${
+                  matchScope === "worldwide"
+                    ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_45%,transparent)]"
+                    : "text-[var(--app-text-primary)] hover:bg-white/80"
+                }`}
+              >
+                Worldwide
+              </Link>
+            </div>
+          </div>
+
+          <div
+            className="flex min-w-0 flex-wrap items-center gap-1.5"
+            title="Remote only filters the server feed to remote-style listings."
+          >
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--app-text-tertiary)]">Format</span>
+            <div
+              className="inline-flex rounded-full border border-[color-mix(in_srgb,var(--app-border)_85%,transparent)] bg-[var(--app-bg-muted)] p-0.5"
+              role="group"
+              aria-label="Work format"
+            >
+              <Link
+                href={discoveryPrefsHref(matchScope, false)}
+                scroll={false}
+                className={`flex min-h-8 items-center justify-center rounded-full px-2.5 text-[12px] font-semibold transition-colors sm:px-3 ${
+                  !remoteOnly
+                    ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-border)_45%,transparent)]"
+                    : "text-[var(--app-text-primary)] hover:bg-white/80"
+                }`}
+              >
+                All
+              </Link>
+              <Link
+                href={discoveryPrefsHref(matchScope, true)}
+                scroll={false}
+                className={`flex min-h-8 items-center justify-center rounded-full px-2.5 text-[12px] font-semibold transition-colors sm:px-3 ${
+                  remoteOnly
+                    ? "bg-white text-[var(--app-accent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--app-accent)_25%,var(--app-border))]"
+                    : "text-[var(--app-text-primary)] hover:bg-white/80"
+                }`}
+              >
+                Remote
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[color-mix(in_srgb,var(--app-border)_70%,transparent)] pt-2"
+          title="Search filters cards already on this page."
+        >
+          <ToolbarButton label="Filters" icon="filter" />
+          <ToolbarButton label="Sort" icon="analytics" />
+          <label className="group flex h-9 min-w-0 flex-1 basis-[10rem] items-center gap-2 rounded-full border border-[var(--app-border)] bg-white px-2.5 text-[13px] shadow-sm transition-[box-shadow,border-color] duration-150 focus-within:border-[color-mix(in_srgb,var(--app-accent)_40%,var(--app-border))] sm:max-w-[13rem] sm:flex-none">
+            <AppIcon
+              name="search"
+              className="size-4 shrink-0 text-[var(--app-text-secondary)] group-focus-within:text-[var(--app-accent)]"
+            />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-[13px] font-medium outline-none placeholder:text-[var(--app-text-tertiary)]"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter…"
+              aria-label="Filter loaded roles by keyword"
+            />
+          </label>
         </div>
       </div>
 
-      {showImport ? (
-        <form
-          className="mt-5 grid gap-3 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-white p-4 shadow-[var(--app-shadow-1)] lg:grid-cols-[auto_1fr_auto]"
-          onSubmit={submitImport}
-        >
-          <select
-            className="min-h-12 rounded-full border border-[var(--app-border)] bg-white px-4 text-[14px] font-semibold outline-none"
-            value={importKind}
-            onChange={(event) => setImportKind(event.target.value as ImportKind)}
-            aria-label="Import type"
-          >
-            <option value="url">Job URL</option>
-            <option value="rss">RSS Feed</option>
-          </select>
-          <input
-            className="min-h-12 rounded-full border border-[var(--app-border)] bg-white px-5 text-[14px] font-semibold outline-none placeholder:text-[var(--app-text-tertiary)]"
-            value={importUrl}
-            onChange={(event) => setImportUrl(event.target.value)}
-            placeholder="https://company.com/jobs/product-manager"
-          />
-          <ChromePrimaryButton className="min-w-36" type="submit" disabled={isPending}>
-            {isPending ? "Queueing" : "Import"}
-          </ChromePrimaryButton>
-          <p className="text-[12px] text-[var(--app-text-tertiary)] lg:col-span-3">
-            Catalog imports are restricted to admins so customer Discovery stays on the controlled job pool.
-          </p>
-          {importStatus ? (
-            <p className="text-[13px] font-semibold text-[var(--app-text-secondary)] lg:col-span-3">
-              {importStatus}
-            </p>
-          ) : null}
-        </form>
-      ) : null}
-
-      <div className="my-8 border-t border-[var(--app-border)]" />
+      <div className="my-5 border-t border-[var(--app-border)]" />
 
       {catalogSummary && showCatalogSourceDebugUi() ? <DiscoveryCatalogSourceDebug summary={catalogSummary} /> : null}
 
@@ -861,7 +809,7 @@ export function DiscoveryClient({
 
       {loadError ? (
         <div className="mb-5 rounded-2xl border border-[color-mix(in_srgb,var(--app-danger)_25%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-danger)_7%,white)] px-5 py-4 text-[14px] text-[var(--app-danger)]">
-          Could not load live jobs. Try again in a moment, or import a job URL while the provider sync catches up.
+          Could not load live jobs. Try again in a moment, or check back after your ingest pipeline runs.
         </div>
       ) : null}
 
