@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { MetricCard, Tag } from "@/components/workspace/CareerHeroMockSections";
+import { HeroMetricCard } from "@/components/dashboard/HeroMetricCard";
+import { Tag } from "@/components/workspace/CareerHeroMockSections";
 import { AppIcon } from "@/components/ui/app-icon";
 
 export type HeroTrend = "up" | "down" | "flat";
@@ -10,6 +11,7 @@ export type HeroScoreMetric = {
   unit: string;
   delta_percent: number;
   trend: HeroTrend;
+  series_14d: number[];
 };
 
 export type HeroDashboardPayload = {
@@ -430,54 +432,62 @@ export function HeroDashboardShell({ data }: { data: HeroDashboardPayload }) {
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <MetricCard
+          <HeroMetricCard
             title="Career score"
             value={String(m.career_score.value)}
             unit={m.career_score.unit}
             delta={formatDelta(m.career_score.delta_percent, m.career_score.trend)}
             tone={metricTone(m.career_score.trend)}
             icon="sparkle"
+            sparkline={m.career_score.series_14d}
+            staggerIndex={0}
           >
             <Link href="/app/career-health" className="font-bold text-[var(--app-accent-700)] hover:underline">
               Improve
             </Link>
-          </MetricCard>
-          <MetricCard
+          </HeroMetricCard>
+          <HeroMetricCard
             title="Skills growth"
             value={String(m.skills_growth.value)}
             unit={m.skills_growth.unit}
             delta={formatDelta(m.skills_growth.delta_percent, m.skills_growth.trend)}
             tone={metricTone(m.skills_growth.trend)}
             icon="clipboard-check"
+            sparkline={m.skills_growth.series_14d}
+            staggerIndex={1}
           >
             <Link href="/app/skill-gap-analysis" className="font-bold text-[var(--app-accent-700)] hover:underline">
               Improve
             </Link>
-          </MetricCard>
-          <MetricCard
+          </HeroMetricCard>
+          <HeroMetricCard
             title="LinkedIn health"
             value={String(m.linkedin_health.value)}
             unit={m.linkedin_health.unit}
             delta={formatDelta(m.linkedin_health.delta_percent, m.linkedin_health.trend)}
             tone={metricTone(m.linkedin_health.trend)}
             icon="building"
+            sparkline={m.linkedin_health.series_14d}
+            staggerIndex={2}
           >
             <Link href="/app/linkedin-analysis" className="font-bold text-[var(--app-accent-700)] hover:underline">
               Improve
             </Link>
-          </MetricCard>
-          <MetricCard
+          </HeroMetricCard>
+          <HeroMetricCard
             title="CV score"
             value={String(m.cv_score.value)}
             unit={m.cv_score.unit}
             delta={formatDelta(m.cv_score.delta_percent, m.cv_score.trend)}
             tone={metricTone(m.cv_score.trend)}
             icon="file-text"
+            sparkline={m.cv_score.series_14d}
+            staggerIndex={3}
           >
             <Link href="/app/ats-optimizer" className="font-bold text-[var(--app-accent-700)] hover:underline">
               Improve
             </Link>
-          </MetricCard>
+          </HeroMetricCard>
         </div>
 
         <ApplicationTrendsChart data={data.application_trends} />

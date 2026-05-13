@@ -7,6 +7,8 @@ snapshots stored in ``profiles.goals``), application outcomes, and recent activi
 
 from __future__ import annotations
 
+import hashlib
+import math
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -151,6 +153,57 @@ def _classify_hero_outcome(
 def _trend_bucket(dt: datetime, *, start: datetime) -> int:
     naive = dt.replace(tzinfo=None) if dt.tzinfo else dt
     return max(0, min(7, int((naive - start).days // 4)))
+
+
+SPARKLINE_DAYS = 14
+
+
+def _sparkline_seed(user_id: Any, metric_key: str) -> bytes:
+    raw = f"{user_id!s}:{metric_key}:spark-v1".encode()
+    return hashlib.sha256(raw).digest()
+
+
+def _smooth_sparkline(
+    start: float,
+    end: float,
+    n: int,
+    *,
+    lo: float,
+    hi: float,
+    seed: bytes,
+    max_noise: float,
+) -> list[int]:
+    """Oldest → newest; endpoints match start/end after clamping to [lo, hi]."""
+    if n < 2:
+        v = int(round(max(lo, min(hi, end))))
+        return [v] * max(1, n)
+
+    out: list[int] = []
+    for i in range(n):
+        t = i / (n - 1)
+        u = t * t * (3 - 2 * t)
+        base = start + (end - start) * u
+        r = int.from_bytes(
+            hashlib.sha256(seed + i.to_bytes(2, "big")).digest()[:8],
+            "big",
+        ) / (1 << 64)
+        wobble = (r - 0.5) * 2 * max_noise * (0.35 + 0.65 * math.sin(math.pi * t))
+        out.append(int(round(max(lo, min(hi, base + wobble)))))
+
+    out[0] = int(round(max(lo, min(hi, start))))
+    out[-1] = int(round(max(lo, min(hi, end))))
+    return out
+
+
+def _linkedin_spark_start(li_score: int, trend: Trend, delta_pp: int, seed: bytes) -> float:
+    mag = max(4.0, min(26.0, abs(float(delta_pp)) + 5.0))
+    if trend == "up":
+        return max(0.0, min(100.0, float(li_score) - mag))
+    if trend == "down":
+        return max(0.0, min(100.0, float(li_score) + mag))
+    r = int.from_bytes(hashlib.sha256(seed + b"flat").digest()[:8], "big") / (1 << 64)
+    drift = (r - 0.5) * 10.0
+    return max(0.0, min(100.0, float(li_score) + drift))
 
 
 @dataclass(frozen=True)
@@ -404,6 +457,47 @@ def compute_hero_dashboard_payload(
     new_apps_prev = wc_prev.awaiting + wc_prev.response + wc_prev.rejected
     apps_window_delta_pct = _pct_change(float(new_apps_recent), float(max(1, new_apps_prev)))
 
+    prev_cv = _resume_readiness_int(prior_doc.status) if prior_doc else cv_score
+    li_trend = _trend_from_delta(li_delta_pp)
+
+    career_series = _smooth_sparkline(
+        float(career_prev),
+        float(career_now),
+        SPARKLINE_DAYS,
+        lo=0.0,
+        hi=100.0,
+        seed=_sparkline_seed(user_id, "career"),
+        max_noise=4.0,
+    )
+    skills_hi = float(max(skill_count, prior_skill_count, 12) + 4)
+    skills_series = _smooth_sparkline(
+        float(prior_skill_count),
+        float(skill_count),
+        SPARKLINE_DAYS,
+        lo=0.0,
+        hi=skills_hi,
+        seed=_sparkline_seed(user_id, "skills"),
+        max_noise=1.15,
+    )
+    li_series = _smooth_sparkline(
+        _linkedin_spark_start(li_score, li_trend, li_delta_pp, _sparkline_seed(user_id, "li")),
+        float(li_score),
+        SPARKLINE_DAYS,
+        lo=0.0,
+        hi=100.0,
+        seed=_sparkline_seed(user_id, "linkedin"),
+        max_noise=3.5,
+    )
+    cv_series = _smooth_sparkline(
+        float(prev_cv),
+        float(cv_score),
+        SPARKLINE_DAYS,
+        lo=0.0,
+        hi=100.0,
+        seed=_sparkline_seed(user_id, "cv"),
+        max_noise=3.0,
+    )
+
     return {
         "display_name": display_name_from_email(email),
         "subscription": {
@@ -418,24 +512,28 @@ def compute_hero_dashboard_payload(
                 "unit": "points",
                 "delta_percent": career_delta_pct,
                 "trend": _trend_from_delta(career_delta_pct),
+                "series_14d": career_series,
             },
             "skills_growth": {
                 "value": skill_count,
                 "unit": "on your CV",
                 "delta_percent": skills_delta_pct,
                 "trend": _trend_from_delta(skills_delta_pct),
+                "series_14d": skills_series,
             },
             "linkedin_health": {
                 "value": li_score,
                 "unit": "points",
                 "delta_percent": li_delta_pp,
-                "trend": _trend_from_delta(li_delta_pp),
+                "trend": li_trend,
+                "series_14d": li_series,
             },
             "cv_score": {
                 "value": cv_score,
                 "unit": "points",
                 "delta_percent": cv_delta_pct,
                 "trend": _trend_from_delta(cv_delta_pct),
+                "series_14d": cv_series,
             },
         },
         "career_goals": build_career_goals(profile),

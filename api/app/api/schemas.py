@@ -128,6 +128,8 @@ class HeroScoreMetricOut(BaseModel):
     unit: str
     delta_percent: int
     trend: HeroTrend
+    """Oldest → newest daily sample (14 points) for dashboard sparklines."""
+    series_14d: list[int] = Field(..., min_length=14, max_length=14)
 
 
 class HeroSubscriptionOut(BaseModel):

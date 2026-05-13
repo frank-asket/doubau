@@ -48,6 +48,8 @@ def test_hero_dashboard_shape(_require_postgres: None) -> None:
 
     assert body["display_name"]
     assert body["subscription"]["show_upgrade_banner"] is True
+    assert len(body["metrics"]["career_score"]["series_14d"]) == 14
+    assert len(body["metrics"]["skills_growth"]["series_14d"]) == 14
     assert body["metrics"]["career_score"]["unit"] == "points"
     assert body["metrics"]["skills_growth"]["unit"] == "on your CV"
     assert isinstance(body["career_goals"], list)
