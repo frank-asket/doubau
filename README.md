@@ -2,6 +2,8 @@
 
 AI-assisted job search workspace with strict human-in-the-loop approval for all outbound actions.
 
+**High-level architecture** (diagrams, containers, pipelines, state machine): [`docs/architecture/README.md`](docs/architecture/README.md).
+
 **MVP Definition of Done vs this repo:** see [`docs/mvp-definition-of-done.md`](docs/mvp-definition-of-done.md) for an honest feature-by-feature alignment (including Stripe, ATS Optimizer, WCAG, load tests, and GDPR gaps).
 
 ## Local development
