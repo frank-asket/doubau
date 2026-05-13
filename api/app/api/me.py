@@ -626,12 +626,12 @@ def _build_milestone_calendar(year: int, month: int, rows: list[Milestone]) -> M
     pad = first.weekday()
     cells: list[MilestoneCalendarCell] = []
     for _ in range(pad):
-        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
+        cells.append(MilestoneCalendarCell(day=None, milestones=[]))
     for d in range(1, last_day + 1):
         dd = date(year, month, d)
-        cells.append(MilestoneCalendarCell(date=dd, milestones=list(by_day.get(dd, []))))
+        cells.append(MilestoneCalendarCell(day=dd, milestones=list(by_day.get(dd, []))))
     while len(cells) % 7 != 0:
-        cells.append(MilestoneCalendarCell(date=None, milestones=[]))
+        cells.append(MilestoneCalendarCell(day=None, milestones=[]))
     weeks = [cells[i : i + 7] for i in range(0, len(cells), 7)]
     return MilestoneCalendarOut(month=f"{year}-{month:02d}", weeks=weeks, undated=undated)
 

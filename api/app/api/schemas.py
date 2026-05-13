@@ -120,9 +120,9 @@ class MilestoneOut(BaseModel):
 
 
 class MilestoneCalendarCell(BaseModel):
-    """One cell in a Monday-first month grid; ``date`` null means padding outside the month."""
+    """One cell in a Monday-first month grid; ``day`` null means padding outside the month."""
 
-    date: date | None = None
+    day: date | None = None
     milestones: list[MilestoneOut] = Field(default_factory=list)
 
 

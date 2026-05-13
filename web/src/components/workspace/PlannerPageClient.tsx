@@ -22,7 +22,7 @@ type MilestoneRow = {
 };
 
 type MilestoneCalendarCell = {
-  date: string | null;
+  day: string | null;
   milestones: MilestoneRow[];
 };
 
@@ -387,13 +387,13 @@ function CalendarBody({ data }: { data: MilestoneCalendarPayload }) {
                   <td
                     key={ci}
                     className={`align-top border-b border-[var(--app-border)] p-1.5 ${
-                      cell.date ? "min-h-[88px] bg-[var(--app-bg-page)]" : "bg-[var(--app-bg-muted)]/40"
+                      cell.day ? "min-h-[88px] bg-[var(--app-bg-page)]" : "bg-[var(--app-bg-muted)]/40"
                     }`}
                   >
-                    {cell.date ? (
+                    {cell.day ? (
                       <>
                         <div className="mb-1 font-semibold tabular-nums text-[var(--app-text-secondary)]">
-                          {String(cell.date).slice(8, 10)}
+                          {String(cell.day).slice(8, 10)}
                         </div>
                         <ul className="space-y-1">
                           {cell.milestones.map((m) => (
