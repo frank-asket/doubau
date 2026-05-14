@@ -11,6 +11,13 @@ export type ApplicationRow = {
   submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  notes?: string | null;
+  next_followup_at?: string | null;
+  tags?: string[] | null;
+};
+
+export type ApplicationDetailRow = ApplicationRow & {
+  job_description_excerpt?: string | null;
 };
 
 export type DraftRow = {
@@ -25,6 +32,48 @@ export async function fetchApplications(): Promise<ApplicationRow[]> {
   const r = await fetch("/api/applications", { cache: "no-store" });
   if (!r.ok) throw new Error("applications");
   return (await r.json()) as ApplicationRow[];
+}
+
+export async function fetchApplicationDetail(id: string): Promise<ApplicationDetailRow> {
+  const r = await fetch(`/api/applications/${id}`, { cache: "no-store" });
+  if (!r.ok) throw new Error("application");
+  return (await r.json()) as ApplicationDetailRow;
+}
+
+export type ApplicationPatchBody = {
+  notes?: string | null;
+  next_followup_at?: string | null;
+  tags?: string[] | null;
+};
+
+export async function patchApplication(id: string, body: ApplicationPatchBody): Promise<ApplicationRow> {
+  const r = await fetch(`/api/applications/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const data = (await r.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(typeof data.detail === "string" ? data.detail : "Could not save tracker fields.");
+  }
+  return (await r.json()) as ApplicationRow;
+}
+
+export async function createApplication(body: {
+  company: string;
+  job_title: string;
+  source_url?: string | null;
+}): Promise<ApplicationRow> {
+  const r = await fetch("/api/applications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const data = (await r.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(typeof data.detail === "string" ? data.detail : "Could not add application.");
+  }
+  return (await r.json()) as ApplicationRow;
 }
 
 export async function fetchDrafts(): Promise<DraftRow[]> {

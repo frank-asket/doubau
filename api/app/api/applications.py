@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import func, select
 
 from app.agents.interview_rag import (
@@ -72,6 +72,38 @@ class ApplicationOut(BaseModel):
     status: ApplicationStatus
     created_at: datetime
     updated_at: datetime
+    notes: str | None = None
+    next_followup_at: datetime | None = None
+    tags: list[str] | None = None
+
+
+class ApplicationDetailOut(ApplicationOut):
+    """Single-application fetch includes JD excerpt when the posting exists in the job catalog."""
+
+    job_description_excerpt: str | None = None
+
+
+class ApplicationPatch(BaseModel):
+    notes: str | None = Field(default=None, max_length=8000)
+    next_followup_at: datetime | None = Field(default=None)
+    tags: list[str] | None = Field(default=None, max_length=20)
+
+    @field_validator("tags")
+    @classmethod
+    def _normalize_tags(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        out: list[str] = []
+        for raw in v:
+            s = raw.strip()
+            if not s:
+                continue
+            if len(s) > 48:
+                s = s[:48]
+            out.append(s)
+            if len(out) >= 20:
+                break
+        return out or None
 
 
 class DraftOut(BaseModel):
@@ -143,6 +175,9 @@ def _send_submission_receipt_email(
 
 
 def _application_out(app: Application) -> ApplicationOut:
+    tags_val = list(app.tags) if app.tags is not None else None
+    if tags_val == []:
+        tags_val = None
     return ApplicationOut(
         id=app.id,
         company=app.company,
@@ -154,7 +189,16 @@ def _application_out(app: Application) -> ApplicationOut:
         status=app.status,
         created_at=app.created_at,
         updated_at=app.updated_at,
+        notes=app.notes,
+        next_followup_at=app.next_followup_at,
+        tags=tags_val,
     )
+
+
+def _application_detail_out(db, app: Application) -> ApplicationDetailOut:
+    jd = load_job_description_for_application(db, app.source_url)
+    base = _application_out(app).model_dump()
+    return ApplicationDetailOut(**base, job_description_excerpt=jd)
 
 
 def _draft_out(draft: OutreachDraft) -> DraftOut:
@@ -343,6 +387,53 @@ def patch_draft(
     db.commit()
     db.refresh(d)
     return _draft_out(d)
+
+
+@router.get("/{application_id}", response_model=ApplicationDetailOut)
+def get_application(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> ApplicationDetailOut:
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    return _application_detail_out(db, app)
+
+
+@router.patch("/{application_id}", response_model=ApplicationOut)
+def patch_application(
+    application_id: UUID,
+    payload: ApplicationPatch,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> ApplicationOut:
+    """Update CRM-lite tracker fields (notes, follow-up reminder, tags)."""
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    if "notes" in data:
+        n = data["notes"]
+        if n is None or not str(n).strip():
+            app.notes = None
+        else:
+            app.notes = str(n).strip()[:8000]
+
+    if "next_followup_at" in data:
+        app.next_followup_at = data["next_followup_at"]
+
+    if "tags" in data:
+        app.tags = data["tags"]
+
+    _touch_application(app)
+    db.commit()
+    db.refresh(app)
+    return _application_out(app)
 
 
 @router.post("/{application_id}/interview_prep", response_model=InterviewPrepOut)

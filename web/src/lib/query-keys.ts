@@ -1,6 +1,7 @@
 /** TanStack Query keys — keep centralized for invalidation + future WebSocket cache sync. */
 export const queryKeys = {
   applications: ["applications"] as const,
+  applicationDetail: (id: string) => ["applications", "detail", id] as const,
   applicationDrafts: ["application-drafts"] as const,
   workspaceSummary: ["workspace-summary"] as const,
   profile: ["me-profile"] as const,
