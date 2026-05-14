@@ -12,6 +12,7 @@ from app.db import SessionLocal, engine
 from app.llm.logging import prompt_sha256
 from app.main import app
 from app.models.application import Application, ApplicationStatus
+from app.models.job import Job
 from app.models.llm_log import LlmLog
 from app.models.outreach_draft import DraftStatus, OutreachDraft
 from app.models.user import User
@@ -81,6 +82,66 @@ def test_generate_draft_creates_llm_log_fallback() -> None:
         with SessionLocal() as db:
             db.execute(delete(Application).where(Application.id == UUID(app_id)))
             db.execute(delete(LlmLog).where(LlmLog.user_id == user_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
+def test_create_application_reuses_same_job_id() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    job_id = uuid4()
+    with SessionLocal() as db:
+        db.add(
+            Job(
+                id=job_id,
+                company="BetaCo",
+                title="Eng",
+                location="Remote",
+                tags=[],
+                source_url="https://example.com/listing-beta",
+            )
+        )
+        db.commit()
+
+    payload = {
+        "company": "BetaCo",
+        "job_title": "Eng",
+        "source_url": "https://example.com/listing-beta",
+        "job_id": str(job_id),
+    }
+    r1 = client.post("/applications", headers=headers, json=payload)
+    r2 = client.post("/applications", headers=headers, json=payload)
+    assert r1.status_code == 200, r1.text
+    assert r2.status_code == 200, r2.text
+    assert r1.json()["id"] == r2.json()["id"]
+    assert r1.json().get("job_id") == str(job_id)
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.user_id == user_id))
+            db.execute(delete(Job).where(Job.id == job_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
+
+
+def test_create_application_unknown_job_id() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    bogus = uuid4()
+    r = client.post(
+        "/applications",
+        headers=headers,
+        json={"company": "X", "job_title": "Y", "job_id": str(bogus)},
+    )
+    assert r.status_code == 422, r.text
+    try:
+        with SessionLocal() as db:
             db.execute(delete(User).where(User.id == user_id))
             db.commit()
     except Exception:

@@ -100,7 +100,7 @@ def build_copilot_tools(db: Session, user_id: UUID) -> list[StructuredTool]:
         app = db.get(Application, aid)
         if app is None or app.user_id != user_id:
             return json.dumps({"error": "not_found"})
-        desc = load_job_description_for_application(db, app.source_url)
+        desc = load_job_description_for_application(db, app.source_url, app.job_id)
         full_resume = latest_resume_full_text(db, user_id)
         excerpt_fallback = latest_resume_excerpt_for_user(db, user_id)
         rag_text, _rag_meta = retrieve_resume_context_for_role(

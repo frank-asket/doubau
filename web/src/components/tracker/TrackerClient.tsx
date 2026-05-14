@@ -35,7 +35,7 @@ const PIPELINE_COLUMNS = [
   { id: "DISCOVERED", title: "Saved", description: "Roles you have added or started from." },
   { id: "PENDING_APPROVAL", title: "Review", description: "Drafts waiting for your sign-off." },
   { id: "APPROVED", title: "Ready", description: "Approved outreach, not submitted yet." },
-  { id: "SUBMITTED", title: "Submitted", description: "Outreach has been sent or queued." },
+  { id: "SUBMITTED", title: "Sent", description: "Your outreach left Doubow (Gmail or SMTP queue). This is your copy—not proof the employer read it." },
   { id: "FAILED", title: "Closed", description: "Rejected, failed, or parked for later." },
 ];
 
@@ -80,6 +80,9 @@ function buildApplyPacketMarkdown(app: ApplicationRow): string {
     "",
     `- **Role:** ${app.job_title}`,
     `- **Listing:** ${app.source_url ?? "—"}`,
+    ...(app.job_id?.trim()
+      ? [`- **Discovery:** /app/discovery/${app.job_id.trim()}`]
+      : []),
     `- **Pipeline status:** ${app.status}`,
     "",
     "Paste this packet next to the employer’s form. Doubow never auto-submits on your behalf—you stay in control on their site.",
@@ -190,7 +193,7 @@ function TrackerApplicationCard({
       ) : null}
       {app.status === "SUBMITTED" && app.submitted_at ? (
         <p className="mt-2 text-[11px] tabular-nums text-[var(--app-text-tertiary)]">
-          Submitted{" "}
+          Outreach sent{" "}
           <time dateTime={app.submitted_at}>
             {new Date(app.submitted_at).toLocaleString(undefined, {
               dateStyle: "medium",
@@ -386,7 +389,7 @@ export function TrackerClient() {
             {[
               ["Total", total],
               ["Review", pending],
-              ["Submitted", submitted],
+              ["Sent", submitted],
             ].map(([label, value]) => (
               <div
                 key={label}

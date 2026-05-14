@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
 import { useApplicationsPipelineRealtime } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
@@ -40,6 +40,43 @@ function draftSubtitle(draft: Draft, app: Application | undefined): string {
     }
   }
   return app ? `${channel} · ${app.company}` : `${channel} · application`;
+}
+
+function normalizeEmailForCompare(s: string) {
+  return s.trim().toLowerCase();
+}
+
+function approvalCardSubtitle(d: Draft, app: Application | undefined): ReactNode {
+  const line = draftSubtitle(d, app);
+  if (!app) return line;
+  const url = app.source_url?.trim();
+  const jid = app.job_id?.trim();
+  if (!url && !jid) return line;
+  return (
+    <div className="space-y-1.5">
+      <div>{line}</div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+          >
+            View original posting
+          </a>
+        ) : null}
+        {jid ? (
+          <Link
+            href={`/app/discovery/${encodeURIComponent(jid)}`}
+            className="text-[11px] font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+          >
+            Open in Discovery
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export default function ApprovalsPage() {
@@ -213,7 +250,7 @@ export default function ApprovalsPage() {
       const data = (await resp.json().catch(() => ({}))) as ApplicationRow & { detail?: string };
       if (!resp.ok) {
         throw new Error(
-          typeof data.detail === "string" ? data.detail : "Submit failed (must be APPROVED first).",
+          typeof data.detail === "string" ? data.detail : "Queue send failed (application must be APPROVED first).",
         );
       }
       return data as ApplicationRow;
@@ -230,7 +267,7 @@ export default function ApprovalsPage() {
       await invalidateApprovalQueries();
     },
     onError: (err) => {
-      setMutationError(err instanceof Error ? err.message : "Submit failed.");
+      setMutationError(err instanceof Error ? err.message : "Queue send failed.");
     },
   });
 
@@ -346,7 +383,7 @@ export default function ApprovalsPage() {
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="font-semibold text-[var(--app-text-primary)]">Message sent from your Gmail</p>
+              <p className="font-semibold text-[var(--app-text-primary)]">Sent from your Gmail (your copy)</p>
               {gmailSendNotice.recipient ? (
                 <p>
                   <span className="text-[var(--app-text-tertiary)]">To</span>{" "}
@@ -377,7 +414,7 @@ export default function ApprovalsPage() {
               ) : null}
               <p className="text-[12px] text-[var(--app-text-tertiary)]">
                 A separate &quot;[Doubow] Receipt&quot; email was sent to your Gmail with the same details. Check inbox and Sent for
-                the employer message. The employer may still send their own auto-reply later.
+                the employer-facing message. That proves delivery to the address you typed—not that the employer has read it.
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
@@ -408,9 +445,9 @@ export default function ApprovalsPage() {
           role="status"
           className="rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_32%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_08%,var(--app-bg-elevated))] px-4 py-3 text-[13px] leading-relaxed text-[var(--app-text-secondary)]"
         >
-          <p className="font-semibold text-[var(--app-text-primary)]">Submission recorded</p>
+          <p className="font-semibold text-[var(--app-text-primary)]">Server send queued (SMTP)</p>
           <p className="mt-1">
-            <span className="text-[var(--app-text-tertiary)]">Queued at</span>{" "}
+            <span className="text-[var(--app-text-tertiary)]">Recorded at</span>{" "}
             <time className="tabular-nums font-medium text-[var(--app-text-primary)]" dateTime={queueSubmitNotice.submittedAt}>
               {new Date(queueSubmitNotice.submittedAt).toLocaleString(undefined, {
                 dateStyle: "medium",
@@ -419,8 +456,8 @@ export default function ApprovalsPage() {
             </time>
           </p>
           <p className="mt-2 text-[12px] text-[var(--app-text-tertiary)]">
-            The API will send via SMTP when configured. Your acknowledgement of receipt is this timestamp in Doubow; you will not get
-            the separate Gmail receipt email from that path.
+            The API sends through the legacy SMTP relay when it is configured. This timestamp is your Doubow record only—you will
+            not get the separate Gmail receipt used for in-app Gmail sends.
           </p>
           <button
             type="button"
@@ -494,7 +531,7 @@ export default function ApprovalsPage() {
           const status = app?.status ?? "UNKNOWN";
           const { variant, label } = applicationStatusBadge(status);
           const title = app ? `${app.job_title} — ${app.company}` : d.application_id;
-          const subtitle = draftSubtitle(d, app);
+          const subtitle = approvalCardSubtitle(d, app);
           const busy = busyId === d.application_id;
           const isEditing = editingDraftId === d.id;
 
@@ -574,7 +611,20 @@ export default function ApprovalsPage() {
                             size="sm"
                             variant="primary"
                             type="button"
-                            onClick={() => sendGmailM.mutate({ appId: app.id, recipientEmail: recipient })}
+                            onClick={() => {
+                              const suggested = suggestRecipientEmailFromJobUrl(app.source_url ?? "").trim();
+                              const rec = recipient.trim();
+                              if (
+                                suggested &&
+                                normalizeEmailForCompare(rec) !== normalizeEmailForCompare(suggested)
+                              ) {
+                                const ok = window.confirm(
+                                  `You are sending to:\n${rec}\n\nThe address inferred from the listing is:\n${suggested}\n\nSend anyway?`,
+                                );
+                                if (!ok) return;
+                              }
+                              sendGmailM.mutate({ appId: app.id, recipientEmail: rec });
+                            }}
                           >
                             {sendGmailM.isPending ? "Sending…" : "Send from my Gmail"}
                           </AppButton>
@@ -585,13 +635,13 @@ export default function ApprovalsPage() {
                             type="button"
                             onClick={() => submitM.mutate(app.id)}
                           >
-                            Queue server send
+                            Queue server send (SMTP)
                           </AppButton>
                         </div>
                         <p className="text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
                           Sends through your connected Gmail. You are BCC&apos;d on the same message (unless the recipient is your
                           own address) so a copy lands in your inbox. Doubow stores the Gmail message id and recipient after a
-                          successful send. &quot;Queue server send&quot; uses the legacy SMTP relay when configured on the API.
+                          successful send. &quot;Queue server send (SMTP)&quot; uses the API relay when configured.
                         </p>
                       </>
                     ) : (
@@ -603,7 +653,7 @@ export default function ApprovalsPage() {
                           type="button"
                           onClick={() => submitM.mutate(app.id)}
                         >
-                          Submit outreach
+                          Queue server send (SMTP)
                         </AppButton>
                         <p className="text-[12px] text-[var(--app-text-secondary)]">
                           <Link href="/app/settings" className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline">
@@ -629,9 +679,9 @@ export default function ApprovalsPage() {
               status === "SUBMITTED" &&
               (app.recipient_email?.trim() || app.gmail_sent_message_id?.trim() || app.submitted_at) ? (
                 <div className="max-w-lg space-y-2 rounded-[var(--app-radius-md)] border border-[color-mix(in_srgb,var(--app-success)_30%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-success)_06%,var(--app-bg-page))] px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
-                  <p className="font-semibold text-[var(--app-text-primary)]">Acknowledgement of receipt</p>
+                  <p className="font-semibold text-[var(--app-text-primary)]">Your send record</p>
                   <p className="text-[11px] text-[var(--app-text-tertiary)]">
-                    Doubow record of your submission (not the employer&apos;s reply).
+                    Doubow&apos;s record of your outreach (not the employer&apos;s reply or read receipt).
                   </p>
                   {app.recipient_email?.trim() ? (
                     <p>

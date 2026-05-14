@@ -25,6 +25,7 @@ from app.db import SessionLocal
 from app.integrations.gmail_oauth import google_oauth_configured, send_plaintext_email
 from app.llm.logging import record_llm_interaction
 from app.models.application import Application, ApplicationStatus
+from app.models.job import Job
 from app.models.outreach_draft import DraftStatus, OutreachDraft
 from app.models.user_google_token import UserGoogleToken
 from app.security import decode_any_access_token
@@ -59,12 +60,14 @@ class ApplicationCreate(BaseModel):
     company: str = Field(min_length=1, max_length=200)
     job_title: str = Field(min_length=1, max_length=200)
     source_url: str | None = Field(default=None, max_length=1000)
+    job_id: UUID | None = Field(default=None, description="Discovery job row when applying from catalog")
 
 
 class ApplicationOut(BaseModel):
     id: UUID
     company: str
     job_title: str
+    job_id: UUID | None = None
     source_url: str | None
     recipient_email: str | None
     gmail_sent_message_id: str | None
@@ -182,6 +185,7 @@ def _application_out(app: Application) -> ApplicationOut:
         id=app.id,
         company=app.company,
         job_title=app.job_title,
+        job_id=app.job_id,
         source_url=app.source_url,
         recipient_email=app.recipient_email,
         gmail_sent_message_id=app.gmail_sent_message_id,
@@ -196,7 +200,7 @@ def _application_out(app: Application) -> ApplicationOut:
 
 
 def _application_detail_out(db, app: Application) -> ApplicationDetailOut:
-    jd = load_job_description_for_application(db, app.source_url)
+    jd = load_job_description_for_application(db, app.source_url, app.job_id)
     base = _application_out(app).model_dump()
     return ApplicationDetailOut(**base, job_description_excerpt=jd)
 
@@ -241,6 +245,19 @@ def create_application(
     db: DbDep,
     current_user: CurrentUserDep,
 ) -> ApplicationOut:
+    if payload.job_id is not None and db.get(Job, payload.job_id) is None:
+        raise HTTPException(status_code=422, detail="Unknown job_id")
+
+    if payload.job_id is not None:
+        by_job = db.scalar(
+            select(Application)
+            .where(Application.user_id == current_user.id, Application.job_id == payload.job_id)
+            .order_by(Application.created_at.desc())
+            .limit(1)
+        )
+        if by_job is not None:
+            return _application_out(by_job)
+
     existing_stmt = select(Application).where(Application.user_id == current_user.id)
     if payload.source_url:
         existing_stmt = existing_stmt.where(Application.source_url == payload.source_url)
@@ -251,6 +268,11 @@ def create_application(
         )
     existing = db.scalar(existing_stmt.order_by(Application.created_at.desc()).limit(1))
     if existing is not None:
+        if payload.job_id is not None and existing.job_id is None:
+            existing.job_id = payload.job_id
+            _touch_application(existing)
+            db.commit()
+            db.refresh(existing)
         return _application_out(existing)
 
     app = Application(
@@ -258,6 +280,7 @@ def create_application(
         company=payload.company,
         job_title=payload.job_title,
         source_url=payload.source_url,
+        job_id=payload.job_id,
         status=ApplicationStatus.DISCOVERED,
     )
     db.add(app)
@@ -449,7 +472,7 @@ def interview_prep(
     if app is None or app.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Not found")
 
-    desc = load_job_description_for_application(db, app.source_url)
+    desc = load_job_description_for_application(db, app.source_url, app.job_id)
 
     full_resume = latest_resume_full_text(db, current_user.id)
     excerpt_fallback = latest_resume_excerpt_for_user(db, current_user.id)

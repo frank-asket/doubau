@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 from typing import Any
+from uuid import UUID
 
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -103,14 +104,20 @@ def retrieve_resume_context_for_role(
         return excerpt, meta
 
 
-def load_job_description_for_application(db: Session, source_url: str | None) -> str | None:
-    """Best-effort job description from linked Job row when source_url matches."""
-    if not source_url:
-        return None
+def load_job_description_for_application(
+    db: Session, source_url: str | None, job_id: UUID | None = None
+) -> str | None:
+    """Best-effort job description from catalog Job (by id or source_url match)."""
     from sqlalchemy import select
 
     from app.models.job import Job
 
+    if job_id is not None:
+        job_by_id = db.get(Job, job_id)
+        if job_by_id is not None and job_by_id.description:
+            return job_by_id.description.strip()[:12000]
+    if not source_url:
+        return None
     job = db.execute(select(Job).where(Job.source_url == source_url).limit(1)).scalar_one_or_none()
     if job is None or not job.description:
         return None

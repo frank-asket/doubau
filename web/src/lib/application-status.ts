@@ -27,7 +27,7 @@ export function applicationStatusBadge(status: string): {
     case "APPROVED":
       return { variant: "green", label: "APPROVED" };
     case "SUBMITTED":
-      return { variant: "green", label: "SUBMITTED" };
+      return { variant: "green", label: "SENT" };
     case "FAILED":
       return { variant: "red", label: "FAILED" };
     case "RETRY":
@@ -43,7 +43,7 @@ export const PIPELINE_LEGEND: ReadonlyArray<{ variant: AppBadgeVariant; label: s
   { variant: "blue", label: "DRAFTING" },
   { variant: "amber", label: "PENDING" },
   { variant: "green", label: "APPROVED" },
-  { variant: "green", label: "SUBMITTED" },
+  { variant: "green", label: "SENT" },
   { variant: "red", label: "FAILED" },
   { variant: "amber", label: "RETRY" },
 ];

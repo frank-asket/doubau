@@ -9,7 +9,7 @@ import { AppButton } from "./button";
 
 export type AppApprovalCardProps = {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   badgeLabel: string;
   badgeVariant?: AppBadgeVariant;
   snippet: ReactNode;

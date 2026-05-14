@@ -203,6 +203,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           company: job.company,
           job_title: job.title,
           source_url: job.source_url ?? undefined,
+          job_id: job.id,
         }),
       });
       const appBody = (await cr.json().catch(() => ({}))) as Partial<ApplicationRow> & { detail?: string };

@@ -36,6 +36,12 @@ class Application(Base):
 
     company: Mapped[str] = mapped_column(String(200), nullable=False)
     job_title: Mapped[str] = mapped_column(String(200), nullable=False)
+    job_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     recipient_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     gmail_sent_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)

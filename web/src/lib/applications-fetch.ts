@@ -4,6 +4,7 @@ export type ApplicationRow = {
   id: string;
   company: string;
   job_title: string;
+  job_id?: string | null;
   status: string;
   source_url?: string | null;
   recipient_email?: string | null;
@@ -63,6 +64,7 @@ export async function createApplication(body: {
   company: string;
   job_title: string;
   source_url?: string | null;
+  job_id?: string | null;
 }): Promise<ApplicationRow> {
   const r = await fetch("/api/applications", {
     method: "POST",
