@@ -1032,6 +1032,7 @@ def feed(
     )
     if remote_filter is not None:
         jobs_stmt = jobs_stmt.where(remote_filter)
+    # Tier order must match ``_CATALOG_LISTING_SOURCE_PRIORITY`` in ``app.jobs.matching`` (scrapling before remoteok).
     catalog_sql_tier = case(
         (Job.listing_source == "jsearch", 0),
         (Job.listing_source == "active_jobs_db", 1),
@@ -1041,8 +1042,8 @@ def feed(
             Job.listing_source.in_(("greenhouse", "lever", "ashby", "workday_cxs")),
             4,
         ),
-        (Job.listing_source == "remoteok", 5),
-        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 6),
+        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 5),
+        (Job.listing_source == "remoteok", 6),
         else_=9,
     )
     jobs_stmt = jobs_stmt.order_by(catalog_sql_tier.asc(), desc(Job.created_at)).limit(500)

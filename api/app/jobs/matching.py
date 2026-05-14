@@ -180,6 +180,7 @@ def feed_blend_weights(*, match_scope: MatchScope) -> tuple[float, float, float,
 
 
 # Default catalog priority: RapidAPI JSearch first, then other aggregators, then niche providers.
+# Must match ``catalog_sql_tier`` source order in ``app.api.jobs`` feed (non-embedding path).
 _CATALOG_LISTING_SOURCE_PRIORITY: tuple[str, ...] = (
     "jsearch",
     "active_jobs_db",
