@@ -17,6 +17,7 @@ import { CareerAiAssistantDock } from "@/components/copilot/CareerAiAssistantDoc
 import { CareerGrowthProvider } from "@/components/providers/CareerGrowthProvider";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
 import { AppIcon } from "@/components/ui/app-icon";
+import { copilotFontVariables } from "@/fonts/copilot";
 
 const NAV_SECTIONS: AppNavSection[] = appNavSections;
 
@@ -85,7 +86,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <AppProviders>
     <ApplicationsPipelineRealtimeProvider>
     <CareerGrowthProvider>
-    <AppThemeShell className="flex flex-row bg-[var(--app-bg-page)]">
+    <AppThemeShell className={`flex flex-row bg-[var(--app-bg-page)] ${copilotFontVariables}`}>
       <aside
         className="relative hidden min-h-screen w-[var(--app-sidebar-w)] shrink-0 flex-col overflow-hidden px-5 py-5 md:flex"
         style={{

@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppIcon } from "@/components/ui/app-icon";
 import { cn } from "@/lib/utils";
+
+const copilotSans = "font-[family-name:var(--font-copilot-sans),ui-sans-serif,system-ui,sans-serif]";
 
 const STORAGE_KEY = "doubow-career-ai-dock-collapsed";
 
@@ -43,23 +46,33 @@ export function CareerAiAssistantDock() {
   if (collapsed) {
     return (
       <div className="pointer-events-none fixed bottom-5 right-4 z-[60] flex justify-end sm:right-6">
-        <button
+        <motion.button
           type="button"
           onClick={() => persistCollapsed(false)}
-          className="pointer-events-auto grid size-12 place-items-center rounded-full border border-[var(--app-border)] bg-[#0c1210] text-white shadow-[0_12px_40px_rgba(12,18,16,0.35)] transition-transform hover:scale-105 active:scale-95"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 420, damping: 22 }}
+          className={cn(
+            "pointer-events-auto grid size-12 place-items-center rounded-full border border-[var(--app-border)] bg-[var(--app-sidebar)] text-white shadow-[0_12px_40px_rgba(7,17,13,0.35)]",
+            copilotSans,
+          )}
           aria-label="Open Career AI Assistant"
         >
           <AppIcon name="sparkle" className="size-5 text-[var(--app-accent)]" />
-        </button>
+        </motion.button>
       </div>
     );
   }
 
   return (
     <div className="pointer-events-none fixed bottom-5 left-4 right-4 z-[60] flex flex-col items-stretch gap-2 sm:left-auto sm:right-6 sm:w-[min(360px,calc(100vw-3rem))]">
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
         className={cn(
           "pointer-events-auto overflow-hidden rounded-[22px] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-accent)_28%,var(--app-border))] bg-[var(--app-bg-elevated)] shadow-[0_22px_60px_rgba(15,23,42,0.14)]",
+          copilotSans,
         )}
       >
         <div className="relative bg-gradient-to-br from-[color-mix(in_srgb,var(--app-accent)_22%,#f4fbf7)] via-white to-[var(--app-bg-page)] px-4 pb-3 pt-4">
@@ -68,9 +81,12 @@ export function CareerAiAssistantDock() {
               <AppIcon name="message-circle" className="size-5" />
             </span>
             <div>
-              <p className="text-[15px] font-semibold leading-snug text-[var(--app-text-primary)]">Career AI Assistant</p>
-              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
-                Always here in your workspace
+              <p className="text-[15px] font-semibold leading-snug tracking-tight text-[var(--app-text-primary)]">
+                Career AI Assistant
+              </p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
+                <AppIcon name="layers" className="size-3 text-[var(--app-accent)]" aria-hidden />
+                Multi-agent · same engine as Career Copilot
               </p>
             </div>
           </div>
@@ -95,9 +111,10 @@ export function CareerAiAssistantDock() {
 
           <Link
             href="/app/copilot"
-            className="flex w-full min-h-11 items-center justify-center rounded-[999px] bg-[#0c1210] px-4 text-[13px] font-semibold text-white shadow-[0_8px_24px_rgba(12,18,16,0.22)] transition-[transform,background-color] hover:bg-[#151c19] active:scale-[0.98]"
+            className="flex w-full min-h-11 items-center justify-center gap-2 rounded-[999px] bg-[var(--app-sidebar)] px-4 text-[13px] font-semibold text-white shadow-[0_8px_24px_rgba(7,17,13,0.22)] transition-[transform,background-color] hover:bg-[color-mix(in_srgb,var(--app-sidebar)_90%,#000)] active:scale-[0.98]"
           >
-            Get career suggestions
+            <AppIcon name="message-circle" className="size-4 text-[var(--app-accent)]" aria-hidden />
+            Open Career Copilot
           </Link>
 
           <div className="flex items-center justify-between gap-2 pt-1">
@@ -118,7 +135,7 @@ export function CareerAiAssistantDock() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

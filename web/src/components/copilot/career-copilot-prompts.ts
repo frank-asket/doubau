@@ -1,7 +1,54 @@
+import type { AppIconName } from "@/components/ui/app-icon";
+
 export type CopilotPromptChip = {
   label: string;
   prompt: string;
 };
+
+/** Mirrors backend `app/agents/copilot_tools.py` — LangChain tool-calling specialists behind Career Copilot. */
+export const CAREER_COPILOT_BACKEND_AGENTS: Array<{
+  id: string;
+  label: string;
+  description: string;
+  icon: AppIconName;
+}> = [
+  {
+    id: "applications",
+    label: "Applications",
+    description: "List and open your saved applications with draft status.",
+    icon: "briefcase",
+  },
+  {
+    id: "detail",
+    label: "Role intel",
+    description: "Pull posting context, channels, and draft snippets for one application.",
+    icon: "file-text",
+  },
+  {
+    id: "outreach",
+    label: "Outreach pair",
+    description: "Generate email + LinkedIn drafts (moves pipeline when rules allow).",
+    icon: "message-circle",
+  },
+  {
+    id: "interview",
+    label: "Interview prep",
+    description: "Themes, questions, and talking points grounded in résumé + JD.",
+    icon: "clipboard-check",
+  },
+  {
+    id: "jobs",
+    label: "Job search",
+    description: "Keyword search across published roles in your workspace catalog.",
+    icon: "search",
+  },
+  {
+    id: "resume",
+    label: "Résumé context",
+    description: "Summarize your latest résumé text for tailored coaching.",
+    icon: "upload",
+  },
+];
 
 export const CAREER_COPILOT_QUICK_ACTIONS: CopilotPromptChip[] = [
   {
