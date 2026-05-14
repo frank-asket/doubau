@@ -30,6 +30,23 @@ type FitScoreResponse = {
   strength_skills: string[];
 };
 
+type JobRapidapiEnrichment = {
+  available: boolean;
+  provider?: string | null;
+  reason?: string | null;
+  employer_logo_url?: string | null;
+  employer_website?: string | null;
+  employer_linkedin_url?: string | null;
+  employer_company_type?: string | null;
+  apply_link?: string | null;
+  required_skills?: string[];
+  highlights?: string[];
+  benefits?: string[];
+  publisher?: string | null;
+  qna?: { question: string; answer: string }[];
+  detail?: string;
+};
+
 function isPreviewJob(job: JobRow): boolean {
   return job.id.startsWith("mock-");
 }
@@ -128,6 +145,9 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const [fit, setFit] = useState<FitScoreResponse | null>(null);
   const [fitLoading, setFitLoading] = useState(() => !isPreviewJob(job));
   const [fitError, setFitError] = useState<string | null>(null);
+  const [rapidApiEnrichment, setRapidApiEnrichment] = useState<JobRapidapiEnrichment | null>(null);
+  const [rapidApiEnrichmentLoading, setRapidApiEnrichmentLoading] = useState(false);
+  const [rapidApiEnrichmentError, setRapidApiEnrichmentError] = useState<string | null>(null);
   const [outreachBusy, setOutreachBusy] = useState(false);
   const [outreachMsg, setOutreachMsg] = useState<string | null>(null);
 
@@ -159,6 +179,15 @@ export function JobDetailClient({ job }: { job: JobRow }) {
 
   const employerLogoDev = useLogoDevEmployerDescribe(logoDevDescribeDomain, !isPreviewJob(job));
 
+  const preferredEmployerLogoSrc = useMemo(() => {
+    const rapid =
+      rapidApiEnrichment?.available && rapidApiEnrichment.employer_logo_url?.trim()
+        ? rapidApiEnrichment.employer_logo_url.trim()
+        : null;
+    const dev = employerLogoDev.payload?.logo_url?.trim() || null;
+    return rapid ?? dev;
+  }, [employerLogoDev.payload?.logo_url, rapidApiEnrichment]);
+
   const salaryLine = extractSalaryHint(job.description);
   const posted = formatDateLong(job.source_posted_at ?? job.created_at);
 
@@ -189,6 +218,44 @@ export function JobDetailClient({ job }: { job: JobRow }) {
     }
     void loadFit();
   }, [job.id, loadFit]);
+
+  useEffect(() => {
+    if (isPreviewJob(job) || job.listing_source !== "jsearch") {
+      setRapidApiEnrichment(null);
+      setRapidApiEnrichmentLoading(false);
+      setRapidApiEnrichmentError(null);
+      return;
+    }
+    let cancelled = false;
+    setRapidApiEnrichmentLoading(true);
+    setRapidApiEnrichmentError(null);
+    void (async () => {
+      try {
+        const r = await fetch(`/api/jobs/${encodeURIComponent(job.id)}/rapidapi-enrichment`);
+        const data = (await r.json().catch(() => ({}))) as JobRapidapiEnrichment & { detail?: string };
+        if (cancelled) return;
+        if (!r.ok) {
+          const msg =
+            typeof data.detail === "string" ? data.detail : `RapidAPI extras failed (${r.status})`;
+          setRapidApiEnrichmentError(msg);
+          setRapidApiEnrichment(null);
+          return;
+        }
+        setRapidApiEnrichment(data);
+        setRapidApiEnrichmentError(null);
+      } catch {
+        if (!cancelled) {
+          setRapidApiEnrichmentError("Could not load RapidAPI extras.");
+          setRapidApiEnrichment(null);
+        }
+      } finally {
+        if (!cancelled) setRapidApiEnrichmentLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [job.id, job.listing_source]);
 
   const generateOutreach = useCallback(async () => {
     if (isPreviewJob(job)) {
@@ -332,7 +399,12 @@ export function JobDetailClient({ job }: { job: JobRow }) {
           <div className="border-b border-[var(--app-border)] p-6 sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 flex-1 gap-4">
-                <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="hero" />
+                <JobCompanyMark
+                  company={job.company}
+                  sourceUrl={job.source_url}
+                  preferredLogoSrc={preferredEmployerLogoSrc}
+                  size="hero"
+                />
                 <div className="min-w-0 flex-1">
                   <h1 className="text-pretty text-[clamp(1.35rem,2.6vw,1.85rem)] font-semibold tracking-tight text-[var(--app-text-primary)]">
                     {job.title}
@@ -544,7 +616,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
               <JobCompanyMark
                 company={job.company}
                 sourceUrl={job.source_url}
-                preferredLogoSrc={employerLogoDev.payload?.logo_url}
+                preferredLogoSrc={preferredEmployerLogoSrc}
                 size="detail"
               />
               <div className="min-w-0">
@@ -575,6 +647,148 @@ export function JobDetailClient({ job }: { job: JobRow }) {
               </div>
             </div>
           </div>
+
+          {job.listing_source === "jsearch" && !isPreviewJob(job) ? (
+            <div className="rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-bg-elevated)] p-5 shadow-[var(--app-shadow-1)]">
+              <div className="mb-1 text-[13px] font-semibold text-[var(--app-text-primary)]">RapidAPI (JSearch)</div>
+              <p className="text-[11px] leading-relaxed text-[var(--app-text-tertiary)]">
+                Live employer and listing fields from JSearch job-details (not stored in the catalog row).
+              </p>
+              {rapidApiEnrichmentLoading ? (
+                <div className="mt-4 space-y-2" aria-live="polite" aria-busy="true">
+                  <div className="h-3 w-[55%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                  <div className="h-3 w-full animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                  <div className="h-3 w-[70%] animate-pulse rounded-md bg-[var(--app-bg-muted)]" />
+                </div>
+              ) : null}
+              {rapidApiEnrichmentError ? (
+                <p className="mt-3 text-[12px] leading-relaxed text-[var(--app-badge-red-fg)]" role="alert">
+                  {rapidApiEnrichmentError}
+                </p>
+              ) : null}
+              {!rapidApiEnrichmentLoading &&
+              rapidApiEnrichment &&
+              !rapidApiEnrichment.available &&
+              rapidApiEnrichment.reason === "missing_external_ref" ? (
+                <p className="mt-3 text-[12px] text-[var(--app-text-secondary)]">
+                  This listing has no JSearch job id on file, so extras cannot be loaded.
+                </p>
+              ) : null}
+              {rapidApiEnrichment?.available ? (
+                <div className="mt-4 space-y-4 text-[13px] leading-snug text-[var(--app-text-secondary)]">
+                  {(rapidApiEnrichment.publisher || rapidApiEnrichment.employer_company_type) && (
+                    <div className="flex flex-wrap gap-2 text-[11px] text-[var(--app-text-tertiary)]">
+                      {rapidApiEnrichment.publisher ? (
+                        <span className="rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-2 py-0.5">
+                          Board: {rapidApiEnrichment.publisher}
+                        </span>
+                      ) : null}
+                      {rapidApiEnrichment.employer_company_type ? (
+                        <span className="rounded-[var(--app-radius-pill)] border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-2 py-0.5">
+                          {rapidApiEnrichment.employer_company_type}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    {rapidApiEnrichment.employer_website ? (
+                      <a
+                        href={rapidApiEnrichment.employer_website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                        onClick={() => void postJobEvent(job.id, "click_out", "employer site from RapidAPI panel")}
+                      >
+                        Employer website
+                      </a>
+                    ) : null}
+                    {rapidApiEnrichment.employer_linkedin_url ? (
+                      <a
+                        href={rapidApiEnrichment.employer_linkedin_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                        onClick={() => void postJobEvent(job.id, "click_out", "LinkedIn from RapidAPI panel")}
+                      >
+                        LinkedIn
+                      </a>
+                    ) : null}
+                    {rapidApiEnrichment.apply_link &&
+                    rapidApiEnrichment.apply_link.trim() !== (job.source_url ?? "").trim() ? (
+                      <a
+                        href={rapidApiEnrichment.apply_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                        onClick={() => void postJobEvent(job.id, "click_out", "apply link from RapidAPI panel")}
+                      >
+                        Apply link (JSearch)
+                      </a>
+                    ) : null}
+                  </div>
+                  {rapidApiEnrichment.highlights && rapidApiEnrichment.highlights.length > 0 ? (
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--app-text-tertiary)]">
+                        Highlights
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1.5 pl-4 text-[12px] leading-relaxed">
+                        {rapidApiEnrichment.highlights.slice(0, 8).map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {rapidApiEnrichment.required_skills && rapidApiEnrichment.required_skills.length > 0 ? (
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--app-text-tertiary)]">
+                        Required skills
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {rapidApiEnrichment.required_skills.slice(0, 24).map((s) => (
+                          <span
+                            key={s}
+                            className="rounded-[var(--app-radius-pill)] bg-[var(--app-bg-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--app-text-secondary)] ring-1 ring-[color-mix(in_srgb,var(--app-border)_70%,transparent)]"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {rapidApiEnrichment.benefits && rapidApiEnrichment.benefits.length > 0 ? (
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--app-text-tertiary)]">
+                        Benefits
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1.5 pl-4 text-[12px] leading-relaxed">
+                        {rapidApiEnrichment.benefits.slice(0, 8).map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {rapidApiEnrichment.qna && rapidApiEnrichment.qna.length > 0 ? (
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--app-text-tertiary)]">
+                        Q&amp;A
+                      </div>
+                      <ul className="mt-2 space-y-3 text-[12px] leading-relaxed">
+                        {rapidApiEnrichment.qna.slice(0, 4).map((row, i) => (
+                          <li key={i}>
+                            {row.question ? (
+                              <span className="font-medium text-[var(--app-text-primary)]">{row.question}</span>
+                            ) : null}
+                            {row.question && row.answer ? <span className="text-[var(--app-text-tertiary)]"> · </span> : null}
+                            {row.answer ? <span>{row.answer}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {outreachMsg ? (
             <p className="text-center text-[12px] text-[var(--app-badge-red-fg)]" role="alert">

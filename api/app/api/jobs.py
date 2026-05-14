@@ -18,6 +18,8 @@ from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
 from app.jobs.catalog_query_from_resume import catalog_query_for_user
 from app.jobs.providers.active_jobs_db import title_filter_from_catalog_query
+from app.jobs.providers.jsearch import fetch_jsearch_job_details_json
+from app.jobs.providers.jsearch_enrichment import jsearch_flat_to_enrichment_dict, jsearch_job_details_flat
 from app.jobs.matching import (
     catalog_listing_source_priority_rank,
     feed_blend_weights,
@@ -140,6 +142,29 @@ class JobOut(BaseModel):
     listing_source: str | None = None
     source_posted_at: datetime | None = None
     created_at: datetime
+
+
+class JobRapidapiEnrichmentQnaOut(BaseModel):
+    question: str = ""
+    answer: str = ""
+
+
+class JobRapidapiEnrichmentOut(BaseModel):
+    """On-demand JSearch (RapidAPI) ``/job-details`` fields for catalog jobs ingested from JSearch."""
+
+    available: bool
+    provider: str | None = None
+    reason: str | None = None
+    employer_logo_url: str | None = None
+    employer_website: str | None = None
+    employer_linkedin_url: str | None = None
+    employer_company_type: str | None = None
+    apply_link: str | None = None
+    required_skills: list[str] = Field(default_factory=list)
+    highlights: list[str] = Field(default_factory=list)
+    benefits: list[str] = Field(default_factory=list)
+    publisher: str | None = None
+    qna: list[JobRapidapiEnrichmentQnaOut] = Field(default_factory=list)
 
 
 class CatalogSummaryOut(BaseModel):
@@ -1104,6 +1129,39 @@ def feed(
         )
 
     return reranked[offset : offset + limit]
+
+
+@router.get("/{job_id}/rapidapi-enrichment", response_model=JobRapidapiEnrichmentOut)
+def get_job_rapidapi_enrichment(job_id: UUID, db: DbDep, current_user: CurrentUserDep) -> JobRapidapiEnrichmentOut:
+    """Live JSearch job-details for rows where ``listing_source == \"jsearch\"`` (RapidAPI)."""
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if (job.listing_source or "").strip().lower() != "jsearch":
+        return JobRapidapiEnrichmentOut(available=False, reason="unsupported_listing_source")
+
+    ext = (job.external_ref or "").strip()
+    if not ext:
+        return JobRapidapiEnrichmentOut(available=False, reason="missing_external_ref")
+
+    country = (settings.jsearch_country or "us").strip().lower()[:8] or "us"
+    lang = (settings.jsearch_language or "").strip()[:16] or None
+
+    payload, err = fetch_jsearch_job_details_json(ext, country=country, language=lang)
+    if err == "missing_jsearch_credentials":
+        raise HTTPException(
+            status_code=503,
+            detail="JSearch RapidAPI is not configured (set DOUBOW_JSEARCH_RAPIDAPI_KEY or DOUBOW_RAPIDAPI_KEY).",
+        )
+    if err:
+        raise HTTPException(status_code=502, detail=f"JSearch upstream error: {err[:400]}")
+    if payload is None:
+        raise HTTPException(status_code=502, detail="JSearch returned no data.")
+
+    flat = jsearch_job_details_flat(payload)
+    fields = jsearch_flat_to_enrichment_dict(flat)
+    return JobRapidapiEnrichmentOut(available=True, provider="jsearch", **fields)
 
 
 @router.get("/{job_id}", response_model=JobOut)
