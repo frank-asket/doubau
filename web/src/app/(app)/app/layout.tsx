@@ -13,6 +13,7 @@ import { AppThemeShell } from "@/components/app/AppThemeShell";
 import { AppTopbar } from "@/components/app/AppTopbar";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { ApplicationsPipelineRealtimeProvider } from "@/components/providers/ApplicationsPipelineRealtimeProvider";
+import { CareerAiAssistantDock } from "@/components/copilot/CareerAiAssistantDock";
 import { CareerGrowthProvider } from "@/components/providers/CareerGrowthProvider";
 import { DouBowLogo } from "@/components/brand/DouBowLogo";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -133,9 +134,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-3">
+        <div className="flex-1 overflow-y-auto px-2 py-3 pb-28 sm:px-3 sm:pb-24">
           {children}
         </div>
+        <CareerAiAssistantDock />
       </main>
     </AppThemeShell>
     </CareerGrowthProvider>
