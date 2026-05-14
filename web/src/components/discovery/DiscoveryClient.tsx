@@ -312,6 +312,9 @@ function sourceLabel(job: JobRow) {
   if (job.listing_source === "adzuna") return "Adzuna";
   if (job.listing_source === "http_fetch") return "Imported";
   if (job.listing_source === "greenhouse") return "Greenhouse";
+  if (job.listing_source === "lever") return "Lever";
+  if (job.listing_source === "ashby") return "Ashby";
+  if (job.listing_source === "workday_cxs") return "Workday";
   if (job.listing_source === "scrapling_jsonld" || job.listing_source === "scrapling") return "Scrapling";
   if (job.listing_source) return job.listing_source.replace(/_/g, " ");
   return "Doubow";

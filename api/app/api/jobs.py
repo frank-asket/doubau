@@ -7,7 +7,7 @@ from typing import Literal
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import and_, asc, delete, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score
 from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
+from app.jobs.catalog_query_from_resume import catalog_query_for_user
 from app.jobs.matching import (
     feed_blend_weights,
     location_match_score,
@@ -30,8 +31,11 @@ from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.models.user import User
 from app.tasks import embed_job as embed_job_task
 from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
+from app.tasks import ingest_jsearch_jobs as ingest_jsearch_jobs_task
+from app.tasks import ingest_job_board_rss_batch as ingest_job_board_rss_batch_task
 from app.tasks import ingest_remoteok_jobs as ingest_remoteok_jobs_task
 from app.tasks import ingest_scrapling_jobs as ingest_scrapling_jobs_task
+from app.tasks import ingest_serpapi_google_jobs as ingest_serpapi_google_jobs_task
 from app.tasks import scrape_job as scrape_job_task
 from app.tasks import scrape_rss_feed as scrape_rss_feed_task
 
@@ -39,7 +43,19 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 # Rows removed by ``POST /jobs/cron/clear-catalog`` when ``mode=providers`` (keeps ``manual``).
 _CRON_CLEAR_PROVIDER_SOURCES: frozenset[str] = frozenset(
-    {"remoteok", "adzuna", "scrapling", "scrapling_jsonld", "greenhouse", "http_fetch"}
+    {
+        "remoteok",
+        "adzuna",
+        "scrapling",
+        "scrapling_jsonld",
+        "greenhouse",
+        "lever",
+        "ashby",
+        "workday_cxs",
+        "http_fetch",
+        "jsearch",
+        "serpapi_google_jobs",
+    }
 )
 
 
@@ -443,6 +459,16 @@ class ScrapeQueueOut(BaseModel):
     status: str = "queued"
 
 
+class ProviderIngestQueryIn(BaseModel):
+    """Optional JSON for JSearch / SerpAPI ingest: fixed query and/or derive from a user's profile + résumé."""
+
+    query: str | None = Field(default=None, max_length=400)
+    resume_user_id: UUID | None = Field(
+        default=None,
+        description="If set (and ``query`` is empty), build the API search string from this user's goals + résumé.",
+    )
+
+
 class ScrapeUrlIn(BaseModel):
     url: HttpUrl | str
     kind: Literal["url", "rss"] = "url"
@@ -472,6 +498,63 @@ def queue_scrapling_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
     """Enqueue Scrapling/Greenhouse/JSON-LD ingest when ``SCRAPLING_ENABLED=true``."""
     _require_ingestion_admin(user)
     res = ingest_scrapling_jobs_task.delay()
+    return ScrapeQueueOut(task_id=str(res.id))
+
+
+@router.post("/ingest/jsearch", response_model=ScrapeQueueOut)
+def queue_jsearch_ingest(
+    user: CurrentUserDep,
+    db: DbDep,
+    payload: ProviderIngestQueryIn = Body(default_factory=ProviderIngestQueryIn),
+) -> ScrapeQueueOut:
+    """Enqueue JSearch (RapidAPI) ingest — multi-board jobs (``listing_source=jsearch``). Requires API key.
+
+    Body (optional): ``query`` overrides everything. Else ``resume_user_id`` builds a string from that user's
+    profile + résumé. Else ``DOUBOW_JSEARCH_QUERY`` (or a neutral default when unset).
+    """
+    _require_ingestion_admin(user)
+    q_override: str | None = None
+    if payload.query is not None and payload.query.strip():
+        q_override = payload.query.strip()[:400]
+    elif payload.resume_user_id is not None:
+        u = db.get(User, payload.resume_user_id)
+        if u is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        derived = catalog_query_for_user(db, payload.resume_user_id).strip()
+        q_override = derived[:400] if derived else None
+    res = ingest_jsearch_jobs_task.delay(query_override=q_override)
+    return ScrapeQueueOut(task_id=str(res.id))
+
+
+@router.post("/ingest/serpapi-google-jobs", response_model=ScrapeQueueOut)
+def queue_serpapi_google_jobs_ingest(
+    user: CurrentUserDep,
+    db: DbDep,
+    payload: ProviderIngestQueryIn = Body(default_factory=ProviderIngestQueryIn),
+) -> ScrapeQueueOut:
+    """Enqueue SerpAPI Google Jobs ingest (``listing_source=serpapi_google_jobs``). Requires API key.
+
+    Same optional body semantics as ``POST /jobs/ingest/jsearch`` (``query`` / ``resume_user_id`` / env).
+    """
+    _require_ingestion_admin(user)
+    q_override: str | None = None
+    if payload.query is not None and payload.query.strip():
+        q_override = payload.query.strip()[:400]
+    elif payload.resume_user_id is not None:
+        u = db.get(User, payload.resume_user_id)
+        if u is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        derived = catalog_query_for_user(db, payload.resume_user_id).strip()
+        q_override = derived[:400] if derived else None
+    res = ingest_serpapi_google_jobs_task.delay(query_override=q_override)
+    return ScrapeQueueOut(task_id=str(res.id))
+
+
+@router.post("/ingest/rss-feeds", response_model=ScrapeQueueOut)
+def queue_job_board_rss_batch(user: CurrentUserDep) -> ScrapeQueueOut:
+    """Enqueue ``scrape_rss_feed`` for each URL in ``DOUBOW_JOB_BOARD_RSS_URLS``."""
+    _require_ingestion_admin(user)
+    res = ingest_job_board_rss_batch_task.delay()
     return ScrapeQueueOut(task_id=str(res.id))
 
 
@@ -522,6 +605,12 @@ def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
     queued["remoteok"] = str(r_ro.id)
     r_ad = ingest_adzuna_jobs_task.delay()
     queued["adzuna"] = str(r_ad.id)
+    r_js = ingest_jsearch_jobs_task.delay()
+    queued["jsearch"] = str(r_js.id)
+    r_sp = ingest_serpapi_google_jobs_task.delay()
+    queued["serpapi_google_jobs"] = str(r_sp.id)
+    r_rss = ingest_job_board_rss_batch_task.delay()
+    queued["job_board_rss_batch"] = str(r_rss.id)
     if settings.scrapling_enabled:
         r_sc = ingest_scrapling_jobs_task.delay()
         queued["scrapling"] = str(r_sc.id)

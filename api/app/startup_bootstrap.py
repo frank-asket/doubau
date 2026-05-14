@@ -36,15 +36,29 @@ def run_startup_bootstrap_ingest() -> None:
         return
 
     try:
-        from app.tasks import ingest_adzuna_jobs, ingest_remoteok_jobs, ingest_scrapling_jobs
+        from app.tasks import (
+            ingest_adzuna_jobs,
+            ingest_job_board_rss_batch,
+            ingest_jsearch_jobs,
+            ingest_remoteok_jobs,
+            ingest_scrapling_jobs,
+            ingest_serpapi_google_jobs,
+        )
 
         ro = ingest_remoteok_jobs.delay()
         ad = ingest_adzuna_jobs.delay()
+        js = ingest_jsearch_jobs.delay()
+        sp = ingest_serpapi_google_jobs.delay()
+        rss = ingest_job_board_rss_batch.delay()
         sc = ingest_scrapling_jobs.delay() if settings.scrapling_enabled else None
         log.info(
-            "bootstrap ingest queued remoteok_task_id=%s adzuna_task_id=%s scrapling_task_id=%s",
+            "bootstrap ingest queued remoteok_task_id=%s adzuna_task_id=%s jsearch_task_id=%s "
+            "serpapi_task_id=%s rss_batch_task_id=%s scrapling_task_id=%s",
             ro.id,
             ad.id,
+            js.id,
+            sp.id,
+            rss.id,
             sc.id if sc else None,
         )
     except Exception as exc:

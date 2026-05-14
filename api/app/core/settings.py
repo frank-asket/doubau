@@ -177,6 +177,26 @@ class Settings(BaseSettings):
     adzuna_search_what: str = ""
     adzuna_max_results: int = 50
 
+    # JSearch (RapidAPI) — legal multi-board search (Indeed / LinkedIn / Glassdoor / ZipRecruiter, etc. via API).
+    # https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch — set DOUBOW_JSEARCH_RAPIDAPI_KEY.
+    jsearch_rapidapi_key: str | None = None
+    jsearch_rapidapi_host: str = "jsearch.p.rapidapi.com"
+    jsearch_query: str = ""
+    jsearch_country: str = "us"
+    jsearch_date_posted: str = "all"
+    jsearch_num_pages: int = 1
+    jsearch_ingest_max_jobs: int = 60
+
+    # SerpAPI — Google Jobs JSON (structured; apply links point at boards/ATS). https://serpapi.com/google-jobs-api
+    serpapi_api_key: str | None = None
+    serpapi_google_jobs_query: str = ""
+    serpapi_google_jobs_location: str | None = None
+    serpapi_google_jobs_hl: str = "en"
+    serpapi_ingest_max_jobs: int = 60
+
+    # Optional: comma/newline/pipe-separated public RSS/Atom feed URLs — cron enqueues ``scrape_rss_feed`` per URL.
+    job_board_rss_urls: str = ""
+
     # Freshness: exclude jobs older than N days by default (posted_at else created_at).
     jobs_stale_after_days: int = 30
 
@@ -389,6 +409,18 @@ class Settings(BaseSettings):
         if isinstance(v, str) and not v.strip():
             return None
         return v
+
+    @field_validator("jsearch_rapidapi_key", "serpapi_api_key", mode="before")
+    @classmethod
+    def empty_aggregator_keys_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("jsearch_num_pages", mode="after")
+    @classmethod
+    def clamp_jsearch_num_pages(cls, v: int) -> int:
+        return max(1, min(int(v), 20))
 
     @field_validator(
         "smtp_host",

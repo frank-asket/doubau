@@ -23,9 +23,12 @@ from app.core.settings import settings
 from app.db import SessionLocal
 from app.jobs.html_snippet import extract_title_from_html
 from app.jobs.providers.adzuna import fetch_adzuna_canonical
+from app.jobs.providers.jsearch import fetch_jsearch_canonical
 from app.jobs.providers.persist import persist_canonical_jobs
 from app.jobs.providers.remoteok import fetch_remoteok_canonical
 from app.jobs.providers.scrapling import fetch_scrapling_canonical
+from app.jobs.providers.serpapi_google_jobs import fetch_serpapi_google_jobs_canonical
+from app.jobs.rss_feed_list import split_job_board_rss_urls
 from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.llm.logging import record_llm_interaction
@@ -457,6 +460,116 @@ def ingest_scrapling_jobs() -> dict[str, Any]:
         out.get("ingest_duration_ms"),
     )
     return out
+
+
+@celery_app.task(name="app.tasks.ingest_jsearch_jobs")
+def ingest_jsearch_jobs(query_override: str | None = None) -> dict[str, Any]:
+    """JSearch (RapidAPI) multi-board ingest → ``listing_source=jsearch``."""
+    started_at = datetime.now(UTC)
+    max_n = max(1, settings.jsearch_ingest_max_jobs)
+    jobs, err = fetch_jsearch_canonical(max_n, query_override=query_override)
+    if err == "missing_jsearch_credentials":
+        ended_at = datetime.now(UTC)
+        log.info("ingest_jsearch_jobs skipped_no_credentials")
+        return {
+            "status": "skipped_no_credentials",
+            "detail": "Set DOUBOW_JSEARCH_RAPIDAPI_KEY (RapidAPI JSearch).",
+            "listing_source": "jsearch",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+    if err:
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_jsearch_jobs fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "jsearch",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "jsearch",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+    out.update(stats)
+    log.info(
+        "ingest_jsearch_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
+    return out
+
+
+@celery_app.task(name="app.tasks.ingest_serpapi_google_jobs")
+def ingest_serpapi_google_jobs(query_override: str | None = None) -> dict[str, Any]:
+    """SerpAPI ``engine=google_jobs`` ingest → ``listing_source=serpapi_google_jobs``."""
+    started_at = datetime.now(UTC)
+    max_n = max(1, settings.serpapi_ingest_max_jobs)
+    jobs, err = fetch_serpapi_google_jobs_canonical(max_n, query_override=query_override)
+    if err == "missing_serpapi_credentials":
+        ended_at = datetime.now(UTC)
+        log.info("ingest_serpapi_google_jobs skipped_no_credentials")
+        return {
+            "status": "skipped_no_credentials",
+            "detail": "Set DOUBOW_SERPAPI_API_KEY (SerpAPI Google Jobs).",
+            "listing_source": "serpapi_google_jobs",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+    if err:
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_serpapi_google_jobs fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "serpapi_google_jobs",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "serpapi_google_jobs",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+    out.update(stats)
+    log.info(
+        "ingest_serpapi_google_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
+    return out
+
+
+@celery_app.task(name="app.tasks.ingest_job_board_rss_batch")
+def ingest_job_board_rss_batch() -> dict[str, Any]:
+    """Enqueue ``scrape_rss_feed`` for each URL in ``DOUBOW_JOB_BOARD_RSS_URLS`` (public feeds only)."""
+    started_at = datetime.now(UTC)
+    urls = split_job_board_rss_urls(settings.job_board_rss_urls)
+    if not urls:
+        ended_at = datetime.now(UTC)
+        return {
+            "status": "skipped_no_urls",
+            "detail": "Set DOUBOW_JOB_BOARD_RSS_URLS (comma/newline/pipe-separated RSS/Atom URLs).",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    n = 0
+    for u in urls:
+        scrape_rss_feed.delay(u)
+        n += 1
+    ended_at = datetime.now(UTC)
+    return {
+        "status": "queued_children",
+        "feeds": len(urls),
+        "queued_tasks": n,
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
 
 
 @celery_app.task(name="app.tasks.score_job")
