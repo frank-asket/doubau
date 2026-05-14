@@ -529,17 +529,101 @@ def send_notification(user_id: str, message: str) -> dict[str, Any]:
     return {"user_id": user_id, "sent": False, "message": message, "status": "logged"}
 
 
+def _smtp_send_text(*, to_addr: str, subject: str, body: str) -> None:
+    """Send plain-text mail via SMTP.
+
+    Amazon SES: use regional ``email-smtp.<region>.amazonaws.com``.
+    """
+    import smtplib
+    from email.message import EmailMessage
+
+    if not (settings.smtp_host and settings.smtp_from):
+        raise RuntimeError("smtp_not_configured")
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = settings.smtp_from
+    msg["To"] = to_addr
+    msg.set_content(body, subtype="plain", charset="utf-8")
+    payload = msg.as_string()
+
+    if settings.smtp_use_ssl:
+        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+            if settings.smtp_user and settings.smtp_password:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.sendmail(settings.smtp_from, [to_addr], payload)
+        return
+
+    # Port 587 / STARTTLS (SES and most providers expect EHLO before and after TLS).
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+        smtp.ehlo()
+        if settings.smtp_use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        if settings.smtp_user and settings.smtp_password:
+            smtp.login(settings.smtp_user, settings.smtp_password)
+        smtp.sendmail(settings.smtp_from, [to_addr], payload)
+
+
+def _transactional_from_header() -> str:
+    """From: line for Resend (and consistency checks). ``resend_from`` overrides ``smtp_from``."""
+    raw = (settings.resend_from or settings.smtp_from or "").strip()
+    if not raw:
+        raise RuntimeError("mail_from_missing")
+    return raw
+
+
+def _email_transport_configured() -> bool:
+    """True when we can send transactional plain text (Resend API or SMTP)."""
+    if (settings.resend_api_key or "").strip():
+        try:
+            _transactional_from_header()
+            return True
+        except RuntimeError:
+            return False
+    return bool(settings.smtp_host and settings.smtp_from)
+
+
+def _resend_send_plain(*, to_addr: str, subject: str, body: str) -> None:
+    """Send plain-text mail via Resend HTTP API (https://api.resend.com/emails)."""
+    key = (settings.resend_api_key or "").strip()
+    if not key:
+        raise RuntimeError("resend_not_configured")
+    from_header = _transactional_from_header()
+    r = httpx.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json={
+            "from": from_header,
+            "to": [to_addr],
+            "subject": subject,
+            "text": body,
+        },
+        timeout=30.0,
+    )
+    if r.status_code >= 400:
+        raise RuntimeError(f"resend_http_{r.status_code}: {(r.text or '')[:800]}")
+
+
+def _send_transactional_plain_email(*, to_addr: str, subject: str, body: str) -> None:
+    """Resend wins when ``DOUBOW_RESEND_API_KEY`` is set; otherwise SMTP."""
+    if (settings.resend_api_key or "").strip():
+        _resend_send_plain(to_addr=to_addr, subject=subject, body=body)
+        return
+    _smtp_send_text(to_addr=to_addr, subject=subject, body=body)
+
+
 @celery_app.task(name="app.tasks.send_followup_reminder_emails")
 def send_followup_reminder_emails() -> dict[str, Any]:
     """
     Email users about application follow-ups due within the next ~30 minutes (or overdue).
 
-    Requires SMTP (same as outbound applications). At most one email per scheduled
-    ``next_followup_at`` instant per application, tracked via ``followup_notified_for_at``.
+    Requires Resend (``DOUBOW_RESEND_API_KEY`` + from address) or SMTP. At most one email per
+    scheduled ``next_followup_at`` instant per application, tracked via ``followup_notified_for_at``.
     """
-    if not (settings.smtp_host and settings.smtp_from):
-        log.debug("followup_reminders skipped: SMTP not configured")
-        return {"status": "skipped", "reason": "no_smtp", "batches": 0, "applications": 0}
+    if not _email_transport_configured():
+        log.debug("followup_reminders skipped: no email transport (Resend or SMTP)")
+        return {"status": "skipped", "reason": "no_email_transport", "batches": 0, "applications": 0}
 
     now = datetime.now(UTC)
     window_end = now + timedelta(minutes=30)
@@ -594,9 +678,9 @@ def send_followup_reminder_emails() -> dict[str, Any]:
             body = "\n".join(lines)
             subject = f"[Doubow] Follow-up: {len(apps)} role(s)"
             try:
-                _smtp_send_text(to_addr=user_email, subject=subject, body=body)
+                _send_transactional_plain_email(to_addr=user_email, subject=subject, body=body)
             except Exception as e:
-                log.warning("followup_reminder_smtp_failed user=%s err=%s", uid, e)
+                log.warning("followup_reminder_email_failed user=%s err=%s", uid, e)
                 continue
             batches += 1
             for a in apps:
@@ -604,42 +688,6 @@ def send_followup_reminder_emails() -> dict[str, Any]:
             db.commit()
 
         return {"status": "ok", "batches": batches, "applications": len(rows)}
-
-
-def _smtp_send_text(*, to_addr: str, subject: str, body: str) -> None:
-    """Send plain-text mail via SMTP.
-
-    Amazon SES: use regional ``email-smtp.<region>.amazonaws.com``.
-    """
-    import smtplib
-    from email.message import EmailMessage
-
-    if not (settings.smtp_host and settings.smtp_from):
-        raise RuntimeError("smtp_not_configured")
-
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = settings.smtp_from
-    msg["To"] = to_addr
-    msg.set_content(body, subtype="plain", charset="utf-8")
-    payload = msg.as_string()
-
-    if settings.smtp_use_ssl:
-        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
-            if settings.smtp_user and settings.smtp_password:
-                smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.sendmail(settings.smtp_from, [to_addr], payload)
-        return
-
-    # Port 587 / STARTTLS (SES and most providers expect EHLO before and after TLS).
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
-        smtp.ehlo()
-        if settings.smtp_use_tls:
-            smtp.starttls()
-            smtp.ehlo()
-        if settings.smtp_user and settings.smtp_password:
-            smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.sendmail(settings.smtp_from, [to_addr], payload)
 
 
 def _mark_drafts_failed(db: Session, application_id: UUID) -> None:
@@ -662,10 +710,10 @@ def _mark_drafts_failed(db: Session, application_id: UUID) -> None:
 def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
     """
     Sender agent: runs after submit (SUBMITTED). Requires human APPROVAL via state machine
-    before submit enqueues this task. Dispatches email (SMTP) and LinkedIn (optional webhook),
+    before submit enqueues this task. Dispatches email (Resend or SMTP) and LinkedIn (optional webhook),
     with exponential backoff retries (max 3) on recoverable failures.
 
-    SMTP and webhooks run outside a DB session so connections are not held across slow I/O.
+    Resend / SMTP and webhooks run outside a DB session so connections are not held across slow I/O.
     """
     try:
         aid = UUID(application_id)
@@ -731,7 +779,7 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
                 row.status = DraftStatus.SENT
                 db.commit()
 
-        def _persist_email_no_smtp(draft_id: UUID) -> None:
+        def _persist_email_no_transport(draft_id: UUID) -> None:
             with SessionLocal() as db:
                 row = db.get(OutreachDraft, draft_id)
                 if row is None:
@@ -740,7 +788,7 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
                     db,
                     user_id=user_id,
                     agent_name="sender_email",
-                    prompt_parts=(str(aid), str(draft_id), "no_smtp"),
+                    prompt_parts=(str(aid), str(draft_id), "no_email_transport"),
                     raw_output=json.dumps({"channel": "email", "to": user_email, "sent": False}),
                     latency_ms=0,
                 )
@@ -785,15 +833,15 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
 
             if kind == "email":
                 subj = meta or subject
-                if settings.smtp_host and settings.smtp_from:
+                if _email_transport_configured():
                     t0 = time.perf_counter()
-                    _smtp_send_text(to_addr=user_email, subject=subj, body=body)
+                    _send_transactional_plain_email(to_addr=user_email, subject=subj, body=body)
                     ms = int((time.perf_counter() - t0) * 1000)
                     _persist_email_success(draft_id, subj, ms)
                     results.append({"channel": "email", "sent": True})
                 else:
-                    _persist_email_no_smtp(draft_id)
-                    results.append({"channel": "email", "sent": False, "reason": "no_smtp"})
+                    _persist_email_no_transport(draft_id)
+                    results.append({"channel": "email", "sent": False, "reason": "no_email_transport"})
                 continue
 
             # linkedin

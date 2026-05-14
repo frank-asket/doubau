@@ -136,8 +136,12 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
     embedding_max_input_chars: int = 30_000
 
-    # Phase 3 — outbound email (SMTP). When unset, dispatch logs intent without sending mail.
-    # Amazon SES: host ``email-smtp.<region>.amazonaws.com``; use IAM SMTP credentials from the
+    # Phase 3 — outbound email: Resend (HTTP API) preferred when configured, else SMTP (e.g. SES).
+    # Resend: https://resend.com/docs/api-reference/emails/send-email — set DOUBOW_RESEND_API_KEY.
+    resend_api_key: str | None = None
+    # Optional Resend ``from``; when unset, ``smtp_from`` is reused (same verified-domain address).
+    resend_from: str | None = None
+    # Amazon SES SMTP: host ``email-smtp.<region>.amazonaws.com``; use IAM SMTP credentials from the
     # SES console.
     smtp_host: str | None = None
     smtp_port: int = 587
@@ -391,6 +395,8 @@ class Settings(BaseSettings):
         "smtp_user",
         "smtp_password",
         "smtp_from",
+        "resend_api_key",
+        "resend_from",
         "linkedin_dispatch_webhook_url",
         mode="before",
     )

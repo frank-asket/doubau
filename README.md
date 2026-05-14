@@ -65,7 +65,7 @@ flowchart TB
     CL[Clerk]
     OAI[OpenAI — embeddings & LLM]
     JB[Job providers — Remote OK, Adzuna, Scrapling, ATS hosts…]
-    SM[SMTP / Gmail API — when configured]
+    SM[Resend / SMTP / Gmail API — when configured]
   end
 
   C --> W
