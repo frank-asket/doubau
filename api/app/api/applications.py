@@ -426,6 +426,8 @@ def patch_application(
 
     if "next_followup_at" in data:
         app.next_followup_at = data["next_followup_at"]
+        if data["next_followup_at"] is None:
+            app.followup_notified_for_at = None
 
     if "tags" in data:
         app.tags = data["tags"]

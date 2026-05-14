@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import time
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
@@ -12,7 +13,7 @@ from uuid import UUID
 import httpx
 import redis
 from celery.signals import task_failure
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -526,6 +527,83 @@ def send_notification(user_id: str, message: str) -> dict[str, Any]:
         )
         db.commit()
     return {"user_id": user_id, "sent": False, "message": message, "status": "logged"}
+
+
+@celery_app.task(name="app.tasks.send_followup_reminder_emails")
+def send_followup_reminder_emails() -> dict[str, Any]:
+    """
+    Email users about application follow-ups due within the next ~30 minutes (or overdue).
+
+    Requires SMTP (same as outbound applications). At most one email per scheduled
+    ``next_followup_at`` instant per application, tracked via ``followup_notified_for_at``.
+    """
+    if not (settings.smtp_host and settings.smtp_from):
+        log.debug("followup_reminders skipped: SMTP not configured")
+        return {"status": "skipped", "reason": "no_smtp", "batches": 0, "applications": 0}
+
+    now = datetime.now(UTC)
+    window_end = now + timedelta(minutes=30)
+
+    origins = settings.cors_allow_origins_list
+    base_url = (origins[0] if origins else "http://localhost:3000").rstrip("/")
+    tracker_url = f"{base_url}/app/tracker"
+
+    with SessionLocal() as db:
+        stmt = (
+            select(Application, User.email)
+            .join(User, User.id == Application.user_id)
+            .where(Application.next_followup_at.is_not(None))
+            .where(Application.next_followup_at <= window_end)
+            .where(
+                or_(
+                    Application.followup_notified_for_at.is_(None),
+                    Application.followup_notified_for_at != Application.next_followup_at,
+                )
+            )
+        )
+        rows = db.execute(stmt).all()
+        if not rows:
+            return {"status": "ok", "batches": 0, "applications": 0}
+
+        by_user: defaultdict[UUID, list[Application]] = defaultdict(list)
+        emails: dict[UUID, str] = {}
+        for row in rows:
+            app = row[0]
+            email = row[1]
+            by_user[app.user_id].append(app)
+            emails[app.user_id] = email
+
+        batches = 0
+        for uid, apps in by_user.items():
+            user_email = emails[uid]
+            lines = [
+                "You have follow-up reminders in Doubow:",
+                "",
+            ]
+            for a in apps:
+                when = a.next_followup_at
+                when_s = (
+                    when.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+                    if when is not None
+                    else "(time unset)"
+                )
+                lines.append(f"- {a.company} · {a.job_title} (due {when_s})")
+                if a.source_url:
+                    lines.append(f"  Listing: {a.source_url}")
+            lines.extend(["", f"Open tracker: {tracker_url}", "", "— Doubow (automated reminder)"])
+            body = "\n".join(lines)
+            subject = f"[Doubow] Follow-up: {len(apps)} role(s)"
+            try:
+                _smtp_send_text(to_addr=user_email, subject=subject, body=body)
+            except Exception as e:
+                log.warning("followup_reminder_smtp_failed user=%s err=%s", uid, e)
+                continue
+            batches += 1
+            for a in apps:
+                a.followup_notified_for_at = a.next_followup_at
+            db.commit()
+
+        return {"status": "ok", "batches": batches, "applications": len(rows)}
 
 
 def _smtp_send_text(*, to_addr: str, subject: str, body: str) -> None:

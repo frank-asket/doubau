@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { getApiBaseUrl, getBackendAuthHeaders } from "../../_server";
+import { clerkTokenMissingResponse, getApiBaseUrl, getBackendAuthHeaders } from "../../_server";
 
 export async function POST(req: Request) {
+  const headers = await getBackendAuthHeaders();
+  if (!("authorization" in headers)) {
+    return clerkTokenMissingResponse();
+  }
   const body = await req.json().catch(() => ({}));
   const resp = await fetch(`${getApiBaseUrl()}/me/jd-fit`, {
     method: "POST",
-    headers: {
-      ...(await getBackendAuthHeaders()),
-      "content-type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 

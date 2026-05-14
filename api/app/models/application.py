@@ -43,6 +43,9 @@ class Application(Base):
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     next_followup_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    followup_notified_for_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(String(48)), nullable=True)
 
     status: Mapped[ApplicationStatus] = mapped_column(

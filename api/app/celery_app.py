@@ -22,6 +22,10 @@ def make_celery() -> Celery:
             "task": "app.tasks.mark_stale_jobs",
             "schedule": crontab(hour=8, minute=0),
         },
+        "followup-reminders-quarter-hourly": {
+            "task": "app.tasks.send_followup_reminder_emails",
+            "schedule": crontab(minute="*/15"),
+        },
     }
     if settings.ingest_beat_hourly_remoteok:
         beat_schedule["ingest-remoteok-hourly"] = {
@@ -56,6 +60,7 @@ def make_celery() -> Celery:
             "app.tasks.score_job": {"queue": "score", "routing_key": "score"},
             "app.tasks.generate_outreach_draft": {"queue": "draft", "routing_key": "draft"},
             "app.tasks.send_notification": {"queue": "notify", "routing_key": "notify"},
+            "app.tasks.send_followup_reminder_emails": {"queue": "notify", "routing_key": "notify"},
             "app.tasks.dispatch_application_outbound": {"queue": "notify", "routing_key": "notify"},
         },
         task_track_started=True,

@@ -110,3 +110,42 @@ def test_patch_application_updates_crm_fields() -> None:
             db.commit()
     except Exception:
         pass
+
+
+def test_patch_clear_followup_clears_reminder_anchor() -> None:
+    client = TestClient(app)
+    token, user_id = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r0 = client.post(
+        "/applications",
+        headers=headers,
+        json={"company": "Soylent", "job_title": "Manager", "source_url": None},
+    )
+    assert r0.status_code == 200, r0.text
+    app_id = r0.json()["id"]
+
+    when = datetime(2032, 1, 5, 15, 0, tzinfo=timezone.utc)
+    with SessionLocal() as db:
+        row = db.get(Application, UUID(app_id))
+        assert row is not None
+        row.next_followup_at = when
+        row.followup_notified_for_at = when
+        db.commit()
+
+    r1 = client.patch(f"/applications/{app_id}", headers=headers, json={"next_followup_at": None})
+    assert r1.status_code == 200, r1.text
+
+    with SessionLocal() as db:
+        row = db.get(Application, UUID(app_id))
+        assert row is not None
+        assert row.next_followup_at is None
+        assert row.followup_notified_for_at is None
+
+    try:
+        with SessionLocal() as db:
+            db.execute(delete(Application).where(Application.user_id == user_id))
+            db.execute(delete(User).where(User.id == user_id))
+            db.commit()
+    except Exception:
+        pass
