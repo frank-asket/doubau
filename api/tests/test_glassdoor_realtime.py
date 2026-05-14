@@ -12,7 +12,10 @@ from sqlalchemy.exc import OperationalError
 
 from app.core.settings import settings
 from app.db import engine
-from app.integrations.glassdoor_realtime import fetch_company_interview_details
+from app.integrations.glassdoor_realtime import (
+    fetch_company_interview_details,
+    fetch_glassdoor_realtime_resource,
+)
 from app.main import app
 from app.security import decode_access_token
 
@@ -70,6 +73,35 @@ def test_fetch_company_interview_details_ok_with_mock(monkeypatch: pytest.Monkey
     assert data == {"interviewId": 19018219, "ok": True}
 
 
+def test_fetch_glassdoor_realtime_resource_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
+    out, err = fetch_glassdoor_realtime_resource("anything", {"q": "Apple"})
+    assert out is None
+    assert err == "unsupported_glassdoor_realtime_resource"
+
+
+def test_fetch_glassdoor_realtime_resource_uses_configured_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(settings, "glassdoor_realtime_jobs_path", "/jobs/search", raising=False)
+
+    def fake_get(url: str, **kwargs: object) -> MagicMock:
+        assert url.endswith("/jobs/search")
+        params = kwargs.get("params") or {}
+        assert params.get("query") == "designer"
+        assert "empty" not in params
+        r = MagicMock()
+        r.json.return_value = {"jobs": [{"job_id": 1}]}
+        r.raise_for_status.return_value = None
+        return r
+
+    with patch("app.integrations.glassdoor_realtime.httpx.get", side_effect=fake_get):
+        data, err = fetch_glassdoor_realtime_resource("jobs", {"query": "designer", "empty": ""})
+    assert err is None
+    assert data == {"jobs": [{"job_id": 1}]}
+
+
 def test_glassdoor_interview_details_route_requires_auth() -> None:
     client = TestClient(app)
     r = client.get("/integrations/glassdoor/companies/interview-details?interview_id=1")
@@ -118,3 +150,32 @@ def test_glassdoor_interview_details_route_accepts_rapidapi_alias(
         )
     assert r.status_code == 200, r.text
     m.assert_called_once_with("19018219")
+
+
+def test_glassdoor_category_routes_proxy(
+    postgres_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
+    token = _signup(postgres_client)
+
+    cases = [
+        ("/integrations/glassdoor/conversations?q=Apple", "conversations"),
+        ("/integrations/glassdoor/jobs?query=nurse&location=Chicago", "jobs"),
+        ("/integrations/glassdoor/jobs/details?job_id=100", "job_details"),
+        ("/integrations/glassdoor/companies?query=Apple", "companies"),
+        ("/integrations/glassdoor/companies/details?company_id=1138", "company_details"),
+        ("/integrations/glassdoor/companies/reviews?company_id=1138", "company_reviews"),
+        ("/integrations/glassdoor/companies/interviews?company_id=1138", "company_interviews"),
+        ("/integrations/glassdoor/salaries?job_title=Designer&location=Chicago", "salaries"),
+    ]
+
+    with patch(
+        "app.api.integrations.fetch_glassdoor_realtime_resource",
+        side_effect=lambda resource, params: ({"resource": resource, "params": params}, None),
+    ) as m:
+        for path, expected_resource in cases:
+            r = postgres_client.get(path, headers={"Authorization": f"Bearer {token}"})
+            assert r.status_code == 200, r.text
+            assert r.json()["resource"] == expected_resource
+
+    assert m.call_count == len(cases)

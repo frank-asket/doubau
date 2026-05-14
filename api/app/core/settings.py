@@ -224,7 +224,15 @@ class Settings(BaseSettings):
     # Key falls back to ``jsearch_rapidapi_key`` / ``rapidapi_key`` when unset.
     glassdoor_realtime_rapidapi_key: str | None = None
     glassdoor_realtime_rapidapi_host: str = "glassdoor-real-time.p.rapidapi.com"
+    glassdoor_realtime_conversations_path: str = "/conversations/search"
+    glassdoor_realtime_jobs_path: str = "/jobs/search"
+    glassdoor_realtime_job_details_path: str = "/jobs/details"
+    glassdoor_realtime_companies_path: str = "/companies/search"
+    glassdoor_realtime_company_details_path: str = "/companies/details"
+    glassdoor_realtime_company_reviews_path: str = "/companies/reviews"
+    glassdoor_realtime_company_interviews_path: str = "/companies/interviews"
     glassdoor_realtime_interview_details_path: str = "/companies/interview-details"
+    glassdoor_realtime_salaries_path: str = "/salaries/search"
 
     # Job Opening Analyzer (RapidAPI) — POST /compute_similarity (pivot + job description texts).
     # Key falls back to ``jsearch_rapidapi_key`` / ``rapidapi_key`` when unset.

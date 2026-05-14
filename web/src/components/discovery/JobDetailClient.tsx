@@ -167,16 +167,26 @@ export function JobDetailClient({ job }: { job: JobRow }) {
   const skillTags = useMemo(() => job.tags.filter((t) => !benefitTags.includes(t)), [job.tags, benefitTags]);
 
   const companySiteHost = useMemo(() => {
+    const fromRapidApi =
+      rapidApiEnrichment?.available && rapidApiEnrichment.employer_website?.trim()
+        ? hostnameFromSourceUrl(rapidApiEnrichment.employer_website.trim())
+        : null;
+    if (fromRapidApi && !isLowSignalLogoHost(fromRapidApi)) return fromRapidApi;
     const fromListing = hostnameFromSourceUrl(job.source_url);
     const employer = resolveCompanyLogoHost(job.company, job.source_url);
     if (fromListing && !isLowSignalLogoHost(fromListing)) return fromListing;
     return employer;
-  }, [job.company, job.source_url]);
+  }, [job.company, job.source_url, rapidApiEnrichment]);
 
   const logoDevDescribeDomain = useMemo(() => {
     if (isPreviewJob(job)) return null;
+    const fromRapidApi =
+      rapidApiEnrichment?.available && rapidApiEnrichment.employer_website?.trim()
+        ? hostnameFromSourceUrl(rapidApiEnrichment.employer_website.trim())
+        : null;
+    if (fromRapidApi && !isLowSignalLogoHost(fromRapidApi)) return fromRapidApi;
     return resolveCompanyLogoHost(job.company, job.source_url);
-  }, [job.company, job.source_url, job.id]);
+  }, [job.company, job.source_url, job.id, rapidApiEnrichment]);
 
   const employerLogoDev = useLogoDevEmployerDescribe(logoDevDescribeDomain, !isPreviewJob(job));
 
@@ -644,6 +654,7 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                   domain={logoDevDescribeDomain}
                   enabled={!isPreviewJob(job)}
                   companyName={job.company}
+                  awaitingDomain={job.listing_source === "jsearch" && rapidApiEnrichmentLoading}
                   remote={employerLogoDev}
                 />
               </div>

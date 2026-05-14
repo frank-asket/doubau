@@ -39,12 +39,15 @@ export function EmployerLogoDevPanel({
   domain,
   enabled,
   companyName,
+  awaitingDomain = false,
   remote,
 }: {
   domain: string | null;
   enabled: boolean;
   /** Listing employer string — shown when it differs from Logo.dev canonical name */
   companyName: string;
+  /** True while an upstream enrichment call may still provide a corporate website/domain. */
+  awaitingDomain?: boolean;
   /** When set, render this state instead of fetching internally (avoids duplicate describe calls). */
   remote?: LogoDevEmployerDescribeState;
 }) {
@@ -56,15 +59,27 @@ export function EmployerLogoDevPanel({
   if (!enabled) return null;
 
   if (!domain) {
+    if (awaitingDomain) {
+      return (
+        <div className="mt-4 overflow-hidden rounded-[var(--app-radius-md)] border border-dashed border-[color-mix(in_srgb,var(--app-accent)_22%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-accent)_04%,var(--app-bg-muted))] px-3 py-3">
+          <div className="flex items-center gap-3 text-[12px] font-medium text-[var(--app-text-secondary)]">
+            <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06)]">
+              <span className="size-4 animate-pulse rounded-full bg-[var(--app-accent)]/35" />
+            </span>
+            Checking RapidAPI for employer website…
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         role="note"
         aria-label="Logo.dev employer directory unavailable for this listing"
         className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]"
       >
-        <span className="font-medium text-[var(--app-text-secondary)]">Logo.dev directory:</span>{" "}
-        we need a guessable corporate domain from this posting. Aggregator or ATS-only links often hide it — the
-        employer name and initials above still reflect the listing.
+        <span className="font-medium text-[var(--app-text-secondary)]">Company directory:</span>{" "}
+        RapidAPI did not provide an employer website for this listing, and the posting URL points to an aggregator or
+        ATS instead of a corporate domain. The employer name and initials above still reflect the source listing.
       </div>
     );
   }
