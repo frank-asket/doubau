@@ -691,7 +691,8 @@ export default function ApprovalsPage() {
           const snippetNode = isEditing ? (
             <div className="flex flex-col gap-2">
               <Textarea
-                rows={10}
+                rows={18}
+                className="min-h-[min(52dvh,28rem)] resize-y"
                 value={editBody}
                 disabled={patchDraftM.isPending}
                 onChange={(e) => setEditBody(e.target.value)}

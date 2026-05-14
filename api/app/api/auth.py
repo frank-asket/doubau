@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from sqlalchemy import select
 
 from app.api.deps import DbDep
@@ -6,12 +6,13 @@ from app.api.schemas import AuthResponse, LoginRequest, SignupRequest
 from app.models.profile import Profile
 from app.models.user import User
 from app.security import create_access_token, hash_password, verify_password
+from app.tasks import send_signup_welcome_email_sync
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/signup", response_model=AuthResponse)
-def signup(payload: SignupRequest, db: DbDep) -> AuthResponse:
+def signup(payload: SignupRequest, db: DbDep, background_tasks: BackgroundTasks) -> AuthResponse:
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing is not None:
         raise HTTPException(status_code=409, detail="Email already in use")
@@ -23,6 +24,8 @@ def signup(payload: SignupRequest, db: DbDep) -> AuthResponse:
     profile = Profile(user_id=user.id, goals={})
     db.add(profile)
     db.commit()
+
+    background_tasks.add_task(send_signup_welcome_email_sync, user.email)
 
     token = create_access_token(user_id=user.id, email=user.email)
     return AuthResponse(access_token=token)

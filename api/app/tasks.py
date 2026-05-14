@@ -613,6 +613,37 @@ def _send_transactional_plain_email(*, to_addr: str, subject: str, body: str) ->
     _smtp_send_text(to_addr=to_addr, subject=subject, body=body)
 
 
+def send_signup_welcome_email_sync(to_email: str) -> None:
+    """
+    Best-effort welcome after ``POST /auth/signup``.
+
+    Delivered **to** the user's mailbox (e.g. Gmail) **from** your verified Resend/SMTP domain — not
+    sent through their Google account. Intended for FastAPI ``BackgroundTasks`` so signup stays fast.
+    """
+    to_email = (to_email or "").strip()
+    if not to_email:
+        return
+    if not _email_transport_configured():
+        log.debug("welcome_email_skipped no_email_transport to=%s", to_email)
+        return
+    origins = settings.cors_allow_origins_list
+    base = (origins[0] if origins else "http://localhost:3000").rstrip("/")
+    dashboard_url = f"{base}/app/dashboard"
+    body = (
+        "Welcome to Doubow,\n\n"
+        f"Your account is ready. Sign in with {to_email} and open your workspace:\n"
+        f"{dashboard_url}\n\n"
+        "Upload a résumé, explore matched roles, and move applications through your pipeline — with "
+        "explicit approval before anything is sent on your behalf.\n\n"
+        "— The Doubow team\n"
+    )
+    subject = "Welcome to Doubow"
+    try:
+        _send_transactional_plain_email(to_addr=to_email, subject=subject, body=body)
+    except Exception as e:
+        log.warning("welcome_email_failed to=%s err=%s", to_email, e)
+
+
 def _send_resume_upload_acknowledgement_email(*, db: Session, doc: ResumeDocument) -> None:
     """
     Acknowledgement of receipt to the account email after parse (and optional embed) succeeds.
