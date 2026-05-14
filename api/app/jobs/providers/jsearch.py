@@ -85,6 +85,13 @@ def raw_to_canonical_jsearch(raw: dict[str, Any]) -> CanonicalJobIn | None:
     jid = raw.get("job_id")
     ext = str(jid)[:200] if jid is not None else None
 
+    employer_logo_url: str | None = None
+    for key in ("employer_logo", "employer_logo_url"):
+        v = raw.get(key)
+        if isinstance(v, str) and v.strip().startswith(("http://", "https://")):
+            employer_logo_url = v.strip()[:2000]
+            break
+
     return CanonicalJobIn(
         title=title[:220],
         company=company[:200],
@@ -95,6 +102,7 @@ def raw_to_canonical_jsearch(raw: dict[str, Any]) -> CanonicalJobIn | None:
         employment_type=employment_type,
         seniority=None,
         tags=tags[:40],
+        employer_logo_url=employer_logo_url,
         external_ref=ext,
         source_posted_at=_posted_at(raw),
     )

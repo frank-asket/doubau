@@ -189,9 +189,9 @@ _CATALOG_LISTING_SOURCE_PRIORITY: tuple[str, ...] = (
     "lever",
     "ashby",
     "workday_cxs",
-    "remoteok",
     "scrapling_jsonld",
     "scrapling",
+    "remoteok",
     "http_fetch",
     "manual",
 )

@@ -70,12 +70,33 @@ def test_raw_to_canonical_jsearch_maps_publisher() -> None:
         "job_apply_link": "https://boards.example/123",
         "job_publisher": "LinkedIn",
         "job_is_remote": True,
+        "employer_logo": "https://cdn.example/acme.png",
+        "job_id": "jid-1",
     }
     c = raw_to_canonical_jsearch(row)
     assert c is not None
     assert c.listing_source == "jsearch"
     assert "LinkedIn" in c.tags
     assert "remote" in c.tags
+    assert c.employer_logo_url == "https://cdn.example/acme.png"
+    assert c.external_ref == "jid-1"
+
+
+def test_raw_to_canonical_remoteok_maps_company_logo() -> None:
+    from app.jobs.providers.remoteok import raw_to_canonical_remoteok
+
+    row = {
+        "company": "Globex",
+        "position": "Engineer",
+        "url": "https://remoteok.com/remote-jobs/123",
+        "slug": "remote-engineer-globex-123",
+        "id": "999",
+        "company_logo": "https://remoteok.com/assets/img/jobs/77e354bcfc11f8f187aecacf1847a7a91616121477.png",
+        "tags": ["python"],
+    }
+    c = raw_to_canonical_remoteok(row)
+    assert c is not None
+    assert c.employer_logo_url == row["company_logo"]
 
 
 def test_raw_to_canonical_serpapi_google_job_apply_options() -> None:

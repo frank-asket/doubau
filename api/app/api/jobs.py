@@ -139,6 +139,7 @@ class JobOut(BaseModel):
     description: str | None
     tags: list[str]
     source_url: str | None
+    employer_logo_url: str | None = None
     listing_source: str | None = None
     source_posted_at: datetime | None = None
     created_at: datetime
@@ -188,6 +189,7 @@ def _job_out(j: Job) -> JobOut:
         description=j.description,
         tags=j.tags or [],
         source_url=j.source_url,
+        employer_logo_url=j.employer_logo_url,
         listing_source=j.listing_source,
         source_posted_at=j.source_posted_at,
         created_at=j.created_at,
@@ -1031,22 +1033,16 @@ def feed(
     if remote_filter is not None:
         jobs_stmt = jobs_stmt.where(remote_filter)
     catalog_sql_tier = case(
-        (or_(Job.listing_source == "jsearch", Job.listing_source == "active_jobs_db"), 0),
-        (Job.listing_source == "serpapi_google_jobs", 1),
-        (Job.listing_source == "adzuna", 2),
+        (Job.listing_source == "jsearch", 0),
+        (Job.listing_source == "active_jobs_db", 1),
+        (Job.listing_source == "serpapi_google_jobs", 2),
+        (Job.listing_source == "adzuna", 3),
         (
-            Job.listing_source.in_(
-                (
-                    "greenhouse",
-                    "lever",
-                    "ashby",
-                    "workday_cxs",
-                    "remoteok",
-                )
-            ),
-            3,
+            Job.listing_source.in_(("greenhouse", "lever", "ashby", "workday_cxs")),
+            4,
         ),
-        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 4),
+        (Job.listing_source == "remoteok", 5),
+        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 6),
         else_=9,
     )
     jobs_stmt = jobs_stmt.order_by(catalog_sql_tier.asc(), desc(Job.created_at)).limit(500)

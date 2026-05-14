@@ -52,6 +52,11 @@ def raw_to_canonical_remoteok(raw: dict[str, Any]) -> CanonicalJobIn | None:
     if not ext and slug:
         ext = slug[:200]
 
+    company_logo = raw.get("company_logo")
+    employer_logo_url: str | None = None
+    if isinstance(company_logo, str) and company_logo.strip().startswith(("http://", "https://")):
+        employer_logo_url = company_logo.strip()[:2000]
+
     return CanonicalJobIn(
         title=position[:220],
         company=company[:200],
@@ -62,6 +67,7 @@ def raw_to_canonical_remoteok(raw: dict[str, Any]) -> CanonicalJobIn | None:
         employment_type="Remote",
         seniority=None,
         tags=tags,
+        employer_logo_url=employer_logo_url,
         external_ref=ext,
         source_posted_at=_parse_posted_at(raw),
     )

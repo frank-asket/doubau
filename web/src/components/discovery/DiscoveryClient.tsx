@@ -34,6 +34,7 @@ export type JobRow = {
   description: string | null;
   tags: string[];
   source_url: string | null;
+  employer_logo_url?: string | null;
   listing_source?: string | null;
   source_posted_at?: string | null;
   created_at: string;
@@ -391,7 +392,12 @@ function DiscoveryCard({
       <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <JobCompanyMark company={job.company} sourceUrl={job.source_url} size="card" />
+            <JobCompanyMark
+              company={job.company}
+              sourceUrl={job.source_url}
+              preferredLogoSrc={job.employer_logo_url ?? undefined}
+              size="card"
+            />
             <div className="min-w-0 pr-1">
               {!isPreviewJob(job) ? (
                 <>

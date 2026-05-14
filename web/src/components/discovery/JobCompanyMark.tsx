@@ -216,7 +216,7 @@ export function JobCompanyMark({
 }: {
   company: string;
   sourceUrl?: string | null;
-  /** When set (e.g. Logo.dev Describe `logo_url`), tried before CDN / Clearbit chain. Must match `next/image` allowlist. */
+  /** When set (e.g. JSearch employer logo, Logo.dev Describe), tried first. HTTPS hosts outside the Next/Image allowlist render via a plain `img` so logos still load. */
   preferredLogoSrc?: string | null;
   size?: JobCompanyMarkSize;
   /** Muted logos — soft grayscale for dense lists (e.g. dashboard picks). */
@@ -224,6 +224,13 @@ export function JobCompanyMark({
   className?: string;
 }) {
   const host = useMemo(() => resolveCompanyLogoHost(company, sourceUrl), [company, sourceUrl]);
+  const externalPreferred = useMemo(() => {
+    const p = preferredLogoSrc?.trim();
+    if (!p || !/^https:\/\//i.test(p)) return null;
+    if (isTrustedBrandImageUrl(p)) return null;
+    return p;
+  }, [preferredLogoSrc]);
+
   const candidates = useMemo(() => {
     if (!host) return [];
     const base = buildCompanyLogoCandidates(host);
@@ -234,9 +241,11 @@ export function JobCompanyMark({
     return base;
   }, [host, preferredLogoSrc]);
   const [attempt, setAttempt] = useState(0);
+  const [externalFailed, setExternalFailed] = useState(false);
 
   useEffect(() => {
     setAttempt(0);
+    setExternalFailed(false);
   }, [host, preferredLogoSrc]);
 
   const initials = companyInitials(company);
@@ -261,6 +270,25 @@ export function JobCompanyMark({
         : "text-[28px] font-black";
 
   const pxSize = size === "hero" ? 64 : size === "detail" ? 48 : 56;
+
+  if (externalPreferred && !externalFailed) {
+    return (
+      <span className={box} role="img" aria-label={`${company} logo`}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- provider CDN URLs are not in next/image remotePatterns */}
+        <img
+          src={externalPreferred}
+          alt=""
+          width={pxSize}
+          height={pxSize}
+          className={`bg-white object-contain p-1.5 ${muted ? "grayscale-[0.35] opacity-[0.92]" : ""}`}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setExternalFailed(true)}
+        />
+      </span>
+    );
+  }
 
   return (
     <span

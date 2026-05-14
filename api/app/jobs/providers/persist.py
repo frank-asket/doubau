@@ -50,6 +50,8 @@ def persist_canonical_job(job_in: CanonicalJobIn) -> tuple[Literal["created", "s
         return ("skipped", "duplicate_fingerprint")
 
     tags = list(job_in.tags or [])[:40]
+    logo_u = (job_in.employer_logo_url or "").strip()
+    employer_logo_url = logo_u[:2000] if logo_u.startswith(("http://", "https://")) else None
     job = Job(
         company=job_in.company[:200],
         title=job_in.title[:220],
@@ -58,6 +60,7 @@ def persist_canonical_job(job_in: CanonicalJobIn) -> tuple[Literal["created", "s
         employment_type=job_in.employment_type,
         description=(job_in.description[:12000] if job_in.description else None),
         tags=tags,
+        employer_logo_url=employer_logo_url,
         source_url=url,
         source_url_hash=url_fp,
         listing_source=job_in.listing_source[:80],

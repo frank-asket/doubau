@@ -52,6 +52,8 @@ def test_catalog_listing_source_priority_rank_prefers_jsearch() -> None:
 
     assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("active_jobs_db")
     assert catalog_listing_source_priority_rank("active_jobs_db") < catalog_listing_source_priority_rank("remoteok")
+    assert catalog_listing_source_priority_rank("adzuna") < catalog_listing_source_priority_rank("remoteok")
+    assert catalog_listing_source_priority_rank("scrapling") < catalog_listing_source_priority_rank("remoteok")
     assert catalog_listing_source_priority_rank("serpapi_google_jobs") < catalog_listing_source_priority_rank(
         "adzuna"
     )

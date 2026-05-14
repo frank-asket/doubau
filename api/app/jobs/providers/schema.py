@@ -17,6 +17,7 @@ class CanonicalJobIn(BaseModel):
     employment_type: str | None = Field(default=None, max_length=80)
     seniority: str | None = Field(default=None, max_length=80)
     tags: list[str] = Field(default_factory=list)
+    employer_logo_url: str | None = Field(default=None, max_length=2000)
     external_ref: str | None = Field(default=None, max_length=200)
     source_posted_at: datetime | None = None
 

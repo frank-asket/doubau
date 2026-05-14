@@ -184,9 +184,10 @@ export function JobDetailClient({ job }: { job: JobRow }) {
       rapidApiEnrichment?.available && rapidApiEnrichment.employer_logo_url?.trim()
         ? rapidApiEnrichment.employer_logo_url.trim()
         : null;
+    const stored = job.employer_logo_url?.trim() || null;
     const dev = employerLogoDev.payload?.logo_url?.trim() || null;
-    return rapid ?? dev;
-  }, [employerLogoDev.payload?.logo_url, rapidApiEnrichment]);
+    return rapid ?? stored ?? dev;
+  }, [employerLogoDev.payload?.logo_url, job.employer_logo_url, rapidApiEnrichment]);
 
   const salaryLine = extractSalaryHint(job.description);
   const posted = formatDateLong(job.source_posted_at ?? job.created_at);
