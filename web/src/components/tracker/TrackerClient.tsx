@@ -11,7 +11,10 @@ import { AppButton } from "@/components/ui/button";
 import {
   createApplication,
   fetchApplications,
+  fetchRoleReport,
   patchApplication,
+  postFollowupDraft,
+  postRoleReport,
   type ApplicationRow,
 } from "@/lib/applications-fetch";
 import { applicationStatusBadge } from "@/lib/application-status";
@@ -72,6 +75,179 @@ function followupLabel(iso: string | null | undefined): { text: string; overdue:
     text: d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
     overdue,
   };
+}
+
+function TrackerRoleInsightBlock({ appId, appStatus }: { appId: string; appStatus: string }) {
+  const qc = useQueryClient();
+  const [sectionOpen, setSectionOpen] = useState(false);
+  const reportQ = useQuery({
+    queryKey: queryKeys.applicationRoleReport(appId),
+    queryFn: () => fetchRoleReport(appId),
+    enabled: sectionOpen,
+    staleTime: 120_000,
+  });
+  const genM = useMutation({
+    mutationFn: () => postRoleReport(appId),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.applicationRoleReport(appId) }),
+        qc.invalidateQueries({ queryKey: queryKeys.applications }),
+        qc.invalidateQueries({ queryKey: queryKeys.applicationDetail(appId) }),
+      ]);
+    },
+  });
+  const followupM = useMutation({
+    mutationFn: () => postFollowupDraft(appId),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.applicationDrafts }),
+        qc.invalidateQueries({ queryKey: queryKeys.applications }),
+      ]);
+    },
+  });
+  const canFollowup = appStatus !== "FAILED";
+  const r = reportQ.data?.report;
+
+  return (
+    <details
+      className="mt-3 rounded-[var(--app-radius-md)] border border-[var(--app-border)] bg-[var(--app-bg-muted)] px-3 py-2"
+      onToggle={(e) => setSectionOpen(e.currentTarget.open)}
+    >
+      <summary className="cursor-pointer select-none text-[12px] font-medium text-[var(--app-text-primary)]">
+        Role insight report
+      </summary>
+      {sectionOpen ? (
+        <div className="mt-3 space-y-3 border-t border-[var(--app-border)] pt-3">
+          {reportQ.isLoading ? <p className="text-[12px] text-[var(--app-text-tertiary)]">Loading…</p> : null}
+          {reportQ.isError ? (
+            <p className="text-[12px] text-[var(--app-badge-red-fg)]" role="alert">
+              Could not load report.
+            </p>
+          ) : null}
+          {r && typeof r === "object" ? (
+            <div className="space-y-3 text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+              {"fit_score" in r && typeof r.fit_score === "number" ? (
+                <p className="font-medium text-[var(--app-text-primary)]">
+                  Fit score: {Math.round(r.fit_score)}
+                  {"fit_match_pct" in r && typeof r.fit_match_pct === "number" ? (
+                    <span className="font-normal text-[var(--app-text-tertiary)]">
+                      {" "}
+                      · Match {Math.round(r.fit_match_pct)}%
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
+              {typeof r.role_summary === "string" ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">Role</div>
+                  <p className="mt-0.5 text-[var(--app-text-secondary)]">{r.role_summary}</p>
+                </div>
+              ) : null}
+              {typeof r.cv_match_summary === "string" ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">
+                    CV match
+                  </div>
+                  <p className="mt-0.5 text-[var(--app-text-secondary)]">{r.cv_match_summary}</p>
+                </div>
+              ) : null}
+              {typeof r.fit_rationale === "string" ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">
+                    Fit rationale
+                  </div>
+                  <p className="mt-0.5 text-[var(--app-text-secondary)]">{r.fit_rationale}</p>
+                </div>
+              ) : null}
+              {Array.isArray(r.gaps) && r.gaps.length ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">Gaps</div>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+                    {r.gaps.filter((x: unknown): x is string => typeof x === "string").map((x, i) => (
+                      <li key={`gap-${i}`}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {Array.isArray(r.strengths) && r.strengths.length ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">
+                    Strengths
+                  </div>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+                    {r.strengths.filter((x: unknown): x is string => typeof x === "string").map((x, i) => (
+                      <li key={`str-${i}`}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {Array.isArray(r.interview_talking_points) && r.interview_talking_points.length ? (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--app-text-tertiary)]">
+                    Interview talking points
+                  </div>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+                    {r.interview_talking_points
+                      .filter((x: unknown): x is string => typeof x === "string")
+                      .map((x, i) => (
+                        <li key={`tp-${i}`}>{x}</li>
+                      ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : !reportQ.isLoading ? (
+            <p className="text-[12px] text-[var(--app-text-tertiary)]">
+              No report yet. Generate one from your résumé and the job description on file.
+            </p>
+          ) : null}
+          {reportQ.data?.updated_at ? (
+            <p className="text-[10px] text-[var(--app-text-tertiary)]">
+              Updated{" "}
+              <time dateTime={reportQ.data.updated_at}>
+                {new Date(reportQ.data.updated_at).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </time>
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <AppButton
+              disabled={genM.isPending}
+              size="sm"
+              variant="primary"
+              type="button"
+              onClick={() => void genM.mutate()}
+            >
+              {genM.isPending ? "Generating…" : r ? "Refresh report" : "Generate report"}
+            </AppButton>
+            {canFollowup ? (
+              <AppButton
+                disabled={followupM.isPending}
+                size="sm"
+                variant="outline"
+                type="button"
+                onClick={() => void followupM.mutate()}
+              >
+                {followupM.isPending ? "Adding…" : "Add follow-up to approvals"}
+              </AppButton>
+            ) : null}
+          </div>
+          {genM.isError ? (
+            <p className="text-[11px] text-[var(--app-badge-red-fg)]" role="alert">
+              {genM.error instanceof Error ? genM.error.message : "Generation failed."}
+            </p>
+          ) : null}
+          {followupM.isError ? (
+            <p className="text-[11px] text-[var(--app-badge-red-fg)]" role="alert">
+              {followupM.error instanceof Error ? followupM.error.message : "Could not create follow-up."}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </details>
+  );
 }
 
 function buildApplyPacketMarkdown(app: ApplicationRow): string {
@@ -243,6 +419,8 @@ function TrackerApplicationCard({
           Clipboard unavailable in this browser context.
         </p>
       ) : null}
+
+      <TrackerRoleInsightBlock appId={app.id} appStatus={app.status} />
 
       <div className="mt-4 space-y-2 border-t border-[var(--app-border)] pt-3">
         <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-tertiary)]">Tracker</p>

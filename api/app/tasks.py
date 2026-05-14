@@ -773,6 +773,7 @@ def _mark_drafts_failed(db: Session, application_id: UUID) -> None:
         select(OutreachDraft).where(
             OutreachDraft.application_id == application_id,
             OutreachDraft.status == DraftStatus.DRAFT,
+            OutreachDraft.channel != "follow_up",
         )
     ).all()
     for d in drafts:
@@ -832,6 +833,8 @@ def dispatch_application_outbound(self, application_id: str) -> dict[str, Any]:
 
             steps: list[tuple[str, UUID, str | None, str]] = []
             for d in drafts:
+                if d.channel == "follow_up":
+                    continue
                 if d.channel == "email":
                     steps.append(("email", d.id, subject, d.content))
                 elif d.channel == "linkedin":

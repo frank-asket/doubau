@@ -23,6 +23,12 @@ type Draft = DraftRow;
 
 const EMPTY_APP_MAP: Map<string, Application> = new Map();
 
+function draftChannelLabel(channel: string): string {
+  if (channel === "follow_up") return "Follow-up";
+  if (!channel) return "Draft";
+  return channel.charAt(0).toUpperCase() + channel.slice(1);
+}
+
 function snippetPreview(text: string, max = 280): string {
   const t = text.trim();
   if (t.length <= max) return t;
@@ -30,7 +36,7 @@ function snippetPreview(text: string, max = 280): string {
 }
 
 function draftSubtitle(draft: Draft, app: Application | undefined): string {
-  const channel = draft.channel ? draft.channel.charAt(0).toUpperCase() + draft.channel.slice(1) : "Draft";
+  const channel = draftChannelLabel(draft.channel);
   if (app?.source_url) {
     try {
       const host = new URL(app.source_url).hostname;
@@ -550,6 +556,83 @@ export default function ApprovalsPage() {
           }
 
           if (status === "APPROVED") {
+            if (d.channel === "follow_up") {
+              const snippetFu = isEditing ? (
+                <div className="flex flex-col gap-2">
+                  <Textarea
+                    rows={18}
+                    className="min-h-[min(52dvh,28rem)] resize-y"
+                    value={editBody}
+                    disabled={patchDraftM.isPending}
+                    onChange={(e) => setEditBody(e.target.value)}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <AppButton
+                      disabled={patchDraftM.isPending || !editBody.trim()}
+                      size="sm"
+                      variant="primary"
+                      type="button"
+                      onClick={() => patchDraftM.mutate({ draftId: d.id, content: editBody.trim() })}
+                    >
+                      Save draft
+                    </AppButton>
+                    <AppButton
+                      disabled={patchDraftM.isPending}
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      onClick={() => setEditingDraftId(null)}
+                    >
+                      Cancel
+                    </AppButton>
+                  </div>
+                </div>
+              ) : (
+                snippetPreview(d.content)
+              );
+              return (
+                <AppApprovalCard
+                  key={d.id}
+                  actionsDisabled={busy || isEditing || patchDraftM.isPending}
+                  actionsSlot={
+                    <div className="flex w-full min-w-0 max-w-lg flex-col gap-2">
+                      <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+                        Follow-up drafts stay in Doubow for your records. Nothing is mailed automatically—copy and send from your
+                        own email when you are ready.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <AppButton
+                          size="sm"
+                          variant="primary"
+                          type="button"
+                          onClick={() => void navigator.clipboard.writeText(d.content)}
+                        >
+                          Copy body
+                        </AppButton>
+                        <AppButton
+                          disabled={busy || patchDraftM.isPending}
+                          size="sm"
+                          variant="outline"
+                          type="button"
+                          onClick={() => {
+                            setEditingDraftId(d.id);
+                            setEditBody(d.content);
+                          }}
+                        >
+                          Edit
+                        </AppButton>
+                      </div>
+                    </div>
+                  }
+                  badgeLabel={label}
+                  badgeVariant={variant}
+                  snippet={snippetFu}
+                  subtitle={subtitle}
+                  title={title}
+                />
+              );
+            }
+
             const gmailReady = Boolean(
               googleMailboxQ.data?.oauth_configured && googleMailboxQ.data?.connected,
             );
@@ -675,6 +758,35 @@ export default function ApprovalsPage() {
           }
 
           if (status === "SUBMITTED" || status === "FAILED" || status === "RETRY") {
+            if (d.channel === "follow_up") {
+              return (
+                <AppApprovalCard
+                  key={d.id}
+                  actionsSlot={
+                    <div className="max-w-lg space-y-2">
+                      <p className="text-[12px] leading-relaxed text-[var(--app-text-secondary)]">
+                        This follow-up text was never auto-sent by Doubow. Keep a copy here while you message the employer from
+                        your own inbox.
+                      </p>
+                      <AppButton
+                        size="sm"
+                        variant="primary"
+                        type="button"
+                        onClick={() => void navigator.clipboard.writeText(d.content)}
+                      >
+                        Copy body
+                      </AppButton>
+                    </div>
+                  }
+                  badgeLabel={label}
+                  badgeVariant={variant}
+                  snippet={snippetPreview(d.content)}
+                  subtitle={subtitle}
+                  title={title}
+                />
+              );
+            }
+
             const submittedProof =
               status === "SUBMITTED" &&
               (app.recipient_email?.trim() || app.gmail_sent_message_id?.trim() || app.submitted_at) ? (

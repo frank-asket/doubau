@@ -13,6 +13,11 @@ from app.agents.interview_rag import (
     load_job_description_for_application,
     retrieve_resume_context_for_role,
 )
+from app.agents.role_report import (
+    RoleReportError,
+    build_followup_draft_body,
+    build_role_report_for_application,
+)
 from app.agents.outreach import (
     generate_email_draft_content,
     generate_interview_prep_content,
@@ -49,7 +54,9 @@ def _pipeline_signature(db, user_id: UUID) -> str:
         .order_by(OutreachDraft.id)
     ).all()
     parts: list[str] = [
-        f"a:{a.id}:{a.status.value}:{a.updated_at.isoformat()}:{a.submitted_at.isoformat() if a.submitted_at else ''}"
+        f"a:{a.id}:{a.status.value}:{a.updated_at.isoformat()}:"
+        f"{a.submitted_at.isoformat() if a.submitted_at else ''}:"
+        f"{a.role_report_updated_at.isoformat() if a.role_report_updated_at else ''}"
         for a in apps
     ]
     parts.extend(f"d:{d.id}:{d.status.value}:{len(d.content)}" for d in drafts)
@@ -84,6 +91,8 @@ class ApplicationDetailOut(ApplicationOut):
     """Single-application fetch includes JD excerpt when the posting exists in the job catalog."""
 
     job_description_excerpt: str | None = None
+    role_report: dict | None = None
+    role_report_updated_at: datetime | None = None
 
 
 class ApplicationPatch(BaseModel):
@@ -115,6 +124,15 @@ class DraftOut(BaseModel):
     channel: str
     content: str
     status: str
+
+
+class RoleReportEnvelopeOut(BaseModel):
+    report: dict | None = None
+    updated_at: datetime | None = None
+
+
+class FollowupDraftOut(BaseModel):
+    draft: DraftOut
 
 
 class DraftBundleOut(BaseModel):
@@ -202,7 +220,12 @@ def _application_out(app: Application) -> ApplicationOut:
 def _application_detail_out(db, app: Application) -> ApplicationDetailOut:
     jd = load_job_description_for_application(db, app.source_url, app.job_id)
     base = _application_out(app).model_dump()
-    return ApplicationDetailOut(**base, job_description_excerpt=jd)
+    return ApplicationDetailOut(
+        **base,
+        job_description_excerpt=jd,
+        role_report=app.role_report,
+        role_report_updated_at=app.role_report_updated_at,
+    )
 
 
 def _draft_out(draft: OutreachDraft) -> DraftOut:
@@ -215,13 +238,15 @@ def _draft_out(draft: OutreachDraft) -> DraftOut:
     )
 
 
-def _application_has_active_draft(db, application_id: UUID) -> bool:
+def _application_has_outreach_draft(db, application_id: UUID) -> bool:
+    """Approve/submit require email or LinkedIn outreach — not follow-up-only drafts."""
     return (
         db.scalar(
             select(OutreachDraft.id)
             .where(
                 OutreachDraft.application_id == application_id,
                 OutreachDraft.status == DraftStatus.DRAFT,
+                OutreachDraft.channel.in_(("email", "linkedin")),
             )
             .limit(1)
         )
@@ -320,7 +345,8 @@ def generate_draft(
         select(OutreachDraft).where(OutreachDraft.application_id == app.id)
     ).all()
     for draft in existing:
-        db.delete(draft)
+        if draft.channel in ("email", "linkedin"):
+            db.delete(draft)
 
     d_email = OutreachDraft(
         application_id=app.id,
@@ -424,6 +450,85 @@ def get_application(
     return _application_detail_out(db, app)
 
 
+@router.get("/{application_id}/role-report", response_model=RoleReportEnvelopeOut)
+def get_role_report(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> RoleReportEnvelopeOut:
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    return RoleReportEnvelopeOut(report=app.role_report, updated_at=app.role_report_updated_at)
+
+
+@router.post("/{application_id}/role-report", response_model=RoleReportEnvelopeOut)
+def post_role_report(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> RoleReportEnvelopeOut:
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    try:
+        data = build_role_report_for_application(db, app)
+    except RoleReportError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    now = datetime.now(timezone.utc)
+    app.role_report = data
+    app.role_report_updated_at = now
+    _touch_application(app)
+    db.commit()
+    db.refresh(app)
+    return RoleReportEnvelopeOut(report=app.role_report, updated_at=app.role_report_updated_at)
+
+
+@router.post("/{application_id}/followup-draft", response_model=FollowupDraftOut)
+def post_followup_draft(
+    application_id: UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> FollowupDraftOut:
+    """Create a human-sent follow-up body in the approvals queue (never auto-dispatched)."""
+    app = db.get(Application, application_id)
+    if app is None or app.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    if app.status == ApplicationStatus.FAILED:
+        raise HTTPException(status_code=409, detail="Cannot add drafts to a closed application.")
+
+    dup = db.scalar(
+        select(OutreachDraft.id)
+        .where(
+            OutreachDraft.application_id == application_id,
+            OutreachDraft.channel == "follow_up",
+            OutreachDraft.status == DraftStatus.DRAFT,
+        )
+        .limit(1)
+    )
+    if dup is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="A follow-up draft already exists. Edit it in the approval queue.",
+        )
+
+    try:
+        body = build_followup_draft_body(db, app)
+    except RoleReportError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    row = OutreachDraft(
+        application_id=app.id,
+        channel="follow_up",
+        content=body,
+        status=DraftStatus.DRAFT,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return FollowupDraftOut(draft=_draft_out(row))
+
+
 @router.patch("/{application_id}", response_model=ApplicationOut)
 def patch_application(
     application_id: UUID,
@@ -511,7 +616,7 @@ def approve(
         assert_transition(app.status, ApplicationStatus.APPROVED)
     except InvalidTransition as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
-    if not _application_has_active_draft(db, application_id):
+    if not _application_has_outreach_draft(db, application_id):
         raise HTTPException(status_code=409, detail="Generate an outreach draft before approval.")
 
     app.status = ApplicationStatus.APPROVED
@@ -559,7 +664,7 @@ def submit(
         raise HTTPException(
             status_code=403, detail="Application must be APPROVED before submit"
         ) from e
-    if not _application_has_active_draft(db, application_id):
+    if not _application_has_outreach_draft(db, application_id):
         raise HTTPException(status_code=409, detail="No approved outreach draft found.")
 
     app.status = ApplicationStatus.SUBMITTED

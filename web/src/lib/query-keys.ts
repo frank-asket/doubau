@@ -2,6 +2,7 @@
 export const queryKeys = {
   applications: ["applications"] as const,
   applicationDetail: (id: string) => ["applications", "detail", id] as const,
+  applicationRoleReport: (id: string) => ["applications", "role-report", id] as const,
   applicationDrafts: ["application-drafts"] as const,
   workspaceSummary: ["workspace-summary"] as const,
   profile: ["me-profile"] as const,

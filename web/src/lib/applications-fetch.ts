@@ -19,6 +19,13 @@ export type ApplicationRow = {
 
 export type ApplicationDetailRow = ApplicationRow & {
   job_description_excerpt?: string | null;
+  role_report?: Record<string, unknown> | null;
+  role_report_updated_at?: string | null;
+};
+
+export type RoleReportEnvelope = {
+  report: Record<string, unknown> | null;
+  updated_at: string | null;
 };
 
 export type DraftRow = {
@@ -39,6 +46,30 @@ export async function fetchApplicationDetail(id: string): Promise<ApplicationDet
   const r = await fetch(`/api/applications/${id}`, { cache: "no-store" });
   if (!r.ok) throw new Error("application");
   return (await r.json()) as ApplicationDetailRow;
+}
+
+export async function fetchRoleReport(id: string): Promise<RoleReportEnvelope> {
+  const r = await fetch(`/api/applications/${id}/role-report`, { cache: "no-store" });
+  if (!r.ok) throw new Error("role-report");
+  return (await r.json()) as RoleReportEnvelope;
+}
+
+export async function postRoleReport(id: string): Promise<RoleReportEnvelope> {
+  const r = await fetch(`/api/applications/${id}/role-report`, { method: "POST" });
+  const data = (await r.json().catch(() => ({}))) as RoleReportEnvelope & { detail?: string };
+  if (!r.ok) {
+    throw new Error(typeof data.detail === "string" ? data.detail : "Could not generate role report.");
+  }
+  return data;
+}
+
+export async function postFollowupDraft(id: string): Promise<DraftRow> {
+  const r = await fetch(`/api/applications/${id}/followup-draft`, { method: "POST" });
+  const data = (await r.json().catch(() => ({}))) as { draft?: DraftRow; detail?: string };
+  if (!r.ok || !data.draft) {
+    throw new Error(typeof data.detail === "string" ? data.detail : "Could not create follow-up draft.");
+  }
+  return data.draft;
 }
 
 export type ApplicationPatchBody = {
