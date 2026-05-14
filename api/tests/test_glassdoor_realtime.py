@@ -101,3 +101,20 @@ def test_glassdoor_interview_details_route_400_non_numeric(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 400
+
+
+def test_glassdoor_interview_details_route_accepts_rapidapi_alias(
+    postgres_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
+    token = _signup(postgres_client)
+    with patch(
+        "app.api.integrations.fetch_company_interview_details",
+        return_value=({"data": {"interviewId": 19018219}, "status": "OK"}, None),
+    ) as m:
+        r = postgres_client.get(
+            "/integrations/glassdoor/companies/interview-details?interviewId=19018219",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert r.status_code == 200, r.text
+    m.assert_called_once_with("19018219")

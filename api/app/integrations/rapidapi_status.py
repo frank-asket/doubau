@@ -22,7 +22,7 @@ def rapidapi_integration_status() -> dict[str, Any]:
     return {
         "shared_rapidapi_key_configured": shared,
         "jsearch_configured": jk or shared,
-        "active_jobs_db_configured": ajd or shared,
-        "glassdoor_realtime_configured": gd or shared,
-        "job_opening_analyzer_configured": joa or shared,
+        "active_jobs_db_configured": ajd or jk or shared,
+        "glassdoor_realtime_configured": gd or jk or shared,
+        "job_opening_analyzer_configured": joa or jk or shared,
     }

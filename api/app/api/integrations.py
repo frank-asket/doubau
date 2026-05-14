@@ -47,11 +47,17 @@ class JobOpeningAnalyzerSimilarityIn(BaseModel):
 @router.get("/glassdoor/companies/interview-details")
 def glassdoor_company_interview_details(
     current_user: CurrentUserDep,
-    interview_id: str = Query(
-        ...,
+    interview_id: str | None = Query(
+        None,
         min_length=1,
         max_length=24,
         description="Numeric Glassdoor interview id (maps to upstream ``interviewId``).",
+    ),
+    interviewId: str | None = Query(
+        None,
+        min_length=1,
+        max_length=24,
+        description="RapidAPI-compatible alias for ``interview_id``.",
     ),
 ) -> Any:
     """Proxy to RapidAPI Glassdoor Real-time ``GET /companies/interview-details``.
@@ -60,7 +66,9 @@ def glassdoor_company_interview_details(
     Response body is passed through from upstream (JSON object or array).
     """
     _ = current_user
-    iid = interview_id.strip()
+    iid = (interview_id or interviewId or "").strip()
+    if not iid:
+        raise HTTPException(status_code=400, detail="Missing interview_id.")
     if not iid.isdigit():
         raise HTTPException(status_code=400, detail="interview_id must be numeric.")
 

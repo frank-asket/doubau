@@ -46,6 +46,25 @@ def test_rapidapi_status_route_authenticated(monkeypatch: pytest.MonkeyPatch) ->
     assert body["glassdoor_realtime_configured"] is True
 
 
+def test_rapidapi_status_counts_jsearch_fallback_for_rapidapi_products(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.integrations.rapidapi_status import rapidapi_integration_status
+
+    from app.core import settings as settings_mod
+
+    monkeypatch.setattr(settings_mod.settings, "rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings_mod.settings, "jsearch_rapidapi_key", "jsearch-key", raising=False)
+    monkeypatch.setattr(settings_mod.settings, "active_jobs_db_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings_mod.settings, "glassdoor_realtime_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings_mod.settings, "job_opening_analyzer_rapidapi_key", None, raising=False)
+
+    body = rapidapi_integration_status()
+    assert body["shared_rapidapi_key_configured"] is False
+    assert body["jsearch_configured"] is True
+    assert body["active_jobs_db_configured"] is True
+    assert body["glassdoor_realtime_configured"] is True
+    assert body["job_opening_analyzer_configured"] is True
+
+
 def test_rapidapi_status_requires_auth() -> None:
     client = TestClient(app)
     r = client.get("/integrations/rapidapi/status")
