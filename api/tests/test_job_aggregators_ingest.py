@@ -11,6 +11,56 @@ from app.jobs.rss_feed_list import split_job_board_rss_urls
 from app.tasks import ingest_jsearch_jobs, ingest_job_board_rss_batch, ingest_serpapi_google_jobs
 
 
+def test_jsearch_search_job_rows_accepts_list_or_wrapped_dict() -> None:
+    from app.jobs.providers import jsearch as jm
+
+    assert len(jm._jsearch_search_job_rows({"status": "OK", "data": [{"job_id": "1"}]})) == 1
+    wrapped = {"status": "OK", "data": {"jobs": [{"job_id": "2", "job_title": "t", "employer_name": "e", "job_apply_link": "u"}]}}
+    assert len(jm._jsearch_search_job_rows(wrapped)) == 1
+
+
+def test_fetch_jsearch_canonical_hits_search_v2_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.jobs.providers.jsearch import fetch_jsearch_canonical
+
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(settings, "jsearch_job_search_endpoint", "search-v2", raising=False)
+    monkeypatch.setattr(settings, "jsearch_ingest_max_jobs", 5, raising=False)
+
+    captured: dict[str, str] = {}
+
+    def fake_get(url: str, **kwargs: object) -> MagicMock:
+        captured["url"] = url
+        r = MagicMock()
+        r.json.return_value = {
+            "status": "OK",
+            "data": [
+                {
+                    "job_id": "x",
+                    "job_title": "Nurse",
+                    "employer_name": "Med",
+                    "job_apply_link": "https://example.com/j",
+                }
+            ],
+        }
+        r.raise_for_status.return_value = None
+        return r
+
+    with patch("app.jobs.providers.jsearch.httpx.get", side_effect=fake_get):
+        jobs, err = fetch_jsearch_canonical(10)
+
+    assert err is None
+    assert len(jobs) == 1
+    assert "/search-v2" in captured["url"]
+
+
+def test_fetch_jsearch_job_details_errors_without_job_id() -> None:
+    from app.jobs.providers.jsearch import fetch_jsearch_job_details_json
+
+    out, err = fetch_jsearch_job_details_json("  ")
+    assert out is None
+    assert err == "missing_job_id"
+
+
 def test_raw_to_canonical_jsearch_maps_publisher() -> None:
     from app.jobs.providers.jsearch import raw_to_canonical_jsearch
 
@@ -55,8 +105,30 @@ def test_split_job_board_rss_urls() -> None:
 
 def test_ingest_jsearch_skipped_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "jsearch_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings, "rapidapi_key", None, raising=False)
     out = ingest_jsearch_jobs.run()
     assert out["status"] == "skipped_no_credentials"
+
+
+def test_ingest_jsearch_uses_fallback_rapidapi_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings, "rapidapi_key", "rapid-shared", raising=False)
+    monkeypatch.setattr(settings, "jsearch_ingest_max_jobs", 5, raising=False)
+
+    from app.jobs.providers.schema import CanonicalJobIn
+
+    jobs = [
+        CanonicalJobIn(
+            title="Eng",
+            company="Co",
+            apply_url="https://apply.example/1",
+            listing_source="jsearch",
+        )
+    ]
+    with patch("app.tasks.fetch_jsearch_canonical", return_value=(jobs, None)):
+        with patch("app.tasks.persist_canonical_jobs", return_value={"created": 1, "skipped": 0}):
+            out = ingest_jsearch_jobs.run()
+    assert out["status"] == "completed"
 
 
 def test_ingest_serpapi_skipped_without_key(monkeypatch: pytest.MonkeyPatch) -> None:

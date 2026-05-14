@@ -473,7 +473,7 @@ def ingest_jsearch_jobs(query_override: str | None = None) -> dict[str, Any]:
         log.info("ingest_jsearch_jobs skipped_no_credentials")
         return {
             "status": "skipped_no_credentials",
-            "detail": "Set DOUBOW_JSEARCH_RAPIDAPI_KEY (RapidAPI JSearch).",
+            "detail": "Set DOUBOW_JSEARCH_RAPIDAPI_KEY or DOUBOW_RAPIDAPI_KEY (RapidAPI JSearch).",
             "listing_source": "jsearch",
             **_ingest_meta(started_at=started_at, ended_at=ended_at),
         }

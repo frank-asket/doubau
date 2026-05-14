@@ -177,8 +177,12 @@ class Settings(BaseSettings):
     adzuna_search_what: str = ""
     adzuna_max_results: int = 50
 
+    # Optional shared RapidAPI application key (dashboard “X-RapidAPI-Key”). Used as fallback when
+    # ``DOUBOW_JSEARCH_RAPIDAPI_KEY`` is unset so one key can back multiple RapidAPI products.
+    rapidapi_key: str | None = None
+
     # JSearch (RapidAPI) — legal multi-board search (Indeed / LinkedIn / Glassdoor / ZipRecruiter, etc. via API).
-    # https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch — set DOUBOW_JSEARCH_RAPIDAPI_KEY.
+    # https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch — set DOUBOW_JSEARCH_RAPIDAPI_KEY (or ``DOUBOW_RAPIDAPI_KEY``).
     jsearch_rapidapi_key: str | None = None
     jsearch_rapidapi_host: str = "jsearch.p.rapidapi.com"
     jsearch_query: str = ""
@@ -186,6 +190,10 @@ class Settings(BaseSettings):
     jsearch_date_posted: str = "all"
     jsearch_num_pages: int = 1
     jsearch_ingest_max_jobs: int = 60
+    # RapidAPI labels: ``search-v2`` (Job Search V2) or ``search`` (Job Search). Hyphen or underscore accepted.
+    jsearch_job_search_endpoint: str = "search-v2"
+    # Optional search ``language`` query param (ISO code). Empty string = omit (API default for country).
+    jsearch_language: str = "en"
 
     # SerpAPI — Google Jobs JSON (structured; apply links point at boards/ATS). https://serpapi.com/google-jobs-api
     serpapi_api_key: str | None = None
@@ -410,7 +418,7 @@ class Settings(BaseSettings):
             return None
         return v
 
-    @field_validator("jsearch_rapidapi_key", "serpapi_api_key", mode="before")
+    @field_validator("rapidapi_key", "jsearch_rapidapi_key", "serpapi_api_key", mode="before")
     @classmethod
     def empty_aggregator_keys_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
@@ -421,6 +429,16 @@ class Settings(BaseSettings):
     @classmethod
     def clamp_jsearch_num_pages(cls, v: int) -> int:
         return max(1, min(int(v), 20))
+
+    @field_validator("jsearch_job_search_endpoint", mode="after")
+    @classmethod
+    def normalize_jsearch_job_search_endpoint(cls, v: object) -> str:
+        if not isinstance(v, str):
+            return "search-v2"
+        s = v.strip().lower().replace("_", "-")
+        if s in {"search", "search-v2"}:
+            return s
+        return "search-v2"
 
     @field_validator(
         "smtp_host",

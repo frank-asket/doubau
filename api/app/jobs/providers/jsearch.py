@@ -1,7 +1,16 @@
 """JSearch (RapidAPI) — multi-board job search without scraping LinkedIn/Indeed directly.
 
 Subscribe: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
-Set ``DOUBOW_JSEARCH_RAPIDAPI_KEY`` and optional query/country in settings.
+
+RapidAPI exposes these GET routes on ``jsearch.p.rapidapi.com`` (same ``X-RapidAPI-*`` headers):
+
+- ``/search-v2`` — Job Search V2 (preferred for new integrations; see ``DOUBOW_JSEARCH_JOB_SEARCH_ENDPOINT``).
+- ``/search`` — Job Search (classic).
+- ``/job-details`` — full job payload by ``job_id``.
+- ``/estimated-salary`` — salary bands by job title + location.
+- ``/company-job-salary`` — salary bands for a job title at a specific company.
+
+Set ``DOUBOW_JSEARCH_RAPIDAPI_KEY`` (or ``DOUBOW_RAPIDAPI_KEY``) and optional host/query/country in settings.
 """
 
 from __future__ import annotations
@@ -15,7 +24,12 @@ import httpx
 from app.core.settings import settings
 from app.jobs.providers.schema import CanonicalJobIn
 
-_JSEARCH_PATH = "/search"
+# --- Paths (RapidAPI “Endpoints” tab on JSearch) ---
+JSEARCH_PATH_JOB_SEARCH = "/search"
+JSEARCH_PATH_JOB_SEARCH_V2 = "/search-v2"
+JSEARCH_PATH_JOB_DETAILS = "/job-details"
+JSEARCH_PATH_ESTIMATED_SALARY = "/estimated-salary"
+JSEARCH_PATH_COMPANY_JOB_SALARY = "/company-job-salary"
 
 
 def _strip_html(text: str, max_len: int = 12000) -> str:
@@ -86,13 +100,85 @@ def raw_to_canonical_jsearch(raw: dict[str, Any]) -> CanonicalJobIn | None:
     )
 
 
-def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None) -> tuple[list[CanonicalJobIn], str | None]:
-    """JSearch RapidAPI ``/search`` → canonical rows."""
-    key = settings.jsearch_rapidapi_key
+def _jsearch_api_key() -> str | None:
+    k = settings.jsearch_rapidapi_key or settings.rapidapi_key
+    return k.strip() if isinstance(k, str) and k.strip() else None
+
+
+def _jsearch_headers() -> dict[str, str] | None:
+    key = _jsearch_api_key()
     if not key:
+        return None
+    host = (settings.jsearch_rapidapi_host or "jsearch.p.rapidapi.com").strip()
+    return {"X-RapidAPI-Key": key, "X-RapidAPI-Host": host}
+
+
+def _jsearch_url(path: str) -> str:
+    host = (settings.jsearch_rapidapi_host or "jsearch.p.rapidapi.com").strip()
+    p = path if path.startswith("/") else f"/{path}"
+    return f"https://{host}{p}"
+
+
+def _jsearch_get_json(path: str, params: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    """GET a JSearch JSON envelope ``{status, request_id, data|error}``."""
+    headers = _jsearch_headers()
+    if not headers:
+        return None, "missing_jsearch_credentials"
+
+    clean_params: dict[str, Any] = {}
+    for k, v in params.items():
+        if v is None:
+            continue
+        if isinstance(v, bool):
+            clean_params[k] = "true" if v else "false"
+        elif isinstance(v, str) and not v.strip():
+            continue
+        else:
+            clean_params[k] = v
+
+    try:
+        resp = httpx.get(_jsearch_url(path), params=clean_params, headers=headers, timeout=90.0)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        return None, repr(e)
+
+    if not isinstance(data, dict):
+        return None, "unexpected_shape"
+
+    st = (data.get("status") or "").upper()
+    if st == "ERROR":
+        err = data.get("error")
+        if isinstance(err, dict):
+            return None, str(err.get("message") or err)[:500]
+        return None, str(data.get("message") or err or st)[:500]
+
+    return data, None
+
+
+def _jsearch_search_job_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize ``data`` from Job Search / Job Search V2 into a list of job dicts."""
+    raw = payload.get("data")
+    if isinstance(raw, list):
+        return [x for x in raw if isinstance(x, dict)]
+    if isinstance(raw, dict):
+        for key in ("jobs", "results", "items", "listings"):
+            inner = raw.get(key)
+            if isinstance(inner, list):
+                return [x for x in inner if isinstance(x, dict)]
+        if any(k in raw for k in ("job_id", "job_title", "job_apply_link")):
+            return [raw]
+    return []
+
+
+def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None) -> tuple[list[CanonicalJobIn], str | None]:
+    """JSearch RapidAPI job search (``/search`` or ``/search-v2``) → canonical rows."""
+    if not _jsearch_api_key():
         return [], "missing_jsearch_credentials"
 
-    host = (settings.jsearch_rapidapi_host or "jsearch.p.rapidapi.com").strip()
+    endpoint = settings.jsearch_job_search_endpoint
+    path = JSEARCH_PATH_JOB_SEARCH_V2 if endpoint == "search-v2" else JSEARCH_PATH_JOB_SEARCH
+
     num_pages = max(1, min(settings.jsearch_num_pages, 20))
     country = (settings.jsearch_country or "us").strip().lower()[:8]
     query = (query_override or "").strip() or (settings.jsearch_query or "").strip() or "open roles"
@@ -100,8 +186,6 @@ def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None)
     if date_posted not in {"all", "today", "3days", "week", "month"}:
         date_posted = "all"
 
-    url = f"https://{host}{_JSEARCH_PATH}"
-    headers = {"X-RapidAPI-Key": key.strip(), "X-RapidAPI-Host": host}
     params: dict[str, Any] = {
         "query": query[:400],
         "page": 1,
@@ -109,38 +193,100 @@ def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None)
         "country": country,
         "date_posted": date_posted,
     }
+    lang = (settings.jsearch_language or "").strip()[:16]
+    if lang:
+        params["language"] = lang
 
-    try:
-        resp = httpx.get(url, params=params, headers=headers, timeout=90.0)
-        resp.raise_for_status()
-    except Exception as e:
-        return [], repr(e)
+    data, err = _jsearch_get_json(path, params)
+    if err or data is None:
+        return [], err or "fetch_failed"
 
-    try:
-        data = resp.json()
-    except Exception as e:
-        return [], repr(e)
-
-    if not isinstance(data, dict):
+    rows = _jsearch_search_job_rows(data)
+    if not rows:
         return [], "unexpected_shape"
-
-    rows = data.get("data")
-    if not isinstance(rows, list):
-        return [], "unexpected_shape"
-
-    st = (data.get("status") or "").upper()
-    if st and st != "OK" and not rows:
-        err = data.get("error") or data.get("message") or st
-        return [], str(err)[:500]
 
     out: list[CanonicalJobIn] = []
     cap = max(1, min(max_rows, settings.jsearch_ingest_max_jobs))
     for raw in rows:
         if len(out) >= cap:
             break
-        if not isinstance(raw, dict):
-            continue
         c = raw_to_canonical_jsearch(raw)
         if c is not None:
             out.append(c)
     return out, None
+
+
+def fetch_jsearch_job_details_json(
+    job_id: str,
+    *,
+    country: str | None = "us",
+    language: str | None = "en",
+    fields: str | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """GET ``/job-details`` — full job record (and optional field projection)."""
+    jid = (job_id or "").strip()
+    if not jid:
+        return None, "missing_job_id"
+
+    params: dict[str, Any] = {"job_id": jid}
+    if country is not None and str(country).strip():
+        params["country"] = str(country).strip()[:8]
+    if language is not None and str(language).strip():
+        params["language"] = str(language).strip()[:16]
+    if fields and fields.strip():
+        params["fields"] = fields.strip()[:2000]
+
+    return _jsearch_get_json(JSEARCH_PATH_JOB_DETAILS, params)
+
+
+def fetch_jsearch_estimated_salary_json(
+    *,
+    job_title: str,
+    location: str,
+    location_type: str | None = None,
+    years_of_experience: str | None = None,
+    fields: str | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """GET ``/estimated-salary`` — salary estimates for a title in a location."""
+    jt = (job_title or "").strip()
+    loc = (location or "").strip()
+    if not jt or not loc:
+        return None, "missing_job_title_or_location"
+
+    params: dict[str, Any] = {"job_title": jt[:400], "location": loc[:400]}
+    if location_type and location_type.strip():
+        params["location_type"] = location_type.strip()[:32]
+    if years_of_experience and years_of_experience.strip():
+        params["years_of_experience"] = years_of_experience.strip()[:48]
+    if fields and fields.strip():
+        params["fields"] = fields.strip()[:2000]
+
+    return _jsearch_get_json(JSEARCH_PATH_ESTIMATED_SALARY, params)
+
+
+def fetch_jsearch_company_job_salary_json(
+    *,
+    company: str,
+    job_title: str,
+    location: str | None = None,
+    location_type: str | None = None,
+    years_of_experience: str | None = None,
+    fields: str | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """GET ``/company-job-salary`` — salary estimates for a title at a given employer."""
+    co = (company or "").strip()
+    jt = (job_title or "").strip()
+    if not co or not jt:
+        return None, "missing_company_or_job_title"
+
+    params: dict[str, Any] = {"company": co[:400], "job_title": jt[:400]}
+    if location and location.strip():
+        params["location"] = location.strip()[:400]
+    if location_type and location_type.strip():
+        params["location_type"] = location_type.strip()[:32]
+    if years_of_experience and years_of_experience.strip():
+        params["years_of_experience"] = years_of_experience.strip()[:48]
+    if fields and fields.strip():
+        params["fields"] = fields.strip()[:2000]
+
+    return _jsearch_get_json(JSEARCH_PATH_COMPANY_JOB_SALARY, params)
