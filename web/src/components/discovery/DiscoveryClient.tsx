@@ -308,8 +308,11 @@ function DiscoveryCatalogSourceDebug({ summary }: { summary: CatalogSummary }) {
 }
 
 function sourceLabel(job: JobRow) {
-  if (job.listing_source === "remoteok") return "RemoteOK";
+  if (job.listing_source === "jsearch") return "RapidAPI";
+  if (job.listing_source === "active_jobs_db") return "Active Jobs DB";
+  if (job.listing_source === "serpapi_google_jobs") return "Google Jobs (SerpAPI)";
   if (job.listing_source === "adzuna") return "Adzuna";
+  if (job.listing_source === "remoteok") return "RemoteOK";
   if (job.listing_source === "http_fetch") return "Imported";
   if (job.listing_source === "greenhouse") return "Greenhouse";
   if (job.listing_source === "lever") return "Lever";

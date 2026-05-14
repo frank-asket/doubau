@@ -1,4 +1,4 @@
-"""JSearch / SerpAPI ingest wiring and RSS URL list parsing."""
+"""JSearch / Active Jobs DB / SerpAPI ingest wiring and RSS URL list parsing."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from app.core.settings import settings
 from app.jobs.rss_feed_list import split_job_board_rss_urls
-from app.tasks import ingest_jsearch_jobs, ingest_job_board_rss_batch, ingest_serpapi_google_jobs
+from app.tasks import ingest_active_jobs_db, ingest_jsearch_jobs, ingest_job_board_rss_batch, ingest_serpapi_google_jobs
 
 
 def test_jsearch_search_job_rows_accepts_list_or_wrapped_dict() -> None:
@@ -101,6 +101,110 @@ def test_split_job_board_rss_urls() -> None:
         "https://b.example/jobs.atom",
         "https://c.example/rss",
     ]
+
+
+def test_raw_to_canonical_active_jobs_db_maps_fantastic_jobs_shape() -> None:
+    from app.jobs.providers.active_jobs_db import raw_to_canonical_active_jobs_db
+
+    row = {
+        "id": "abc-1",
+        "title": "Data Engineer",
+        "organization": "Contoso",
+        "url": "https://jobs.example.com/123",
+        "description_text": "Build pipelines.",
+        "locations_derived": [{"city": "Austin", "admin": "Texas", "country": "United States"}],
+        "employment_type": ["FULL_TIME"],
+        "source": "greenhouse",
+        "date_posted": "2025-01-15T12:00:00Z",
+    }
+    c = raw_to_canonical_active_jobs_db(row)
+    assert c is not None
+    assert c.listing_source == "active_jobs_db"
+    assert c.external_ref == "abc-1"
+    assert c.source_posted_at is not None
+
+
+def test_title_filter_from_catalog_query_wraps_phrase() -> None:
+    from app.jobs.providers.active_jobs_db import title_filter_from_catalog_query
+
+    assert title_filter_from_catalog_query("Data Engineer") == '"Data Engineer"'
+    assert title_filter_from_catalog_query('"DevOps"') == '"DevOps"'
+
+
+def test_fetch_active_jobs_db_paginates_until_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.jobs.providers import active_jobs_db as mod
+
+    monkeypatch.setattr(mod.settings, "active_jobs_db_rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(mod.settings, "active_jobs_db_ingest_max_jobs", 3, raising=False)
+    monkeypatch.setattr(mod.settings, "active_jobs_db_title_filter", "", raising=False)
+
+    calls: list[int] = []
+
+    def fake_get(url: str, **kwargs: object) -> MagicMock:
+        params = kwargs.get("params") or {}
+        off = int(params.get("offset", 0))
+        calls.append(off)
+        r = MagicMock()
+        if off == 0:
+            r.json.return_value = [
+                {
+                    "title": "A",
+                    "organization": "Co",
+                    "url": "https://example.com/a",
+                },
+                {
+                    "title": "B",
+                    "organization": "Co",
+                    "url": "https://example.com/b",
+                },
+            ]
+        else:
+            r.json.return_value = [
+                {
+                    "title": "C",
+                    "organization": "Co",
+                    "url": "https://example.com/c",
+                },
+            ]
+        r.raise_for_status.return_value = None
+        return r
+
+    with patch("app.jobs.providers.active_jobs_db.httpx.get", side_effect=fake_get):
+        jobs, err = mod.fetch_active_jobs_db_canonical(10)
+
+    assert err is None
+    assert len(jobs) == 3
+    assert calls == [0, 2]
+
+
+def test_ingest_active_jobs_db_skipped_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "active_jobs_db_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings, "rapidapi_key", None, raising=False)
+    out = ingest_active_jobs_db.run()
+    assert out["status"] == "skipped_no_credentials"
+
+
+def test_ingest_active_jobs_db_completed_with_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(settings, "active_jobs_db_ingest_max_jobs", 5, raising=False)
+
+    from app.jobs.providers.schema import CanonicalJobIn
+
+    jobs = [
+        CanonicalJobIn(
+            title="Eng",
+            company="Co",
+            apply_url="https://apply.example/1",
+            listing_source="active_jobs_db",
+        )
+    ]
+    with patch("app.tasks.fetch_active_jobs_db_canonical", return_value=(jobs, None)):
+        with patch("app.tasks.persist_canonical_jobs", return_value={"created": 1, "skipped": 0}) as pp:
+            out = ingest_active_jobs_db.run()
+    assert out["status"] == "completed"
+    assert out["listing_source"] == "active_jobs_db"
+    pp.assert_called_once()
 
 
 def test_ingest_jsearch_skipped_without_key(monkeypatch: pytest.MonkeyPatch) -> None:

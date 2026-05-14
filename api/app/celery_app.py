@@ -10,6 +10,14 @@ from app.core.settings import settings
 def make_celery() -> Celery:
     beat_schedule: dict = {
         # Daily provider ingest (Week 3 sprint). Requires running celery beat.
+        "ingest-jsearch-0530-utc": {
+            "task": "app.tasks.ingest_jsearch_jobs",
+            "schedule": crontab(hour=5, minute=30),
+        },
+        "ingest-active-jobs-db-0540-utc": {
+            "task": "app.tasks.ingest_active_jobs_db",
+            "schedule": crontab(hour=5, minute=40),
+        },
         "ingest-adzuna-0600-utc": {
             "task": "app.tasks.ingest_adzuna_jobs",
             "schedule": crontab(hour=6, minute=0),
@@ -57,6 +65,7 @@ def make_celery() -> Celery:
             "app.tasks.ingest_adzuna_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_scrapling_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_jsearch_jobs": {"queue": "scrape", "routing_key": "scrape"},
+            "app.tasks.ingest_active_jobs_db": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_serpapi_google_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_job_board_rss_batch": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.scrape_job": {"queue": "scrape", "routing_key": "scrape"},

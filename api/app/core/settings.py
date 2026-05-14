@@ -195,12 +195,42 @@ class Settings(BaseSettings):
     # Optional search ``language`` query param (ISO code). Empty string = omit (API default for country).
     jsearch_language: str = "en"
 
+    # Active Jobs DB (RapidAPI / Fantastic Jobs) — hourly ATS + career-site JSON.
+    # https://rapidapi.com/fantastic-jobs-fantastic-jobs-default/api/active-jobs-db
+    # Key falls back to ``jsearch_rapidapi_key`` / ``rapidapi_key`` when unset.
+    active_jobs_db_rapidapi_key: str | None = None
+    active_jobs_db_rapidapi_host: str = "active-jobs-db.p.rapidapi.com"
+    # RapidAPI path, e.g. ``/active-ats-1h`` (last-hour ATS postings).
+    active_jobs_db_path: str = "/active-ats-1h"
+    # Lucene-style filters (see RapidAPI “Params” tab). Example title: ``"Data Engineer"``.
+    # Location example: ``"United States" OR "United Kingdom"``.
+    active_jobs_db_title_filter: str = ""
+    active_jobs_db_location_filter: str = ""
+    # ``text`` or ``html`` — matches ``description_type`` query param.
+    active_jobs_db_description_type: str = "text"
+    active_jobs_db_ingest_max_jobs: int = 100
+
     # SerpAPI — Google Jobs JSON (structured; apply links point at boards/ATS). https://serpapi.com/google-jobs-api
     serpapi_api_key: str | None = None
     serpapi_google_jobs_query: str = ""
     serpapi_google_jobs_location: str | None = None
     serpapi_google_jobs_hl: str = "en"
     serpapi_ingest_max_jobs: int = 60
+
+    # Glassdoor Real-time (RapidAPI) — e.g. company interview details (GET /companies/interview-details).
+    # Key falls back to ``jsearch_rapidapi_key`` / ``rapidapi_key`` when unset.
+    glassdoor_realtime_rapidapi_key: str | None = None
+    glassdoor_realtime_rapidapi_host: str = "glassdoor-real-time.p.rapidapi.com"
+    glassdoor_realtime_interview_details_path: str = "/companies/interview-details"
+
+    # Job Opening Analyzer (RapidAPI) — POST /compute_similarity (pivot + job description texts).
+    # Key falls back to ``jsearch_rapidapi_key`` / ``rapidapi_key`` when unset.
+    job_opening_analyzer_rapidapi_key: str | None = None
+    job_opening_analyzer_rapidapi_host: str = "job-opening-analyzer.p.rapidapi.com"
+    job_opening_analyzer_compute_similarity_path: str = "/compute_similarity"
+    job_opening_analyzer_max_pivot_chars: int = 48_000
+    job_opening_analyzer_max_texts: int = 32
+    job_opening_analyzer_max_text_chars_each: int = 48_000
 
     # Optional: comma/newline/pipe-separated public RSS/Atom feed URLs — cron enqueues ``scrape_rss_feed`` per URL.
     job_board_rss_urls: str = ""

@@ -50,6 +50,9 @@ async function postJobEvent(
 function listingSourceLabel(code: string | null | undefined): string | null {
   if (!code) return null;
   const labels: Record<string, string> = {
+    jsearch: "RapidAPI",
+    active_jobs_db: "Active Jobs DB",
+    serpapi_google_jobs: "Google Jobs (SerpAPI)",
     remoteok: "Remote OK",
     adzuna: "Adzuna",
     http_fetch: "Imported page",

@@ -47,6 +47,17 @@ def test_feed_blend_weights_worldwide_favors_vector() -> None:
     assert w[1] < d[1]  # w_loc
 
 
+def test_catalog_listing_source_priority_rank_prefers_jsearch() -> None:
+    from app.jobs.matching import catalog_listing_source_priority_rank
+
+    assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("active_jobs_db")
+    assert catalog_listing_source_priority_rank("active_jobs_db") < catalog_listing_source_priority_rank("remoteok")
+    assert catalog_listing_source_priority_rank("serpapi_google_jobs") < catalog_listing_source_priority_rank(
+        "adzuna"
+    )
+    assert catalog_listing_source_priority_rank("unknown_board") >= catalog_listing_source_priority_rank("manual")
+
+
 def test_seniority_match_score_basic() -> None:
     jr = seniority_match_score(
         years_experience="1 year",

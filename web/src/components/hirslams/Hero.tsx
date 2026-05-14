@@ -52,12 +52,12 @@ export default function Hero() {
   const offers: Offer[] = useMemo(
     () => [
       {
-        label: "DouBow (Live)",
+        label: "RapidAPI (JSearch)",
         title: "Senior Product Manager",
-        subtitle: "Career Tools",
-        tags: ["Job Discovery", "Approval Gate"],
-        status: "APPROVED required",
-        metric: "p95 < 300ms",
+        subtitle: "Live job catalog",
+        tags: ["Multi-board ingest", "Indeed / LinkedIn / Glassdoor"],
+        status: "Default feed",
+        metric: "Search V2 API",
       },
       {
         label: "DouBow (Live)",

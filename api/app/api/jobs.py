@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 from pydantic import BaseModel, Field, HttpUrl
-from sqlalchemy import and_, asc, delete, desc, func, or_, select
+from sqlalchemy import and_, asc, case, delete, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,9 @@ from app.agents.fit_score import FitScoreError, FitScoreOut, compute_fit_score
 from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
 from app.jobs.catalog_query_from_resume import catalog_query_for_user
+from app.jobs.providers.active_jobs_db import title_filter_from_catalog_query
 from app.jobs.matching import (
+    catalog_listing_source_priority_rank,
     feed_blend_weights,
     location_match_score,
     recency_score,
@@ -30,6 +32,7 @@ from app.models.job_feedback import JobFeedback
 from app.models.resume_document import ResumeDocument, ResumeStatus
 from app.models.user import User
 from app.tasks import embed_job as embed_job_task
+from app.tasks import ingest_active_jobs_db as ingest_active_jobs_db_task
 from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
 from app.tasks import ingest_jsearch_jobs as ingest_jsearch_jobs_task
 from app.tasks import ingest_job_board_rss_batch as ingest_job_board_rss_batch_task
@@ -54,6 +57,7 @@ _CRON_CLEAR_PROVIDER_SOURCES: frozenset[str] = frozenset(
         "workday_cxs",
         "http_fetch",
         "jsearch",
+        "active_jobs_db",
         "serpapi_google_jobs",
     }
 )
@@ -469,6 +473,18 @@ class ProviderIngestQueryIn(BaseModel):
     )
 
 
+class ActiveJobsDbIngestIn(BaseModel):
+    """Optional JSON for Active Jobs DB (RapidAPI) — Lucene-style ``title_filter`` / ``location_filter`` or derive title from query / résumé."""
+
+    title_filter: str | None = Field(default=None, max_length=2000)
+    location_filter: str | None = Field(default=None, max_length=2000)
+    query: str | None = Field(default=None, max_length=400)
+    resume_user_id: UUID | None = Field(
+        default=None,
+        description="If set (and ``title_filter`` / ``query`` are empty), derive a quoted title filter from this user's catalog search string.",
+    )
+
+
 class ScrapeUrlIn(BaseModel):
     url: HttpUrl | str
     kind: Literal["url", "rss"] = "url"
@@ -523,6 +539,42 @@ def queue_jsearch_ingest(
         derived = catalog_query_for_user(db, payload.resume_user_id).strip()
         q_override = derived[:400] if derived else None
     res = ingest_jsearch_jobs_task.delay(query_override=q_override)
+    return ScrapeQueueOut(task_id=str(res.id))
+
+
+@router.post("/ingest/active-jobs-db", response_model=ScrapeQueueOut)
+def queue_active_jobs_db_ingest(
+    user: CurrentUserDep,
+    db: DbDep,
+    payload: ActiveJobsDbIngestIn = Body(default_factory=ActiveJobsDbIngestIn),
+) -> ScrapeQueueOut:
+    """Enqueue Active Jobs DB (RapidAPI) ingest — ATS + career-site hourly feed (``listing_source=active_jobs_db``).
+
+    Optional body: explicit ``title_filter`` / ``location_filter`` (RapidAPI Lucene-style), or ``query`` /
+    ``resume_user_id`` to build a quoted ``title_filter`` like JSearch. When all are empty, env defaults
+    (``DOUBOW_ACTIVE_JOBS_DB_TITLE_FILTER``, etc.) apply.
+    """
+    _require_ingestion_admin(user)
+    title_ov: str | None = None
+    if payload.title_filter is not None and payload.title_filter.strip():
+        title_ov = payload.title_filter.strip()[:2000]
+    elif payload.query is not None and payload.query.strip():
+        title_ov = title_filter_from_catalog_query(payload.query.strip()[:400])
+    elif payload.resume_user_id is not None:
+        u = db.get(User, payload.resume_user_id)
+        if u is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        derived = catalog_query_for_user(db, payload.resume_user_id).strip()
+        title_ov = title_filter_from_catalog_query(derived[:400]) if derived else None
+
+    loc_ov: str | None = None
+    if payload.location_filter is not None and payload.location_filter.strip():
+        loc_ov = payload.location_filter.strip()[:2000]
+
+    res = ingest_active_jobs_db_task.delay(
+        title_filter_override=title_ov,
+        location_filter_override=loc_ov,
+    )
     return ScrapeQueueOut(task_id=str(res.id))
 
 
@@ -601,14 +653,16 @@ def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
     """
     _cron_ingest_secret_ok(request)
     queued: dict[str, str] = {}
+    r_js = ingest_jsearch_jobs_task.delay()
+    queued["jsearch"] = str(r_js.id)
+    r_ajd = ingest_active_jobs_db_task.delay()
+    queued["active_jobs_db"] = str(r_ajd.id)
+    r_sp = ingest_serpapi_google_jobs_task.delay()
+    queued["serpapi_google_jobs"] = str(r_sp.id)
     r_ro = ingest_remoteok_jobs_task.delay()
     queued["remoteok"] = str(r_ro.id)
     r_ad = ingest_adzuna_jobs_task.delay()
     queued["adzuna"] = str(r_ad.id)
-    r_js = ingest_jsearch_jobs_task.delay()
-    queued["jsearch"] = str(r_js.id)
-    r_sp = ingest_serpapi_google_jobs_task.delay()
-    queued["serpapi_google_jobs"] = str(r_sp.id)
     r_rss = ingest_job_board_rss_batch_task.delay()
     queued["job_board_rss_batch"] = str(r_rss.id)
     if settings.scrapling_enabled:
@@ -895,7 +949,16 @@ def feed(
                 blended = max(0.0, min(1.0, blended + adj))
                 scored_rows.append((blended, vec_sim, job, loc_s, sen_s, rec_s, adj))
 
-            scored_rows.sort(key=lambda t: (t[0], t[1]), reverse=True)
+            scored_rows.sort(
+                key=lambda t: (
+                    t[0],
+                    t[1],
+                    -catalog_listing_source_priority_rank(t[2].listing_source),
+                    (t[2].company or ""),
+                    (t[2].title or ""),
+                ),
+                reverse=True,
+            )
 
             out: list[FeedOut] = []
             for blended, vec_sim, job, loc_s, sen_s, rec_s, adj in scored_rows:
@@ -942,7 +1005,26 @@ def feed(
     )
     if remote_filter is not None:
         jobs_stmt = jobs_stmt.where(remote_filter)
-    jobs_stmt = jobs_stmt.order_by(desc(Job.created_at)).limit(500)
+    catalog_sql_tier = case(
+        (or_(Job.listing_source == "jsearch", Job.listing_source == "active_jobs_db"), 0),
+        (Job.listing_source == "serpapi_google_jobs", 1),
+        (Job.listing_source == "adzuna", 2),
+        (
+            Job.listing_source.in_(
+                (
+                    "greenhouse",
+                    "lever",
+                    "ashby",
+                    "workday_cxs",
+                    "remoteok",
+                )
+            ),
+            3,
+        ),
+        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 4),
+        else_=9,
+    )
+    jobs_stmt = jobs_stmt.order_by(catalog_sql_tier.asc(), desc(Job.created_at)).limit(500)
     jobs = db.scalars(jobs_stmt).all()
     user_loc = profile.location if profile else None
     user_yrs = profile.years_experience if profile else None
@@ -987,7 +1069,13 @@ def feed(
         scored_rows2.append((blended, base_sim, j, loc_s, sen_s, rec_s, adj))
 
     scored_rows2.sort(
-        key=lambda t: (t[0], t[1], (t[2].company or ""), (t[2].title or "")),
+        key=lambda t: (
+            t[0],
+            t[1],
+            -catalog_listing_source_priority_rank(t[2].listing_source),
+            (t[2].company or ""),
+            (t[2].title or ""),
+        ),
         reverse=True,
     )
 

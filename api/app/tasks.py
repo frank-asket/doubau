@@ -23,6 +23,7 @@ from app.core.settings import settings
 from app.db import SessionLocal
 from app.jobs.html_snippet import extract_title_from_html
 from app.jobs.providers.adzuna import fetch_adzuna_canonical
+from app.jobs.providers.active_jobs_db import fetch_active_jobs_db_canonical
 from app.jobs.providers.jsearch import fetch_jsearch_canonical
 from app.jobs.providers.persist import persist_canonical_jobs
 from app.jobs.providers.remoteok import fetch_remoteok_canonical
@@ -497,6 +498,55 @@ def ingest_jsearch_jobs(query_override: str | None = None) -> dict[str, Any]:
     out.update(stats)
     log.info(
         "ingest_jsearch_jobs completed created=%s skipped=%s duration_ms=%s",
+        out.get("created"),
+        out.get("skipped"),
+        out.get("ingest_duration_ms"),
+    )
+    return out
+
+
+@celery_app.task(name="app.tasks.ingest_active_jobs_db")
+def ingest_active_jobs_db(
+    title_filter_override: str | None = None,
+    location_filter_override: str | None = None,
+) -> dict[str, Any]:
+    """Active Jobs DB (RapidAPI) ingest → ``listing_source=active_jobs_db``."""
+    started_at = datetime.now(UTC)
+    max_n = max(1, settings.active_jobs_db_ingest_max_jobs)
+    jobs, err = fetch_active_jobs_db_canonical(
+        max_n,
+        title_filter_override=title_filter_override,
+        location_filter_override=location_filter_override,
+    )
+    if err == "missing_active_jobs_db_credentials":
+        ended_at = datetime.now(UTC)
+        log.info("ingest_active_jobs_db skipped_no_credentials")
+        return {
+            "status": "skipped_no_credentials",
+            "detail": "Set DOUBOW_ACTIVE_JOBS_DB_RAPIDAPI_KEY or DOUBOW_RAPIDAPI_KEY / DOUBOW_JSEARCH_RAPIDAPI_KEY.",
+            "listing_source": "active_jobs_db",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+    if err:
+        ended_at = datetime.now(UTC)
+        log.warning("ingest_active_jobs_db fetch_failed error=%s", err)
+        return {
+            "status": "fetch_failed",
+            "error": err,
+            "listing_source": "active_jobs_db",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    stats = persist_canonical_jobs(jobs, max_created=max_n)
+    ended_at = datetime.now(UTC)
+    out: dict[str, Any] = {
+        "status": "completed",
+        "listing_source": "active_jobs_db",
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+    out.update(stats)
+    log.info(
+        "ingest_active_jobs_db completed created=%s skipped=%s duration_ms=%s",
         out.get("created"),
         out.get("skipped"),
         out.get("ingest_duration_ms"),

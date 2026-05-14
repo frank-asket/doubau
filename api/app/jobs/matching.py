@@ -179,6 +179,33 @@ def feed_blend_weights(*, match_scope: MatchScope) -> tuple[float, float, float,
     return (0.5, 0.2, 0.2, 0.1)
 
 
+# Default catalog priority: RapidAPI JSearch first, then other aggregators, then niche providers.
+_CATALOG_LISTING_SOURCE_PRIORITY: tuple[str, ...] = (
+    "jsearch",
+    "active_jobs_db",
+    "serpapi_google_jobs",
+    "adzuna",
+    "greenhouse",
+    "lever",
+    "ashby",
+    "workday_cxs",
+    "remoteok",
+    "scrapling_jsonld",
+    "scrapling",
+    "http_fetch",
+    "manual",
+)
+
+
+def catalog_listing_source_priority_rank(listing_source: str | None) -> int:
+    """Tie-break rank for feed ordering — lower means preferred when scores match."""
+    s = (listing_source or "").strip().lower()[:80]
+    try:
+        return _CATALOG_LISTING_SOURCE_PRIORITY.index(s)
+    except ValueError:
+        return len(_CATALOG_LISTING_SOURCE_PRIORITY)
+
+
 def _parse_years_experience(s: str | None) -> float | None:
     if not s:
         return None
