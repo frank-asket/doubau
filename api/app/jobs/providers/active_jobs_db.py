@@ -136,6 +136,13 @@ def raw_to_canonical_active_jobs_db(raw: dict[str, Any]) -> CanonicalJobIn | Non
     ext = raw.get("id")
     ext_s = str(ext).strip()[:200] if ext is not None else None
 
+    employer_logo_url: str | None = None
+    for key in ("organization_logo", "logo_url", "company_logo_url", "employer_logo", "organization_logo_url"):
+        v = raw.get(key)
+        if isinstance(v, str) and v.strip().startswith(("http://", "https://")):
+            employer_logo_url = v.strip()[:2000]
+            break
+
     posted = _parse_datetime(raw.get("date_posted")) or _parse_datetime(raw.get("date_created"))
 
     return CanonicalJobIn(
@@ -148,6 +155,7 @@ def raw_to_canonical_active_jobs_db(raw: dict[str, Any]) -> CanonicalJobIn | Non
         employment_type=employment_type,
         seniority=seniority,
         tags=tags[:40],
+        employer_logo_url=employer_logo_url,
         external_ref=ext_s,
         source_posted_at=posted,
     )

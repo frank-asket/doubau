@@ -166,6 +166,7 @@ class JobRapidapiEnrichmentOut(BaseModel):
     benefits: list[str] = Field(default_factory=list)
     publisher: str | None = None
     qna: list[JobRapidapiEnrichmentQnaOut] = Field(default_factory=list)
+    glassdoor_interview_id: str | None = None
 
 
 class CatalogSummaryOut(BaseModel):

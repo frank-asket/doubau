@@ -110,6 +110,30 @@ def _coerce_qna(val: Any) -> list[dict[str, str]]:
     return rows
 
 
+def _glassdoor_interview_id(flat: dict[str, Any]) -> str | None:
+    for key in (
+        "employer_glassdoor_interview_id",
+        "glassdoor_interview_id",
+        "job_glassdoor_interview_id",
+        "glassdoor_interview",
+        "glassdoor_interviewId",
+    ):
+        v = flat.get(key)
+        if isinstance(v, bool):
+            continue
+        if isinstance(v, int):
+            s = str(v)
+        elif isinstance(v, float):
+            s = str(int(v))
+        elif isinstance(v, str) and v.strip().isdigit():
+            s = v.strip()
+        else:
+            continue
+        if s and s.isdigit():
+            return s[:24]
+    return None
+
+
 def jsearch_flat_to_enrichment_dict(flat: dict[str, Any]) -> dict[str, Any]:
     """Map JSearch ``/job-details`` data object → stable fields for ``JobRapidapiEnrichmentOut``."""
     linkedin = _first_http_url(flat, "employer_linkedin", "employer_linkedin_url", "employer_linkedin_profile")
@@ -152,4 +176,5 @@ def jsearch_flat_to_enrichment_dict(flat: dict[str, Any]) -> dict[str, Any]:
         "benefits": benefits,
         "publisher": publisher,
         "qna": qna,
+        "glassdoor_interview_id": _glassdoor_interview_id(flat),
     }

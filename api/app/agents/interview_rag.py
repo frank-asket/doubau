@@ -8,8 +8,12 @@ single excerpt when embeddings are unavailable.
 from __future__ import annotations
 
 import math
-from typing import Any
+import re
+from typing import TYPE_CHECKING
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from app.models.job import Job
 
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -104,21 +108,82 @@ def retrieve_resume_context_for_role(
         return excerpt, meta
 
 
+def _strip_html_to_plain(text: str, max_len: int = 10_000) -> str:
+    s = re.sub(r"<[^>]+>", " ", text)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s[:max_len] if s else ""
+
+
+def _live_jsearch_supplement_text(job: Job) -> str | None:
+    """Fetch JSearch ``/job-details`` HTML/text when credentials exist; best-effort only."""
+    if (job.listing_source or "").strip().lower() != "jsearch":
+        return None
+    ext = (job.external_ref or "").strip()
+    if not ext:
+        return None
+    from app.jobs.providers.jsearch import fetch_jsearch_job_details_json
+    from app.jobs.providers.jsearch_enrichment import jsearch_job_details_flat
+
+    country = (settings.jsearch_country or "us").strip().lower()[:8] or "us"
+    lang_raw = (settings.jsearch_language or "").strip()[:16]
+    lang = lang_raw or None
+    payload, err = fetch_jsearch_job_details_json(ext, country=country, language=lang)
+    if err or not payload:
+        return None
+    flat = jsearch_job_details_flat(payload)
+    parts: list[str] = []
+    desc_raw = flat.get("job_description")
+    if isinstance(desc_raw, str) and desc_raw.strip():
+        parts.append(_strip_html_to_plain(desc_raw, 9000))
+    bullets = flat.get("job_highlights") or flat.get("highlights")
+    if isinstance(bullets, list):
+        for item in bullets[:20]:
+            if isinstance(item, str) and item.strip():
+                parts.append(f"• {item.strip()[:500]}")
+            elif isinstance(item, dict):
+                t = str(item.get("title") or item.get("headline") or "").strip()
+                b = str(item.get("text") or item.get("description") or "").strip()
+                line = f"• {t}: {b}".strip() if t and b else (f"• {t or b}".strip())
+                if line:
+                    parts.append(line[:800])
+    out = "\n".join(p for p in parts if p).strip()
+    return out[:10_000] if out else None
+
+
+def _merge_catalog_with_live_jsearch(job: Job, catalog_desc: str | None) -> str | None:
+    cat = catalog_desc.strip() if catalog_desc and catalog_desc.strip() else ""
+    live = _live_jsearch_supplement_text(job)
+    if not live:
+        return cat[:12000] if cat else None
+    if not cat:
+        return live[:12000]
+    if live in cat or cat in live:
+        return cat[:12000]
+    return f"{cat}\n\n---\n\n[RapidAPI / JSearch live posting]\n{live}".strip()[:12000]
+
+
 def load_job_description_for_application(
     db: Session, source_url: str | None, job_id: UUID | None = None
 ) -> str | None:
-    """Best-effort job description from catalog Job (by id or source_url match)."""
+    """Best-effort job description from catalog Job (by id or source_url match).
+
+    For ``listing_source=jsearch`` rows with ``external_ref``, merges in live JSearch ``/job-details``
+    text (when RapidAPI credentials are configured) so interview prep and agents see full posting
+    copy, not only what was stored at ingest time.
+    """
     from sqlalchemy import select
 
     from app.models.job import Job
 
     if job_id is not None:
         job_by_id = db.get(Job, job_id)
-        if job_by_id is not None and job_by_id.description:
-            return job_by_id.description.strip()[:12000]
+        if job_by_id is not None:
+            base = job_by_id.description.strip()[:12000] if job_by_id.description else None
+            return _merge_catalog_with_live_jsearch(job_by_id, base)
     if not source_url:
         return None
     job = db.execute(select(Job).where(Job.source_url == source_url).limit(1)).scalar_one_or_none()
-    if job is None or not job.description:
+    if job is None:
         return None
-    return job.description.strip()[:12000]
+    base = job.description.strip()[:12000] if job.description else None
+    return _merge_catalog_with_live_jsearch(job, base)

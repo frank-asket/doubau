@@ -10,8 +10,26 @@ from pydantic import BaseModel, Field
 from app.api.deps import CurrentUserDep
 from app.integrations.glassdoor_realtime import fetch_company_interview_details
 from app.integrations.job_opening_analyzer import post_compute_similarity
+from app.integrations.rapidapi_status import rapidapi_integration_status
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+
+
+class RapidApiIntegrationStatusOut(BaseModel):
+    """Which RapidAPI products have usable keys (shared or product-specific)."""
+
+    shared_rapidapi_key_configured: bool
+    jsearch_configured: bool
+    active_jobs_db_configured: bool
+    glassdoor_realtime_configured: bool
+    job_opening_analyzer_configured: bool
+
+
+@router.get("/rapidapi/status", response_model=RapidApiIntegrationStatusOut)
+def rapidapi_status(current_user: CurrentUserDep) -> RapidApiIntegrationStatusOut:
+    """Report RapidAPI credential coverage for debugging and admin UIs (no secrets)."""
+    _ = current_user
+    return RapidApiIntegrationStatusOut(**rapidapi_integration_status())
 
 
 class JobOpeningAnalyzerSimilarityIn(BaseModel):

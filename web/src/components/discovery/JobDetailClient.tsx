@@ -44,6 +44,7 @@ type JobRapidapiEnrichment = {
   benefits?: string[];
   publisher?: string | null;
   qna?: { question: string; answer: string }[];
+  glassdoor_interview_id?: string | null;
   detail?: string;
 };
 
@@ -724,6 +725,21 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                         onClick={() => void postJobEvent(job.id, "click_out", "apply link from RapidAPI panel")}
                       >
                         Apply link (JSearch)
+                      </a>
+                    ) : null}
+                    {rapidApiEnrichment.glassdoor_interview_id?.trim() ? (
+                      <a
+                        href={`/api/integrations/glassdoor/companies/interview-details?interview_id=${encodeURIComponent(
+                          rapidApiEnrichment.glassdoor_interview_id.trim(),
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-[var(--app-accent)] underline-offset-4 hover:underline"
+                        onClick={() =>
+                          void postJobEvent(job.id, "click_out", "Glassdoor interview JSON from RapidAPI panel")
+                        }
+                      >
+                        Glassdoor interview details (JSON)
                       </a>
                     ) : null}
                   </div>

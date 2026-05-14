@@ -82,6 +82,13 @@ def test_raw_to_canonical_jsearch_maps_publisher() -> None:
     assert c.external_ref == "jid-1"
 
 
+def test_jsearch_enrichment_maps_glassdoor_interview_id() -> None:
+    from app.jobs.providers.jsearch_enrichment import jsearch_flat_to_enrichment_dict
+
+    d = jsearch_flat_to_enrichment_dict({"glassdoor_interview_id": "990011"})
+    assert d["glassdoor_interview_id"] == "990011"
+
+
 def test_raw_to_canonical_remoteok_maps_company_logo() -> None:
     from app.jobs.providers.remoteok import raw_to_canonical_remoteok
 
