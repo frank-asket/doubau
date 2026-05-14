@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from jose import JWTError, jwt
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 
 from app.api.deps import CurrentUserDep, DbDep
@@ -19,6 +19,7 @@ from app.integrations.gmail_oauth import (
     fetch_google_account_email,
     fetch_google_user_profile,
     google_oauth_configured,
+    send_plaintext_email,
 )
 from app.models.profile import Profile
 from app.models.user_google_token import UserGoogleToken
@@ -45,6 +46,25 @@ class GoogleStatusOut(BaseModel):
     google_account_email: str | None = None
     google_display_name: str | None = None
     google_picture_url: str | None = None
+
+
+class GoogleSendTestEmailIn(BaseModel):
+    """Send a single plaintext test via the connected account (Gmail API ``gmail.send``)."""
+
+    to: EmailStr
+    subject: str | None = Field(default=None, max_length=220)
+    body: str | None = Field(
+        default=None,
+        max_length=8000,
+        description="Optional body; default explains this is a DouBow connectivity test.",
+    )
+
+
+class GoogleSendTestEmailOut(BaseModel):
+    ok: bool = True
+    from_addr: str
+    to: str
+    gmail_message_id: str | None = None
 
 
 def _encode_oauth_state(user_id: str) -> str:
@@ -187,6 +207,63 @@ def google_oauth_callback(
         google_display_name=disp,
         google_picture_url=pic_url,
     )
+
+
+@router.post("/send-test-email", response_model=GoogleSendTestEmailOut)
+def google_send_test_email(
+    payload: GoogleSendTestEmailIn,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> GoogleSendTestEmailOut:
+    """Send a minimal test message through Gmail API (same stack as in-app application send).
+
+    Requires Google OAuth configured on the API and a completed Gmail connect flow for this user.
+    Use to verify ``gmail.send`` end-to-end (e.g. to ``asketsystem1@gmail.com``).
+    """
+    if not google_oauth_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Gmail OAuth is not configured on the server (set DOUBOW_GOOGLE_OAUTH_*).",
+        )
+    g = db.get(UserGoogleToken, current_user.id)
+    if g is None or not g.refresh_ciphertext:
+        raise HTTPException(
+            status_code=400,
+            detail="Connect Gmail under Settings before sending a test message.",
+        )
+    from_addr = (g.google_account_email or "").strip()
+    if not from_addr:
+        raise HTTPException(
+            status_code=400,
+            detail="Reconnect Gmail — we could not read your Google account email.",
+        )
+    to_addr = str(payload.to).strip()
+    subj = (payload.subject or "").strip() or "DouBow — Gmail send test"
+    body = (payload.body or "").strip() or (
+        "This is an automated connectivity test from DouBow.\n\n"
+        "If you received this, Gmail API send (gmail.send) is working for your connected account.\n"
+    )
+    bcc_addrs: tuple[str, ...] = ()
+    if from_addr.lower() != to_addr.lower():
+        bcc_addrs = (from_addr,)
+    try:
+        sent_resp = send_plaintext_email(
+            refresh_token_cipher=g.refresh_ciphertext,
+            from_addr=from_addr,
+            to_addr=to_addr,
+            subject=subj,
+            body=body,
+            bcc_addrs=bcc_addrs or None,
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Gmail send failed: {e!s}") from e
+
+    gmail_mid: str | None = None
+    if isinstance(sent_resp, dict):
+        mid_raw = sent_resp.get("id")
+        if isinstance(mid_raw, str) and mid_raw.strip():
+            gmail_mid = mid_raw.strip()[:255]
+    return GoogleSendTestEmailOut(from_addr=from_addr, to=to_addr, gmail_message_id=gmail_mid)
 
 
 @router.delete("/disconnect", response_model=GoogleStatusOut)
