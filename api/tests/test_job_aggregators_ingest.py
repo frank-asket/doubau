@@ -25,6 +25,8 @@ def test_fetch_jsearch_canonical_hits_search_v2_by_default(monkeypatch: pytest.M
     monkeypatch.setattr(settings, "jsearch_rapidapi_key", "k", raising=False)
     monkeypatch.setattr(settings, "jsearch_job_search_endpoint", "search-v2", raising=False)
     monkeypatch.setattr(settings, "jsearch_ingest_max_jobs", 5, raising=False)
+    monkeypatch.setattr(settings, "jsearch_query", "", raising=False)
+    monkeypatch.setattr(settings, "jsearch_queries", "", raising=False)
 
     captured: dict[str, str] = {}
 
@@ -51,6 +53,71 @@ def test_fetch_jsearch_canonical_hits_search_v2_by_default(monkeypatch: pytest.M
     assert err is None
     assert len(jobs) == 1
     assert "/search-v2" in captured["url"]
+
+
+def test_fetch_jsearch_canonical_uses_diverse_default_queries(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.jobs.providers.jsearch import fetch_jsearch_canonical
+
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(settings, "jsearch_query", "", raising=False)
+    monkeypatch.setattr(settings, "jsearch_queries", "", raising=False)
+    monkeypatch.setattr(settings, "jsearch_ingest_max_jobs", 5, raising=False)
+
+    seen_queries: list[str] = []
+
+    def fake_get(url: str, **kwargs: object) -> MagicMock:
+        params = kwargs.get("params") or {}
+        seen_queries.append(str(params.get("query") or ""))
+        r = MagicMock()
+        if len(seen_queries) == 1:
+            r.json.return_value = {"status": "OK", "data": {"jobs": [], "cursor": None}}
+        else:
+            r.json.return_value = {
+                "status": "OK",
+                "data": {
+                    "jobs": [
+                        {
+                            "job_id": "x",
+                            "job_title": "Account Manager",
+                            "employer_name": "Acme",
+                            "job_apply_link": "https://example.com/account-manager",
+                        }
+                    ],
+                    "cursor": None,
+                },
+            }
+        r.raise_for_status.return_value = None
+        return r
+
+    with patch("app.jobs.providers.jsearch.httpx.get", side_effect=fake_get):
+        jobs, err = fetch_jsearch_canonical(10)
+
+    assert err is None
+    assert len(jobs) == 1
+    assert len(seen_queries) >= 2
+    assert seen_queries[0] == "customer service"
+    assert seen_queries[1] == "sales"
+
+
+def test_fetch_jsearch_canonical_reports_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.jobs.providers.jsearch import fetch_jsearch_canonical
+
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", "k", raising=False)
+    monkeypatch.setattr(settings, "jsearch_job_search_endpoint", "search-v2", raising=False)
+    monkeypatch.setattr(settings, "jsearch_query", "", raising=False)
+    monkeypatch.setattr(settings, "jsearch_queries", "sales", raising=False)
+
+    def fake_get(url: str, **kwargs: object) -> MagicMock:
+        r = MagicMock()
+        r.json.return_value = {"status": "OK", "data": {"jobs": [], "cursor": None}}
+        r.raise_for_status.return_value = None
+        return r
+
+    with patch("app.jobs.providers.jsearch.httpx.get", side_effect=fake_get):
+        jobs, err = fetch_jsearch_canonical(10)
+
+    assert jobs == []
+    assert err == "no_results"
 
 
 def test_fetch_jsearch_job_details_errors_without_job_id() -> None:

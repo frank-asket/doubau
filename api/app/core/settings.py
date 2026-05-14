@@ -186,6 +186,9 @@ class Settings(BaseSettings):
     jsearch_rapidapi_key: str | None = None
     jsearch_rapidapi_host: str = "jsearch.p.rapidapi.com"
     jsearch_query: str = ""
+    # Comma/newline/pipe-separated fallback queries for broad scheduled catalog ingest when
+    # ``jsearch_query`` and per-request query are empty.
+    jsearch_queries: str = ""
     jsearch_country: str = "us"
     jsearch_date_posted: str = "all"
     jsearch_num_pages: int = 1

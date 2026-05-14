@@ -24,6 +24,27 @@ import httpx
 from app.core.settings import settings
 from app.jobs.providers.schema import CanonicalJobIn
 
+# Broad scheduled ingest seeds. Discovery personalization happens later via résumé embeddings
+# and heuristics, so the shared catalog should avoid overfitting to one profession.
+DEFAULT_BROAD_JSEARCH_QUERIES = (
+    "customer service",
+    "sales",
+    "marketing",
+    "operations",
+    "administrative assistant",
+    "human resources",
+    "finance",
+    "accounting",
+    "healthcare",
+    "education",
+    "project manager",
+    "product manager",
+    "designer",
+    "engineer",
+    "software engineer",
+    "data analyst",
+)
+
 # --- Paths (RapidAPI “Endpoints” tab on JSearch) ---
 JSEARCH_PATH_JOB_SEARCH = "/search"
 JSEARCH_PATH_JOB_SEARCH_V2 = "/search-v2"
@@ -179,6 +200,32 @@ def _jsearch_search_job_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def _split_queries(raw: str) -> list[str]:
+    parts = re.split(r"[\n\r,|]+", raw or "")
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        q = re.sub(r"\s+", " ", part).strip()
+        key = q.lower()
+        if q and key not in seen:
+            out.append(q[:400])
+            seen.add(key)
+    return out
+
+
+def _jsearch_queries(query_override: str | None) -> list[str]:
+    explicit = (query_override or "").strip()
+    if explicit:
+        return [explicit[:400]]
+    configured_one = (settings.jsearch_query or "").strip()
+    if configured_one:
+        return [configured_one[:400]]
+    configured_many = _split_queries(settings.jsearch_queries)
+    if configured_many:
+        return configured_many
+    return list(DEFAULT_BROAD_JSEARCH_QUERIES)
+
+
 def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None) -> tuple[list[CanonicalJobIn], str | None]:
     """JSearch RapidAPI job search (``/search`` or ``/search-v2``) → canonical rows."""
     if not _jsearch_api_key():
@@ -189,39 +236,59 @@ def fetch_jsearch_canonical(max_rows: int, *, query_override: str | None = None)
 
     num_pages = max(1, min(settings.jsearch_num_pages, 20))
     country = (settings.jsearch_country or "us").strip().lower()[:8]
-    query = (query_override or "").strip() or (settings.jsearch_query or "").strip() or "open roles"
     date_posted = (settings.jsearch_date_posted or "all").strip().lower()[:16]
     if date_posted not in {"all", "today", "3days", "week", "month"}:
         date_posted = "all"
-
-    params: dict[str, Any] = {
-        "query": query[:400],
-        "page": 1,
-        "num_pages": num_pages,
-        "country": country,
-        "date_posted": date_posted,
-    }
     lang = (settings.jsearch_language or "").strip()[:16]
-    if lang:
-        params["language"] = lang
-
-    data, err = _jsearch_get_json(path, params)
-    if err or data is None:
-        return [], err or "fetch_failed"
-
-    rows = _jsearch_search_job_rows(data)
-    if not rows:
-        return [], "unexpected_shape"
 
     out: list[CanonicalJobIn] = []
     cap = max(1, min(max_rows, settings.jsearch_ingest_max_jobs))
-    for raw in rows:
+    seen: set[str] = set()
+    first_err: str | None = None
+    saw_empty_result = False
+
+    for query in _jsearch_queries(query_override):
         if len(out) >= cap:
             break
-        c = raw_to_canonical_jsearch(raw)
-        if c is not None:
+        params: dict[str, Any] = {
+            "query": query[:400],
+            "page": 1,
+            "num_pages": num_pages,
+            "country": country,
+            "date_posted": date_posted,
+        }
+        if lang:
+            params["language"] = lang
+
+        data, err = _jsearch_get_json(path, params)
+        if err or data is None:
+            first_err = first_err or err or "fetch_failed"
+            continue
+
+        rows = _jsearch_search_job_rows(data)
+        if not rows:
+            saw_empty_result = True
+            continue
+
+        for raw in rows:
+            if len(out) >= cap:
+                break
+            c = raw_to_canonical_jsearch(raw)
+            if c is None:
+                continue
+            key = (c.external_ref or c.normalized_apply_url()).strip().lower()
+            if key in seen:
+                continue
+            seen.add(key)
             out.append(c)
-    return out, None
+
+    if out:
+        return out, None
+    if first_err:
+        return [], first_err
+    if saw_empty_result:
+        return [], "no_results"
+    return [], "unexpected_shape"
 
 
 def fetch_jsearch_job_details_json(
