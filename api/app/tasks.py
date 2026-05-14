@@ -613,6 +613,53 @@ def _send_transactional_plain_email(*, to_addr: str, subject: str, body: str) ->
     _smtp_send_text(to_addr=to_addr, subject=subject, body=body)
 
 
+def _send_resume_upload_acknowledgement_email(*, db: Session, doc: ResumeDocument) -> None:
+    """
+    Acknowledgement of receipt to the account email after parse (and optional embed) succeeds.
+
+    Best-effort only: skips when mail is not configured; logs and swallows send errors so the
+    pipeline result is never lost because of SMTP/Resend.
+    """
+    if not _email_transport_configured():
+        log.debug("resume_upload_ack skipped: no email transport")
+        return
+    user = db.get(User, doc.user_id)
+    if user is None or not str(user.email).strip():
+        log.debug("resume_upload_ack skipped: missing user email doc_id=%s", doc.id)
+        return
+
+    origins = settings.cors_allow_origins_list
+    base = (origins[0] if origins else "http://localhost:3000").rstrip("/")
+    dashboard_url = f"{base}/app/dashboard"
+
+    if doc.status == ResumeStatus.EMBEDDED:
+        detail = "\nYour résumé text is indexed for discovery and fit scoring.\n"
+    elif doc.status == ResumeStatus.PARSED and doc.error:
+        detail = (
+            "\nNote: text extraction succeeded, but embedding did not complete "
+            f"({doc.error}). Discovery may be limited until this is resolved.\n"
+        )
+    elif doc.status == ResumeStatus.PARSED:
+        detail = "\nYour résumé text was extracted successfully.\n"
+    else:
+        detail = ""
+
+    body = (
+        "Hello,\n\n"
+        "This message acknowledges receipt of your résumé upload in Doubow.\n\n"
+        f"File: {doc.file_name}\n"
+        f"Processing status: {doc.status}\n"
+        f"{detail}\n"
+        f"Open your workspace: {dashboard_url}\n\n"
+        "— Doubow\n"
+    )
+    subject = "[Doubow] Acknowledgement of receipt — résumé received"
+    try:
+        _send_transactional_plain_email(to_addr=str(user.email).strip(), subject=subject, body=body)
+    except Exception as e:
+        log.warning("resume_upload_ack_email_failed doc_id=%s err=%s", doc.id, e)
+
+
 @celery_app.task(name="app.tasks.send_followup_reminder_emails")
 def send_followup_reminder_emails() -> dict[str, Any]:
     """
@@ -936,6 +983,7 @@ def run_process_resume_document_sync(resume_document_id: str) -> dict[str, Any]:
 
             db.add(doc)
             db.commit()
+            _send_resume_upload_acknowledgement_email(db=db, doc=doc)
             return {"id": str(doc.id), "status": doc.status, "chars": len(extracted)}
         except (ResumeParseError, Exception) as e:
             doc.status = ResumeStatus.FAILED
