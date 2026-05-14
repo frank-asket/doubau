@@ -12,6 +12,7 @@ export type ProfileDto = {
 };
 
 export type ResumeLatestDto = {
+  /** e.g. UPLOADED, PARSED, EMBEDDED, FAILED */
   status?: string | null;
   parsed_json?: Record<string, unknown> | null;
   extracted_text?: string | null;
