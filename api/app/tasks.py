@@ -21,9 +21,16 @@ from app.agents.outreach import generate_email_draft_content, generate_linkedin_
 from app.celery_app import celery_app
 from app.core.settings import settings
 from app.db import SessionLocal
+from app.integrations.glassdoor_realtime import (
+    fetch_company_interview_details,
+    fetch_glassdoor_realtime_resource,
+    glassdoor_company_summary,
+    glassdoor_interview_company_summary,
+    normalize_company_key,
+)
 from app.jobs.html_snippet import extract_title_from_html
-from app.jobs.providers.adzuna import fetch_adzuna_canonical
 from app.jobs.providers.active_jobs_db import fetch_active_jobs_db_canonical
+from app.jobs.providers.adzuna import fetch_adzuna_canonical
 from app.jobs.providers.jsearch import fetch_jsearch_canonical
 from app.jobs.providers.persist import persist_canonical_jobs
 from app.jobs.providers.remoteok import fetch_remoteok_canonical
@@ -34,6 +41,7 @@ from app.jobs.rss_links import extract_feed_entry_links
 from app.jobs.url_hash import hash_source_url
 from app.llm.logging import record_llm_interaction
 from app.models.application import Application, ApplicationStatus
+from app.models.company_enrichment import CompanyEnrichment
 from app.models.job import Job
 from app.models.outreach_draft import DraftStatus, OutreachDraft
 from app.models.resume_document import ResumeDocument, ResumeStatus
@@ -618,6 +626,227 @@ def ingest_job_board_rss_batch() -> dict[str, Any]:
         "status": "queued_children",
         "feeds": len(urls),
         "queued_tasks": n,
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+
+
+def _catalog_company_names(limit: int) -> list[str]:
+    with SessionLocal() as db:
+        rows = db.execute(
+            select(Job.company)
+            .where(Job.company.is_not(None))
+            .group_by(Job.company)
+            .order_by(func.count(Job.id).desc(), Job.company.asc())
+            .limit(max(1, min(limit, 500)))
+        ).all()
+    out: list[str] = []
+    seen: set[str] = set()
+    for (company,) in rows:
+        if not isinstance(company, str):
+            continue
+        key = normalize_company_key(company)
+        if key and key not in seen:
+            out.append(company.strip())
+            seen.add(key)
+    return out
+
+
+def _upsert_glassdoor_company_enrichment(company_name: str, payload: Any) -> str:
+    now = datetime.now(UTC)
+    normalized = normalize_company_key(company_name)
+    if not normalized:
+        return "skipped_invalid_company"
+    summary = glassdoor_company_summary(company_name, payload)
+
+    with SessionLocal() as db:
+        existing = db.scalar(
+            select(CompanyEnrichment).where(
+                CompanyEnrichment.provider == "glassdoor_realtime",
+                CompanyEnrichment.normalized_company == normalized,
+            )
+        )
+        if existing is None:
+            existing = CompanyEnrichment(
+                provider="glassdoor_realtime",
+                normalized_company=normalized,
+                company_name=summary["company_name"],
+                source="companies",
+                payload={},
+                created_at=now,
+            )
+            db.add(existing)
+
+        existing.company_name = summary["company_name"]
+        existing.provider_ref = summary.get("provider_ref")
+        existing.website_url = summary.get("website_url")
+        existing.logo_url = summary.get("logo_url")
+        existing.rating = summary.get("rating")
+        existing.review_count = summary.get("review_count")
+        existing.interview_count = summary.get("interview_count")
+        existing.payload = payload if isinstance(payload, dict) else {"data": payload}
+        existing.fetched_at = now
+        existing.updated_at = now
+        db.commit()
+    return "upserted"
+
+
+def _upsert_glassdoor_interview_company_enrichment(interview_id: str, payload: Any) -> str:
+    summary = glassdoor_interview_company_summary(interview_id, payload)
+    company_name = summary["company_name"]
+    normalized = normalize_company_key(company_name)
+    if not normalized:
+        return "skipped_invalid_company"
+
+    now = datetime.now(UTC)
+    with SessionLocal() as db:
+        existing = db.scalar(
+            select(CompanyEnrichment).where(
+                CompanyEnrichment.provider == "glassdoor_realtime",
+                CompanyEnrichment.normalized_company == normalized,
+            )
+        )
+        if existing is None:
+            existing = CompanyEnrichment(
+                provider="glassdoor_realtime",
+                normalized_company=normalized,
+                company_name=company_name,
+                source="interview_details",
+                payload={},
+                created_at=now,
+            )
+            db.add(existing)
+
+        existing.company_name = company_name
+        existing.provider_ref = summary.get("provider_ref")
+        existing.website_url = summary.get("website_url")
+        existing.logo_url = summary.get("logo_url")
+        existing.rating = summary.get("rating")
+        existing.review_count = summary.get("review_count")
+        existing.interview_count = summary.get("interview_count")
+        existing.source = "interview_details"
+        existing.payload = payload if isinstance(payload, dict) else {"data": payload}
+        existing.fetched_at = now
+        existing.updated_at = now
+        db.commit()
+    return "upserted"
+
+
+@celery_app.task(name="app.tasks.ingest_glassdoor_company_context")
+def ingest_glassdoor_company_context(
+    companies: list[str] | None = None,
+    limit: int = 50,
+) -> dict[str, Any]:
+    """Glassdoor Real-time company search → persisted employer enrichment snapshots."""
+    started_at = datetime.now(UTC)
+    names = [c.strip() for c in (companies or []) if isinstance(c, str) and c.strip()]
+    if not names:
+        names = _catalog_company_names(limit)
+    if not names:
+        ended_at = datetime.now(UTC)
+        return {
+            "status": "skipped_no_companies",
+            "listing_source": "glassdoor_realtime",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    cap = max(1, min(limit, 500))
+    created_or_updated = 0
+    failed = 0
+    skipped = 0
+    errors: dict[str, str] = {}
+
+    for company_name in names[:cap]:
+        data, err = fetch_glassdoor_realtime_resource(
+            "companies",
+            {"query": company_name, "q": company_name, "company": company_name},
+        )
+        if err == "missing_glassdoor_realtime_credentials":
+            ended_at = datetime.now(UTC)
+            return {
+                "status": "skipped_no_credentials",
+                "detail": (
+                    "Set DOUBOW_GLASSDOOR_REALTIME_RAPIDAPI_KEY or "
+                    "DOUBOW_RAPIDAPI_KEY / DOUBOW_JSEARCH_RAPIDAPI_KEY."
+                ),
+                "listing_source": "glassdoor_realtime",
+                **_ingest_meta(started_at=started_at, ended_at=ended_at),
+            }
+        if err or data is None:
+            failed += 1
+            errors[company_name[:120]] = str(err or "empty_response")[:300]
+            continue
+        status = _upsert_glassdoor_company_enrichment(company_name, data)
+        if status == "upserted":
+            created_or_updated += 1
+        else:
+            skipped += 1
+
+    ended_at = datetime.now(UTC)
+    return {
+        "status": "completed",
+        "listing_source": "glassdoor_realtime",
+        "companies_requested": len(names[:cap]),
+        "upserted": created_or_updated,
+        "failed": failed,
+        "skipped": skipped,
+        "errors": errors,
+        **_ingest_meta(started_at=started_at, ended_at=ended_at),
+    }
+
+
+@celery_app.task(name="app.tasks.ingest_glassdoor_interview_details")
+def ingest_glassdoor_interview_details(interview_ids: list[str]) -> dict[str, Any]:
+    """Glassdoor Real-time interview-details → persisted employer enrichment snapshots."""
+    started_at = datetime.now(UTC)
+    ids: list[str] = []
+    for raw in interview_ids or []:
+        s = str(raw).strip()
+        if s.isdigit() and s not in ids:
+            ids.append(s[:24])
+
+    if not ids:
+        ended_at = datetime.now(UTC)
+        return {
+            "status": "skipped_no_interview_ids",
+            "listing_source": "glassdoor_realtime",
+            **_ingest_meta(started_at=started_at, ended_at=ended_at),
+        }
+
+    upserted = 0
+    failed = 0
+    errors: dict[str, str] = {}
+    for interview_id in ids[:200]:
+        data, err = fetch_company_interview_details(interview_id)
+        if err == "missing_glassdoor_realtime_credentials":
+            ended_at = datetime.now(UTC)
+            return {
+                "status": "skipped_no_credentials",
+                "detail": (
+                    "Set DOUBOW_GLASSDOOR_REALTIME_RAPIDAPI_KEY or "
+                    "DOUBOW_RAPIDAPI_KEY / DOUBOW_JSEARCH_RAPIDAPI_KEY."
+                ),
+                "listing_source": "glassdoor_realtime",
+                **_ingest_meta(started_at=started_at, ended_at=ended_at),
+            }
+        if err or data is None:
+            failed += 1
+            errors[interview_id] = str(err or "empty_response")[:300]
+            continue
+        status = _upsert_glassdoor_interview_company_enrichment(interview_id, data)
+        if status == "upserted":
+            upserted += 1
+        else:
+            failed += 1
+            errors[interview_id] = status
+
+    ended_at = datetime.now(UTC)
+    return {
+        "status": "completed",
+        "listing_source": "glassdoor_realtime",
+        "interview_ids_requested": len(ids[:200]),
+        "upserted": upserted,
+        "failed": failed,
+        "errors": errors,
         **_ingest_meta(started_at=started_at, ended_at=ended_at),
     }
 

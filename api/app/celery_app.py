@@ -60,6 +60,8 @@ def make_celery() -> Celery:
             "app.tasks.ingest_active_jobs_db": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_serpapi_google_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_job_board_rss_batch": {"queue": "scrape", "routing_key": "scrape"},
+            "app.tasks.ingest_glassdoor_company_context": {"queue": "scrape", "routing_key": "scrape"},
+            "app.tasks.ingest_glassdoor_interview_details": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.scrape_job": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.score_job": {"queue": "score", "routing_key": "score"},
             "app.tasks.generate_outreach_draft": {"queue": "draft", "routing_key": "draft"},

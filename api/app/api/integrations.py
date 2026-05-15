@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import desc, func, or_, select
 
-from app.api.deps import CurrentUserDep
+from app.api.deps import CurrentUserDep, DbDep
 from app.core.settings import settings
 from app.integrations.glassdoor_realtime import (
     fetch_company_interview_details,
@@ -18,6 +19,9 @@ from app.integrations.glassdoor_realtime import (
 )
 from app.integrations.job_opening_analyzer import post_compute_similarity
 from app.integrations.rapidapi_status import rapidapi_integration_status
+from app.models.company_enrichment import CompanyEnrichment
+from app.tasks import ingest_glassdoor_company_context as ingest_glassdoor_company_context_task
+from app.tasks import ingest_glassdoor_interview_details as ingest_glassdoor_interview_details_task
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 log = logging.getLogger(__name__)
@@ -75,13 +79,6 @@ class RapidApiIntegrationStatusOut(BaseModel):
     job_opening_analyzer_configured: bool
 
 
-@router.get("/rapidapi/status", response_model=RapidApiIntegrationStatusOut)
-def rapidapi_status(current_user: CurrentUserDep) -> RapidApiIntegrationStatusOut:
-    """Report RapidAPI credential coverage for debugging and admin UIs (no secrets)."""
-    _ = current_user
-    return RapidApiIntegrationStatusOut(**rapidapi_integration_status())
-
-
 class JobOpeningAnalyzerSimilarityIn(BaseModel):
     """Body for RapidAPI Job Opening Analyzer ``compute_similarity``."""
 
@@ -97,6 +94,125 @@ class JobOpeningAnalyzerSimilarityIn(BaseModel):
         max_length=100,
         description="Job opening texts to score against the pivot (upstream ``texts`` array).",
     )
+
+
+class GlassdoorCompanyIngestIn(BaseModel):
+    companies: list[str] = Field(default_factory=list, max_length=100)
+    include_catalog: bool = True
+    limit: int = Field(default=50, ge=1, le=500)
+
+
+class GlassdoorCompanyIngestOut(BaseModel):
+    task_id: str
+    status: str = "queued"
+
+
+class GlassdoorInterviewDetailsIngestIn(BaseModel):
+    interview_ids: list[str] = Field(default_factory=list, min_length=1, max_length=200)
+
+
+class CompanyEnrichmentOut(BaseModel):
+    id: str
+    provider: str
+    normalized_company: str
+    company_name: str
+    provider_ref: str | None = None
+    website_url: str | None = None
+    logo_url: str | None = None
+    rating: float | None = None
+    review_count: int | None = None
+    interview_count: int | None = None
+    source: str
+    fetched_at: str
+
+
+def _require_integration_admin(current_user: CurrentUserDep) -> None:
+    allowed = set(settings.admin_ingestion_user_ids_list)
+    if not allowed or (str(current_user.id) not in allowed and current_user.email not in allowed):
+        raise HTTPException(status_code=403, detail="Integration ingest is restricted.")
+
+
+def _company_enrichment_out(row: CompanyEnrichment) -> CompanyEnrichmentOut:
+    return CompanyEnrichmentOut(
+        id=str(row.id),
+        provider=row.provider,
+        normalized_company=row.normalized_company,
+        company_name=row.company_name,
+        provider_ref=row.provider_ref,
+        website_url=row.website_url,
+        logo_url=row.logo_url,
+        rating=row.rating,
+        review_count=row.review_count,
+        interview_count=row.interview_count,
+        source=row.source,
+        fetched_at=row.fetched_at.isoformat(),
+    )
+
+
+@router.get("/rapidapi/status", response_model=RapidApiIntegrationStatusOut)
+def rapidapi_status(current_user: CurrentUserDep) -> RapidApiIntegrationStatusOut:
+    """Report RapidAPI credential coverage for debugging and admin UIs (no secrets)."""
+    _ = current_user
+    return RapidApiIntegrationStatusOut(**rapidapi_integration_status())
+
+
+@router.post("/glassdoor/ingest/company-context", response_model=GlassdoorCompanyIngestOut)
+def queue_glassdoor_company_context_ingest(
+    current_user: CurrentUserDep,
+    payload: Annotated[GlassdoorCompanyIngestIn | None, Body()] = None,
+) -> GlassdoorCompanyIngestOut:
+    """Queue Glassdoor Real-time employer enrichment for catalog or explicit companies."""
+    _require_integration_admin(current_user)
+    payload = payload or GlassdoorCompanyIngestIn()
+    companies = [c.strip() for c in payload.companies if c.strip()]
+    if not payload.include_catalog and not companies:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide companies or set include_catalog=true.",
+        )
+    res = ingest_glassdoor_company_context_task.delay(companies or None, payload.limit)
+    return GlassdoorCompanyIngestOut(task_id=str(res.id))
+
+
+@router.post("/glassdoor/ingest/interview-details", response_model=GlassdoorCompanyIngestOut)
+def queue_glassdoor_interview_details_ingest(
+    current_user: CurrentUserDep,
+    payload: Annotated[GlassdoorInterviewDetailsIngestIn, Body()],
+) -> GlassdoorCompanyIngestOut:
+    """Queue Glassdoor Real-time interview-detail ingestion by interview id."""
+    _require_integration_admin(current_user)
+    interview_ids = [i.strip() for i in payload.interview_ids if i.strip()]
+    if not interview_ids:
+        raise HTTPException(status_code=400, detail="Provide at least one interview id.")
+    res = ingest_glassdoor_interview_details_task.delay(interview_ids)
+    return GlassdoorCompanyIngestOut(task_id=str(res.id))
+
+
+@router.get("/glassdoor/company-enrichments", response_model=list[CompanyEnrichmentOut])
+def list_glassdoor_company_enrichments(
+    current_user: CurrentUserDep,
+    db: DbDep,
+    q: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[CompanyEnrichmentOut]:
+    """Persisted employer context from Glassdoor Real-time company ingestion."""
+    _ = current_user
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    stmt = select(CompanyEnrichment).where(CompanyEnrichment.provider == "glassdoor_realtime")
+    if q and q.strip():
+        like = f"%{q.strip().lower()}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(CompanyEnrichment.company_name).like(like),
+                func.lower(CompanyEnrichment.normalized_company).like(like),
+            )
+        )
+    rows = db.scalars(
+        stmt.order_by(desc(CompanyEnrichment.fetched_at)).limit(limit).offset(offset)
+    ).all()
+    return [_company_enrichment_out(row) for row in rows]
 
 
 def _glassdoor_proxy(

@@ -1,5 +1,6 @@
 from app.models.application import Application
 from app.models.check_in import CheckIn
+from app.models.company_enrichment import CompanyEnrichment
 from app.models.copilot_session import CopilotMessage, CopilotSession
 from app.models.idempotency_key import IdempotencyKey
 from app.models.job import Job
@@ -27,9 +28,9 @@ __all__ = [
     "JobMatchEvent",
     "LlmLog",
     "CheckIn",
+    "CompanyEnrichment",
     "Milestone",
     "ResumeDocument",
     "CopilotSession",
     "CopilotMessage",
 ]
-

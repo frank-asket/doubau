@@ -7,17 +7,22 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import delete, text
 from sqlalchemy.exc import OperationalError
 
 from app.core.settings import settings
-from app.db import engine
+from app.db import SessionLocal, engine
 from app.integrations.glassdoor_realtime import (
     fetch_company_interview_details,
     fetch_glassdoor_realtime_resource,
+    glassdoor_company_summary,
+    glassdoor_interview_company_summary,
+    normalize_company_key,
 )
 from app.main import app
+from app.models.company_enrichment import CompanyEnrichment
 from app.security import decode_access_token
+from app.tasks import ingest_glassdoor_company_context, ingest_glassdoor_interview_details
 
 
 @pytest.fixture
@@ -77,6 +82,144 @@ def test_fetch_company_interview_details_ok_with_mock(monkeypatch: pytest.Monkey
         data, err = fetch_company_interview_details("19018219")
     assert err is None
     assert data == {"interviewId": 19018219, "ok": True}
+
+
+def test_glassdoor_company_summary_extracts_employer_fields() -> None:
+    payload = {
+        "data": {
+            "companies": [
+                {
+                    "employerId": 348371,
+                    "employerName": "ENTRUST Solutions Group",
+                    "squareLogoUrl": "https://media.glassdoor.com/logo.png",
+                    "rating": "3.8",
+                    "reviewCount": 42,
+                    "interviewCount": 7,
+                }
+            ]
+        }
+    }
+    out = glassdoor_company_summary("Entrust Solutions Group", payload)
+    assert normalize_company_key(out["company_name"]) == "entrust solutions group"
+    assert out["provider_ref"] == "348371"
+    assert out["logo_url"] == "https://media.glassdoor.com/logo.png"
+    assert out["rating"] == 3.8
+    assert out["review_count"] == 42
+    assert out["interview_count"] == 7
+
+
+def test_glassdoor_interview_company_summary_extracts_employer() -> None:
+    payload = {
+        "data": {
+            "employerInterviewDetails": {
+                "id": 19018219,
+                "employer": {
+                    "id": 348371,
+                    "name": "ENTRUST Solutions Group",
+                    "squareLogoUrl": "https://media.glassdoor.com/logo.png",
+                },
+            }
+        }
+    }
+    out = glassdoor_interview_company_summary("19018219", payload)
+    assert out["company_name"] == "ENTRUST Solutions Group"
+    assert out["provider_ref"] == "348371"
+    assert out["logo_url"] == "https://media.glassdoor.com/logo.png"
+
+
+def test_ingest_glassdoor_company_context_persists_snapshot(
+    postgres_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _ = postgres_client
+    payload = {
+        "data": [
+            {
+                "employerId": 123,
+                "employerName": "Acme Labs",
+                "website": "https://acme.example",
+                "squareLogoUrl": "https://cdn.example/acme.png",
+            }
+        ]
+    }
+
+    monkeypatch.setattr(
+        "app.tasks.fetch_glassdoor_realtime_resource",
+        lambda resource, params: (payload, None),
+    )
+    try:
+        out = ingest_glassdoor_company_context(["Acme Labs"], limit=1)
+        assert out["status"] == "completed"
+        assert out["upserted"] == 1
+        with SessionLocal() as db:
+            row = db.scalar(
+                text(
+                    "select company_name from company_enrichments "
+                    "where provider='glassdoor_realtime' and normalized_company='acme labs'"
+                )
+            )
+            assert row == "Acme Labs"
+    finally:
+        with SessionLocal() as db:
+            db.execute(
+                delete(CompanyEnrichment).where(
+                    CompanyEnrichment.provider == "glassdoor_realtime",
+                    CompanyEnrichment.normalized_company == "acme labs",
+                )
+            )
+            db.commit()
+
+
+def test_ingest_glassdoor_interview_details_persists_employer(
+    postgres_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _ = postgres_client
+    payload = {
+        "data": {
+            "employerInterviewDetails": {
+                "id": 19018219,
+                "employer": {
+                    "id": 348371,
+                    "name": "ENTRUST Solutions Group",
+                    "squareLogoUrl": "https://media.glassdoor.com/logo.png",
+                },
+            }
+        }
+    }
+
+    monkeypatch.setattr(
+        "app.tasks.fetch_company_interview_details",
+        lambda interview_id: (payload, None),
+    )
+    try:
+        out = ingest_glassdoor_interview_details(["19018219"])
+        assert out["status"] == "completed"
+        assert out["upserted"] == 1
+        with SessionLocal() as db:
+            row = db.get(
+                CompanyEnrichment,
+                db.scalar(
+                    text(
+                        "select id from company_enrichments "
+                        "where provider='glassdoor_realtime' "
+                        "and normalized_company='entrust solutions group'"
+                    )
+                ),
+            )
+            assert row is not None
+            assert row.company_name == "ENTRUST Solutions Group"
+            assert row.provider_ref == "348371"
+            assert row.source == "interview_details"
+    finally:
+        with SessionLocal() as db:
+            db.execute(
+                delete(CompanyEnrichment).where(
+                    CompanyEnrichment.provider == "glassdoor_realtime",
+                    CompanyEnrichment.normalized_company == "entrust solutions group",
+                )
+            )
+            db.commit()
 
 
 def test_fetch_glassdoor_realtime_resource_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
