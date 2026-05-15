@@ -459,7 +459,15 @@ class Settings(BaseSettings):
             return None
         return v
 
-    @field_validator("rapidapi_key", "jsearch_rapidapi_key", "serpapi_api_key", mode="before")
+    @field_validator(
+        "rapidapi_key",
+        "jsearch_rapidapi_key",
+        "active_jobs_db_rapidapi_key",
+        "glassdoor_realtime_rapidapi_key",
+        "job_opening_analyzer_rapidapi_key",
+        "serpapi_api_key",
+        mode="before",
+    )
     @classmethod
     def empty_aggregator_keys_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():

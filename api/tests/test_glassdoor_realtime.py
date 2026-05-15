@@ -56,12 +56,18 @@ def test_fetch_company_interview_details_invalid_id(monkeypatch: pytest.MonkeyPa
 
 
 def test_fetch_company_interview_details_ok_with_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "glassdoor_realtime_rapidapi_key", None, raising=False)
+    monkeypatch.setattr(settings, "jsearch_rapidapi_key", None, raising=False)
     monkeypatch.setattr(settings, "rapidapi_key", "k", raising=False)
 
     def fake_get(url: str, **kwargs: object) -> MagicMock:
-        assert "interview-details" in url
+        assert url == "https://glassdoor-real-time.p.rapidapi.com/companies/interview-details"
         params = kwargs.get("params") or {}
         assert params.get("interviewId") == "19018219"
+        headers = kwargs.get("headers") or {}
+        assert headers.get("X-RapidAPI-Host") == "glassdoor-real-time.p.rapidapi.com"
+        assert headers.get("X-RapidAPI-Key") == "k"
+        assert headers.get("Content-Type") == "application/json"
         r = MagicMock()
         r.json.return_value = {"interviewId": 19018219, "ok": True}
         r.raise_for_status.return_value = None

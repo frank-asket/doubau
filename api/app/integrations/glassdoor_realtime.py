@@ -48,7 +48,12 @@ def _headers() -> dict[str, str] | None:
     host = (
         settings.glassdoor_realtime_rapidapi_host or "glassdoor-real-time.p.rapidapi.com"
     ).strip()
-    return {"X-RapidAPI-Key": key, "X-RapidAPI-Host": host}
+    return {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-RapidAPI-Key": key,
+        "X-RapidAPI-Host": host,
+    }
 
 
 def _base_url() -> str:

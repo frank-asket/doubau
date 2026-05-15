@@ -66,7 +66,7 @@ export function EmployerLogoDevPanel({
             <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-[inset_0_0_0_1px_rgba(20,24,32,0.06)]">
               <span className="size-4 animate-pulse rounded-full bg-[var(--app-accent)]/35" />
             </span>
-            Checking RapidAPI for employer website…
+            Checking company directory for employer website…
           </div>
         </div>
       );
@@ -78,8 +78,8 @@ export function EmployerLogoDevPanel({
         className="mt-4 rounded-[var(--app-radius-md)] border border-dashed border-[var(--app-border)] bg-[var(--app-bg-muted)]/40 px-3 py-3 text-[12px] leading-relaxed text-[var(--app-text-tertiary)]"
       >
         <span className="font-medium text-[var(--app-text-secondary)]">Company directory:</span>{" "}
-        RapidAPI did not provide an employer website for this listing, and the posting URL points to an aggregator or
-        ATS instead of a corporate domain. The employer name and initials above still reflect the source listing.
+        We could not resolve a corporate employer website for this listing. The posting URL points to a job board or
+        ATS, so the employer name and initials above still reflect the source listing.
       </div>
     );
   }

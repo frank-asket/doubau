@@ -37,6 +37,7 @@ export function isLowSignalLogoHost(host: string): boolean {
   if (h === "boards-api.greenhouse.io") return true;
   if (
     h === "boards.greenhouse.io" ||
+    h === "job-boards.greenhouse.io" ||
     h === "jobs.greenhouse.io" ||
     h === "my.greenhouse.io" ||
     h === "jobs.lever.co" ||
