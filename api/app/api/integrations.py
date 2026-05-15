@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.api.deps import CurrentUserDep
+from app.core.settings import settings
 from app.integrations.glassdoor_realtime import (
     fetch_company_interview_details,
     fetch_glassdoor_realtime_resource,
@@ -16,6 +20,49 @@ from app.integrations.job_opening_analyzer import post_compute_similarity
 from app.integrations.rapidapi_status import rapidapi_integration_status
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+log = logging.getLogger(__name__)
+
+_GLASSDOOR_SALARY_CACHE_TTL_SECONDS = 86_400
+
+
+def _salary_cache_key(title: str, location: str | None) -> str:
+    raw = json.dumps(
+        {
+            "title": " ".join(title.lower().split()),
+            "location": " ".join((location or "").lower().split()),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return f"doubow:glassdoor_salary:{digest}"
+
+
+def _salary_cache_get(key: str) -> Any | None:
+    try:
+        import redis
+
+        client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+        raw = client.get(key)
+    except Exception as exc:
+        log.info("glassdoor salary cache read skipped: %s", exc)
+        return None
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def _salary_cache_set(key: str, data: Any) -> None:
+    try:
+        import redis
+
+        client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+        client.setex(key, _GLASSDOOR_SALARY_CACHE_TTL_SECONDS, json.dumps(data))
+    except Exception as exc:
+        log.info("glassdoor salary cache write skipped: %s", exc)
 
 
 class RapidApiIntegrationStatusOut(BaseModel):
@@ -240,12 +287,19 @@ def glassdoor_salaries(
     years_of_experience: str | None = None,
     page: str | None = None,
 ) -> Any:
-    """Proxy Glassdoor Real-time salary estimates."""
+    """Proxy Glassdoor Real-time salary estimates, cached per title/location for 24h."""
     title = (job_title or jobTitle or "").strip()
     if not title:
         raise HTTPException(status_code=400, detail="Missing job_title.")
     cid = (company_id or companyId or "").strip()
-    return _glassdoor_proxy(
+    cacheable = not cid and not page
+    cache_key = _salary_cache_key(title, location) if cacheable else ""
+    if cache_key:
+        cached = _salary_cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+    data = _glassdoor_proxy(
         "salaries",
         current_user,
         {
@@ -258,6 +312,9 @@ def glassdoor_salaries(
             "page": page,
         },
     )
+    if cache_key:
+        _salary_cache_set(cache_key, data)
+    return data
 
 
 @router.post("/job-opening-analyzer/compute-similarity")

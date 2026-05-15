@@ -42,7 +42,7 @@ services:
       DOUBOW_CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
       DOUBOW_JWT_SECRET: dev_only_change_me
       DOUBOW_REDIS_URL: redis://redis:6379/0
-      # Queue Remote OK + Adzuna (+ Scrapling if SCRAPLING_ENABLED) once per lock window; see beat service for recurring schedule.
+      # Queue JSearch + Remote OK (+ Scrapling if SCRAPLING_ENABLED) once per lock window; see beat service for recurring schedule.
       DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP: "true"
       # Inside Compose, MinIO is reachable on the service hostname (not localhost).
       DOUBOW_S3_ENDPOINT_URL: http://minio:9000
@@ -130,4 +130,3 @@ services:
 
 volumes:
   minio-data:
-

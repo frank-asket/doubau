@@ -220,7 +220,7 @@ function DiscoveryScoringExplainer({
           <div className="mt-3 rounded-[var(--app-radius-md)] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--app-warning)_35%,var(--app-border))] bg-[color-mix(in_srgb,var(--app-warning)_08%,var(--app-bg-elevated))] px-3 py-3 text-[13px] leading-relaxed">
             <p className="font-medium text-[var(--app-text-primary)]">Catalog empty</p>
             <p className="mt-2">
-              Ingest (Remote OK / Adzuna / Scrapling) plus a <strong className="text-[var(--app-text-primary)]">Celery worker</strong> and{" "}
+              Ingest (JSearch / Remote OK) plus a <strong className="text-[var(--app-text-primary)]">Celery worker</strong> and{" "}
               <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">Redis</code> keep{" "}
               <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">active_total</code> moving. Set{" "}
               <code className="rounded bg-[var(--app-bg-muted)] px-1 text-[11px]">DOUBOW_REDIS_URL</code>, run worker + beat (or{" "}
@@ -244,7 +244,7 @@ function DiscoveryScoringExplainer({
             full-text résumé similarity.
           </li>
           <li>
-            New jobs appear after <strong className="text-[var(--app-text-primary)]">ingest</strong> (Remote OK / Adzuna / Scrapling) or{" "}
+            New jobs appear after <strong className="text-[var(--app-text-primary)]">ingest</strong> (JSearch / Remote OK) or{" "}
             <strong className="text-[var(--app-text-primary)]">import URL</strong>, processed by your worker queue.
           </li>
         </ul>
@@ -584,7 +584,7 @@ export function DiscoveryClient({
         components: {},
       }));
     // When the feed is personalized (e.g. résumé similarity), it only includes embedded jobs.
-    // Merge the full recent catalog so other providers (Remote OK, Adzuna, etc.) still surface.
+    // Merge the full recent catalog so supplemental providers (Remote OK, RSS, imports) still surface.
     const source = fromFeed.length > 0 ? [...fromFeed, ...fromJobsOnly] : fromJobsOnly;
     return source.map((row) => normalizedRow(row));
   }, [initialFeed, initialJobs]);

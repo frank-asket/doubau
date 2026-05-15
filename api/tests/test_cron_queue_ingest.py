@@ -41,31 +41,22 @@ def test_cron_queue_ingest_queues_tasks(client: TestClient, monkeypatch: pytest.
 
     mock_ro = MagicMock()
     mock_ro.id = "task-remoteok"
-    mock_ad = MagicMock()
-    mock_ad.id = "task-adzuna"
     mock_js = MagicMock()
     mock_js.id = "task-jsearch"
-    mock_ajd = MagicMock()
-    mock_ajd.id = "task-active-jobs-db"
-    mock_sp = MagicMock()
-    mock_sp.id = "task-serpapi"
     mock_rss = MagicMock()
     mock_rss.id = "task-rss"
 
     monkeypatch.setattr(jobs_mod.ingest_remoteok_jobs_task, "delay", lambda: mock_ro)
-    monkeypatch.setattr(jobs_mod.ingest_adzuna_jobs_task, "delay", lambda: mock_ad)
     monkeypatch.setattr(jobs_mod.ingest_jsearch_jobs_task, "delay", lambda: mock_js)
-    monkeypatch.setattr(jobs_mod.ingest_active_jobs_db_task, "delay", lambda: mock_ajd)
-    monkeypatch.setattr(jobs_mod.ingest_serpapi_google_jobs_task, "delay", lambda: mock_sp)
     monkeypatch.setattr(jobs_mod.ingest_job_board_rss_batch_task, "delay", lambda: mock_rss)
 
     r = client.post("/jobs/cron/queue-ingest", headers={"X-Doubow-Cron-Secret": secret})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["queued"]["remoteok"] == "task-remoteok"
-    assert body["queued"]["adzuna"] == "task-adzuna"
     assert body["queued"]["jsearch"] == "task-jsearch"
-    assert body["queued"]["active_jobs_db"] == "task-active-jobs-db"
-    assert body["queued"]["serpapi_google_jobs"] == "task-serpapi"
     assert body["queued"]["job_board_rss_batch"] == "task-rss"
+    assert "adzuna" not in body["queued"]
+    assert "active_jobs_db" not in body["queued"]
+    assert "serpapi_google_jobs" not in body["queued"]
     assert "scrapling" not in body["queued"]

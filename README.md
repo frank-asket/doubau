@@ -64,7 +64,7 @@ flowchart TB
   subgraph External["◆ External services"]
     CL[Clerk]
     OAI[OpenAI — embeddings & LLM]
-    JB[Job providers — Remote OK, Adzuna, Scrapling, ATS hosts…]
+    JB[Job providers — RapidAPI JSearch, Remote OK, RSS/imports…]
     SM[Resend / SMTP / Gmail API — when configured]
   end
 
@@ -164,9 +164,9 @@ Aligned with the pipeline story in `.tmp/job_data_pipeline_architecture.svg` and
 ```mermaid
 flowchart TB
   subgraph Sources["◆ Ingest sources"]
+    JSR[JSearch / RapidAPI]
     ROK[Remote OK]
-    ADZ[Adzuna]
-    SCR[Scrapling / JSON-LD]
+    RSS[RSS feeds]
     IMP[Admin / allowed URL import]
   end
 

@@ -14,14 +14,6 @@ def make_celery() -> Celery:
             "task": "app.tasks.ingest_jsearch_jobs",
             "schedule": crontab(hour=5, minute=30),
         },
-        "ingest-active-jobs-db-0540-utc": {
-            "task": "app.tasks.ingest_active_jobs_db",
-            "schedule": crontab(hour=5, minute=40),
-        },
-        "ingest-adzuna-0600-utc": {
-            "task": "app.tasks.ingest_adzuna_jobs",
-            "schedule": crontab(hour=6, minute=0),
-        },
         "ingest-remoteok-0700-utc": {
             "task": "app.tasks.ingest_remoteok_jobs",
             "schedule": crontab(hour=7, minute=0),

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { ChromePrimaryButton } from "@/components/ui/chrome-motion";
@@ -29,6 +29,12 @@ type MatchEvent = {
   created_at: string;
 };
 
+type SalaryLookupState =
+  | { status: "idle"; data: null; error: null }
+  | { status: "loading"; data: null; error: null }
+  | { status: "success"; data: unknown; error: null }
+  | { status: "error"; data: null; error: string };
+
 function weekKey(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -38,11 +44,67 @@ function weekKey(iso: string): string {
   return `${d.getUTCFullYear()}-W${week}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function findSalaryRecord(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findSalaryRecord(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isRecord(value)) return null;
+  const keys = Object.keys(value).map((k) => k.toLowerCase());
+  if (keys.some((k) => k.includes("salary") || k.includes("compensation"))) return value;
+  for (const item of Object.values(value)) {
+    const found = findSalaryRecord(item);
+    if (found) return found;
+  }
+  return null;
+}
+
+function formatSalaryValue(value: unknown, currency?: string): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const prefix = currency ? `${currency} ` : "";
+    return `${prefix}${Math.round(value).toLocaleString()}`;
+  }
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return null;
+}
+
+function salaryBands(data: unknown) {
+  const record = findSalaryRecord(data);
+  if (!record) return [];
+  const currency =
+    typeof record.salary_currency === "string"
+      ? record.salary_currency
+      : typeof record.currency === "string"
+        ? record.currency
+        : undefined;
+  const candidates = [
+    ["Median", record.salary_median ?? record.median_salary ?? record.median_base_salary],
+    ["Minimum", record.salary_min ?? record.min_salary ?? record.min_base_salary],
+    ["Maximum", record.salary_max ?? record.max_salary ?? record.max_base_salary],
+    ["Average", record.average_salary ?? record.avg_salary],
+  ];
+  return candidates
+    .map(([label, value]) => ({ label: String(label), value: formatSalaryValue(value, currency) }))
+    .filter((item): item is { label: string; value: string } => Boolean(item.value));
+}
+
 export function SalaryBenchmarkClient() {
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
   const [years, setYears] = useState("");
   const [skillsNote, setSkillsNote] = useState("");
+  const [salaryLookup, setSalaryLookup] = useState<SalaryLookupState>({
+    status: "idle",
+    data: null,
+    error: null,
+  });
   const profileHydrated = useRef(false);
 
   const profileQ = useQuery({
@@ -110,11 +172,42 @@ export function SalaryBenchmarkClient() {
   }, [eventsQ.data]);
 
   const pick = feedQ.data?.[0]?.job;
+  const bands = salaryLookup.status === "success" ? salaryBands(salaryLookup.data) : [];
+
+  async function submitSalaryLookup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = role.trim();
+    if (!title) {
+      setSalaryLookup({ status: "error", data: null, error: "Add a job title before running the benchmark." });
+      return;
+    }
+    const qs = new URLSearchParams({ job_title: title });
+    if (location.trim()) qs.set("location", location.trim());
+    if (years.trim()) qs.set("years_of_experience", years.trim());
+    setSalaryLookup({ status: "loading", data: null, error: null });
+    try {
+      const r = await fetch(`/api/integrations/glassdoor/salaries?${qs.toString()}`, {
+        cache: "no-store",
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const detail = isRecord(body) && typeof body.detail === "string" ? body.detail : "Salary lookup failed.";
+        throw new Error(detail);
+      }
+      setSalaryLookup({ status: "success", data: body, error: null });
+    } catch (err) {
+      setSalaryLookup({
+        status: "error",
+        data: null,
+        error: err instanceof Error ? err.message : "Salary lookup failed.",
+      });
+    }
+  }
 
   return (
     <ProductPageChrome
       title="Salary Benchmark"
-      description="Doubow does not ingest external salary tables yet — we surface your profile, discovery feed, and activity instead."
+      description="Live Glassdoor Real-time salary and company context through RapidAPI, cached per role and location for 24 hours."
     >
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
@@ -190,10 +283,10 @@ export function SalaryBenchmarkClient() {
         </div>
 
         <aside className="space-y-4">
-          <section className="ch-panel p-6">
+          <form className="ch-panel p-6" onSubmit={submitSalaryLookup}>
             <h2 className="text-[20px] font-bold">Role context</h2>
             <p className="mt-2 text-[13px] text-[var(--app-text-secondary)]">
-              Benchmarks use your saved profile fields below for context; Doubow does not call external salary APIs — treat numbers as directional only.
+              Benchmarks call Glassdoor Real-time on demand through RapidAPI and reuse the same title/location result for 24 hours.
             </p>
             <label className="mt-6 block font-semibold">
               Job title
@@ -231,10 +324,42 @@ export function SalaryBenchmarkClient() {
                 placeholder="Keywords you negotiate with"
               />
             </label>
-            <ChromePrimaryButton type="button" className="mt-7 w-full opacity-70" disabled title="External benchmarks not connected">
-              <AppIcon name="analytics" className="size-5" /> Predict salary (soon)
+            <ChromePrimaryButton type="submit" className="mt-7 w-full" disabled={salaryLookup.status === "loading"}>
+              <AppIcon name="analytics" className="size-5" />{" "}
+              {salaryLookup.status === "loading" ? "Checking RapidAPI…" : "Predict salary"}
             </ChromePrimaryButton>
-          </section>
+
+            {salaryLookup.status === "error" ? (
+              <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+                {salaryLookup.error}
+              </p>
+            ) : null}
+
+            {salaryLookup.status === "success" ? (
+              <div className="mt-5 rounded-md border border-[var(--app-border)] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-[14px] font-bold">Live salary signal</h3>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-tertiary)]">
+                    24h cached
+                  </span>
+                </div>
+                {bands.length > 0 ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {bands.slice(0, 3).map((band) => (
+                      <div key={band.label} className="rounded-md bg-[var(--app-bg-muted)] px-3 py-3">
+                        <p className="text-[11px] font-semibold uppercase text-[var(--app-text-tertiary)]">{band.label}</p>
+                        <p className="mt-1 text-[17px] font-bold text-[var(--app-text-primary)]">{band.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[13px] text-[var(--app-text-secondary)]">
+                    RapidAPI returned salary data, but this provider response shape did not expose a standard min / median / max field.
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </form>
 
           <section className="ch-panel p-6">
             <h2 className="text-[20px] font-bold">Top discovery pick</h2>
@@ -256,7 +381,7 @@ export function SalaryBenchmarkClient() {
                   {(pick.description ?? "").length > 220 ? "…" : ""}
                 </p>
                 <p className="mt-5 text-[13px] text-[var(--app-text-tertiary)]">
-                  Salary ranges require a market provider — use this card as context for negotiation prep only.
+                  Use this role as a quick input for the live salary predictor above.
                 </p>
               </article>
             ) : (

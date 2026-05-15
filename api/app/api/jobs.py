@@ -492,7 +492,7 @@ class ScrapeQueueOut(BaseModel):
 
 
 class ProviderIngestQueryIn(BaseModel):
-    """Optional JSON for JSearch / SerpAPI ingest: fixed query and/or derive from a user's profile + résumé."""
+    """Optional JSON for JSearch ingest: fixed query and/or derive from a user's profile + résumé."""
 
     query: str | None = Field(default=None, max_length=400)
     resume_user_id: UUID | None = Field(
@@ -683,14 +683,8 @@ def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
     queued: dict[str, str] = {}
     r_js = ingest_jsearch_jobs_task.delay()
     queued["jsearch"] = str(r_js.id)
-    r_ajd = ingest_active_jobs_db_task.delay()
-    queued["active_jobs_db"] = str(r_ajd.id)
-    r_sp = ingest_serpapi_google_jobs_task.delay()
-    queued["serpapi_google_jobs"] = str(r_sp.id)
     r_ro = ingest_remoteok_jobs_task.delay()
     queued["remoteok"] = str(r_ro.id)
-    r_ad = ingest_adzuna_jobs_task.delay()
-    queued["adzuna"] = str(r_ad.id)
     r_rss = ingest_job_board_rss_batch_task.delay()
     queued["job_board_rss_batch"] = str(r_rss.id)
     if settings.scrapling_enabled:
@@ -718,7 +712,7 @@ def cron_clear_job_catalog(
     Uses the same ``X-Doubow-Cron-Secret`` as ``POST /jobs/cron/queue-ingest``.
 
     - ``mode=providers`` (default): deletes rows whose ``listing_source`` is one of the ingest
-      pipelines (Remote OK, Adzuna, Scrapling/Greenhouse, single-URL import). Rows with
+      pipelines (JSearch, Remote OK, RSS, Scrapling/Greenhouse, single-URL import). Rows with
       ``listing_source=manual`` are kept.
     - ``mode=all``: deletes **every** job row (including manual). Use with care.
 
