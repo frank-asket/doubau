@@ -167,6 +167,10 @@ def test_rapidapi_enrichment_jsearch_success() -> None:
         assert "Python" in body["required_skills"]
         assert len(body["highlights"]) >= 2
         assert body["qna"] and body["qna"][0]["question"] == "Remote?"
+        with SessionLocal() as db:
+            saved = db.get(Job, jid)
+            assert saved is not None
+            assert saved.employer_logo_url == "https://cdn.example/logo.png"
     finally:
         with SessionLocal() as db:
             db.execute(delete(Job).where(Job.id == jid))

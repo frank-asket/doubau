@@ -13,6 +13,11 @@ from app.jobs.url_hash import hash_source_url
 from app.models.job import Job
 
 
+def _clean_logo_url(raw: str | None) -> str | None:
+    logo_u = (raw or "").strip()
+    return logo_u[:2000] if logo_u.startswith(("http://", "https://")) else None
+
+
 def _redis():
     import redis
 
@@ -35,6 +40,19 @@ def persist_canonical_job(job_in: CanonicalJobIn) -> tuple[Literal["created", "s
     with SessionLocal() as db:
         existing_url = db.scalar(select(Job).where(Job.source_url_hash == url_fp))
         if existing_url is not None:
+            logo = _clean_logo_url(job_in.employer_logo_url)
+            changed = False
+            if logo and not (existing_url.employer_logo_url or "").strip():
+                existing_url.employer_logo_url = logo
+                changed = True
+            if job_in.external_ref and not (existing_url.external_ref or "").strip():
+                existing_url.external_ref = job_in.external_ref[:200]
+                changed = True
+            if job_in.source_posted_at and existing_url.source_posted_at is None:
+                existing_url.source_posted_at = job_in.source_posted_at
+                changed = True
+            if changed:
+                db.commit()
             return ("skipped", "duplicate_url")
 
     fp = content_fingerprint_sha256(
@@ -50,8 +68,7 @@ def persist_canonical_job(job_in: CanonicalJobIn) -> tuple[Literal["created", "s
         return ("skipped", "duplicate_fingerprint")
 
     tags = list(job_in.tags or [])[:40]
-    logo_u = (job_in.employer_logo_url or "").strip()
-    employer_logo_url = logo_u[:2000] if logo_u.startswith(("http://", "https://")) else None
+    employer_logo_url = _clean_logo_url(job_in.employer_logo_url)
     job = Job(
         company=job_in.company[:200],
         title=job_in.title[:220],

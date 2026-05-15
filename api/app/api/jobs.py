@@ -1159,6 +1159,10 @@ def get_job_rapidapi_enrichment(job_id: UUID, db: DbDep, current_user: CurrentUs
 
     flat = jsearch_job_details_flat(payload)
     fields = jsearch_flat_to_enrichment_dict(flat)
+    logo = (fields.get("employer_logo_url") or "").strip()
+    if logo.startswith(("http://", "https://")) and not (job.employer_logo_url or "").strip():
+        job.employer_logo_url = logo[:2000]
+        db.commit()
     return JobRapidapiEnrichmentOut(available=True, provider="jsearch", **fields)
 
 
