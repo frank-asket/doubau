@@ -4,7 +4,7 @@ import re
 from datetime import UTC, datetime
 from typing import Literal
 
-MatchScope = Literal["default", "worldwide"]
+MatchScope = Literal["default", "worldwide", "west_africa"]
 
 # Coarse region tokens for cheap matching (substring on lowercased free text).
 # Order: more specific phrases before broad country names where needed.
@@ -145,9 +145,25 @@ def location_match_score(
     """
     Soft match: remote always strong; same coarse token is best.
     ``match_scope=worldwide`` de-emphasizes mismatched countries so résumé similarity can dominate.
+    ``match_scope=west_africa`` favors Ghana, Nigeria, and remote-global listings for the v1 segment.
     """
     u = normalize_location_token(user_location)
     j = normalize_location_token(job_location)
+
+    west_africa_tokens = {"gh", "ng"}
+
+    if match_scope == "west_africa":
+        if j == "remote":
+            return 0.94
+        if u and j and u == j:
+            return 1.0
+        if j in west_africa_tokens:
+            return 0.86 if not u or u in west_africa_tokens else 0.72
+        if u in west_africa_tokens and not j:
+            return 0.48
+        if u in west_africa_tokens and j and j != u:
+            return 0.18
+        return 0.38 if not u else 0.12
 
     if match_scope == "worldwide":
         if j == "remote":
@@ -173,26 +189,29 @@ def location_match_score(
 
 
 def feed_blend_weights(*, match_scope: MatchScope) -> tuple[float, float, float, float]:
-    """(w_vec, w_loc, w_sen, w_rec) for ``weighted_match_score`` — worldwide favors semantic fit."""
+    """(w_vec, w_loc, w_sen, w_rec) for ``weighted_match_score``."""
     if match_scope == "worldwide":
         return (0.58, 0.12, 0.2, 0.1)
+    if match_scope == "west_africa":
+        return (0.52, 0.18, 0.2, 0.1)
     return (0.5, 0.2, 0.2, 0.1)
 
 
-# Default catalog priority: RapidAPI JSearch first, then other aggregators, then niche providers.
+# Default catalog priority: RapidAPI JSearch first, then free/supplemental sources.
 # Must match ``catalog_sql_tier`` source order in ``app.api.jobs`` feed (non-embedding path).
 _CATALOG_LISTING_SOURCE_PRIORITY: tuple[str, ...] = (
     "jsearch",
-    "active_jobs_db",
-    "serpapi_google_jobs",
-    "adzuna",
+    "remoteok",
     "greenhouse",
     "lever",
     "ashby",
     "workday_cxs",
     "scrapling_jsonld",
     "scrapling",
-    "remoteok",
+    "job_board_rss",
+    "active_jobs_db",
+    "serpapi_google_jobs",
+    "adzuna",
     "http_fetch",
     "manual",
 )

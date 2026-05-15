@@ -77,6 +77,10 @@ def test_feed_lists_jobs_and_remote_only_filters() -> None:
         assert r_world.status_code == 200, r_world.text
         assert isinstance(r_world.json(), list)
 
+        r_west_africa = client.get("/jobs/feed?limit=50&match_scope=west_africa", headers=headers)
+        assert r_west_africa.status_code == 200, r_west_africa.text
+        assert isinstance(r_west_africa.json(), list)
+
         r_combo = client.get(
             "/jobs/feed?limit=50&match_scope=worldwide&remote_only=true",
             headers=headers,

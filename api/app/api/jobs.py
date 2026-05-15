@@ -870,9 +870,12 @@ def feed(
     current_user: CurrentUserDep,
     limit: int = 30,
     offset: int = 0,
-    match_scope: Literal["default", "worldwide"] = Query(
+    match_scope: Literal["default", "worldwide", "west_africa"] = Query(
         "default",
-        description="default: regional location weighting; worldwide: favor résumé similarity over geography",
+        description=(
+            "default: regional location weighting; worldwide: favor résumé similarity over geography; "
+            "west_africa: favor Ghana, Nigeria, and remote-global listings"
+        ),
     ),
     remote_only: bool = Query(
         False,
@@ -883,8 +886,9 @@ def feed(
     Personalized ordering: cosine similarity vs latest embedded résumé when available;
     otherwise persona/heuristic ranking (Phase 2 fallback).
 
-    Query ``match_scope=worldwide`` lowers the weight of geography vs semantic fit for
-    cross-border / remote-first job seekers. ``remote_only=true`` restricts candidates to
+    Query ``match_scope=west_africa`` favors Ghana, Nigeria, and remote-global listings for
+    the v1 segment. ``match_scope=worldwide`` lowers the weight of geography vs semantic fit
+    for cross-border / remote-first job seekers. ``remote_only=true`` restricts candidates to
     listings whose location text suggests remote or distributed work.
     """
     limit = max(1, min(limit, 100))
@@ -1027,18 +1031,19 @@ def feed(
     )
     if remote_filter is not None:
         jobs_stmt = jobs_stmt.where(remote_filter)
-    # Tier order must match ``_CATALOG_LISTING_SOURCE_PRIORITY`` in ``app.jobs.matching`` (scrapling before remoteok).
+    # Tier order must match ``_CATALOG_LISTING_SOURCE_PRIORITY`` in ``app.jobs.matching``.
     catalog_sql_tier = case(
         (Job.listing_source == "jsearch", 0),
-        (Job.listing_source == "active_jobs_db", 1),
-        (Job.listing_source == "serpapi_google_jobs", 2),
-        (Job.listing_source == "adzuna", 3),
+        (Job.listing_source == "remoteok", 1),
         (
             Job.listing_source.in_(("greenhouse", "lever", "ashby", "workday_cxs")),
-            4,
+            2,
         ),
-        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 5),
-        (Job.listing_source == "remoteok", 6),
+        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 3),
+        (Job.listing_source == "job_board_rss", 4),
+        (Job.listing_source == "active_jobs_db", 5),
+        (Job.listing_source == "serpapi_google_jobs", 6),
+        (Job.listing_source == "adzuna", 7),
         else_=9,
     )
     jobs_stmt = jobs_stmt.order_by(catalog_sql_tier.asc(), desc(Job.created_at)).limit(500)

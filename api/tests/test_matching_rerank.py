@@ -40,6 +40,24 @@ def test_location_match_score_worldwide_softens_cross_region() -> None:
     assert location_match_score(user_location=None, job_location="Madrid", match_scope="worldwide") == 0.58
 
 
+def test_location_match_score_west_africa_segment() -> None:
+    assert location_match_score(
+        user_location="Accra, Ghana",
+        job_location="Lagos, Nigeria",
+        match_scope="west_africa",
+    ) > 0.8
+    assert location_match_score(
+        user_location="Lagos, Nigeria",
+        job_location="Remote (Worldwide)",
+        match_scope="west_africa",
+    ) > 0.9
+    assert location_match_score(
+        user_location="Lagos, Nigeria",
+        job_location="Paris, France",
+        match_scope="west_africa",
+    ) < 0.25
+
+
 def test_feed_blend_weights_worldwide_favors_vector() -> None:
     d = feed_blend_weights(match_scope="default")
     w = feed_blend_weights(match_scope="worldwide")
@@ -47,16 +65,21 @@ def test_feed_blend_weights_worldwide_favors_vector() -> None:
     assert w[1] < d[1]  # w_loc
 
 
+def test_feed_blend_weights_west_africa_keeps_location_meaningful() -> None:
+    d = feed_blend_weights(match_scope="default")
+    wa = feed_blend_weights(match_scope="west_africa")
+    assert wa[0] > d[0]  # semantic fit still leads
+    assert wa[1] < d[1]  # but geography remains meaningful
+    assert sum(wa) == 1.0
+
+
 def test_catalog_listing_source_priority_rank_prefers_jsearch() -> None:
     from app.jobs.matching import catalog_listing_source_priority_rank
 
-    assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("active_jobs_db")
-    assert catalog_listing_source_priority_rank("active_jobs_db") < catalog_listing_source_priority_rank("remoteok")
-    assert catalog_listing_source_priority_rank("adzuna") < catalog_listing_source_priority_rank("remoteok")
-    assert catalog_listing_source_priority_rank("scrapling") < catalog_listing_source_priority_rank("remoteok")
-    assert catalog_listing_source_priority_rank("serpapi_google_jobs") < catalog_listing_source_priority_rank(
-        "adzuna"
-    )
+    assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("remoteok")
+    assert catalog_listing_source_priority_rank("remoteok") < catalog_listing_source_priority_rank("active_jobs_db")
+    assert catalog_listing_source_priority_rank("active_jobs_db") < catalog_listing_source_priority_rank("serpapi_google_jobs")
+    assert catalog_listing_source_priority_rank("serpapi_google_jobs") < catalog_listing_source_priority_rank("adzuna")
     assert catalog_listing_source_priority_rank("unknown_board") >= catalog_listing_source_priority_rank("manual")
 
 
@@ -91,4 +114,3 @@ def test_weighted_match_prefers_recent_when_tied() -> None:
         recency_score_=r_old,
     )
     assert a > b
-

@@ -36,6 +36,8 @@ or Clerk development issuer/JWKS.
 
 Discovery stays empty until rows exist in Postgres. Automate ingest with **any** of these (combine as needed):
 
+V1 matching is anchored on the **West Africa remote-ready segment** in [`docs/segment-v1-west-africa.md`](segment-v1-west-africa.md). Use `match_scope=west_africa` when testing GH/NG/remote result quality.
+
 1. **Celery Beat + worker** (recommended baseline): same env as the API, Redis broker, worker listening on `default,scrape,score,draft,notify`, Beat process running. Optional env **`DOUBOW_INGEST_BEAT_HOURLY_REMOTEOK=true`** adds hourly Remote OK at **:17 UTC** in addition to the daily schedule in `api/app/celery_app.py`.
 2. **Cron HTTP hook**: set **`DOUBOW_CRON_INGEST_SECRET`** on the API (long random string). **`POST /jobs/cron/queue-ingest`** with header **`X-Doubow-Cron-Secret`** queues JSearch + Remote OK (+ Scrapling when `SCRAPLING_ENABLED=true`). Returns **404** if the secret is unset (endpoint hidden). To wipe ingested rows before a fresh pull, **`POST /jobs/cron/clear-catalog?mode=providers`** (same header; optional **`mode=all`** deletes every job including manual).
 3. **GitHub Actions**: workflow **`.github/workflows/catalog-ingest.yml`** — add repo secrets **`DOUBOW_API_BASE_URL`** and **`DOUBOW_CRON_INGEST_SECRET`** matching the API. Runs every 6 hours and on manual dispatch; skips quietly until secrets exist.
