@@ -591,7 +591,14 @@ def hero_dashboard(db: DbDep, current_user: CurrentUserDep) -> HeroDashboardOut:
         email=current_user.email,
         profile=profile,
     )
-    feed_rows = jobs_personalized_feed(db=db, current_user=current_user, limit=20, offset=0)
+    feed_rows = jobs_personalized_feed(
+        db=db,
+        current_user=current_user,
+        limit=20,
+        offset=0,
+        match_scope="default",
+        remote_only=False,
+    )
     top = _hero_top_picks(feed_rows, profile)
 
     m = raw["metrics"]
