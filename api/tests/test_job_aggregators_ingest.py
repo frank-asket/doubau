@@ -156,23 +156,6 @@ def test_jsearch_enrichment_maps_glassdoor_interview_id() -> None:
     assert d["glassdoor_interview_id"] == "990011"
 
 
-def test_raw_to_canonical_remoteok_maps_company_logo() -> None:
-    from app.jobs.providers.remoteok import raw_to_canonical_remoteok
-
-    row = {
-        "company": "Globex",
-        "position": "Engineer",
-        "url": "https://remoteok.com/remote-jobs/123",
-        "slug": "remote-engineer-globex-123",
-        "id": "999",
-        "company_logo": "https://remoteok.com/assets/img/jobs/77e354bcfc11f8f187aecacf1847a7a91616121477.png",
-        "tags": ["python"],
-    }
-    c = raw_to_canonical_remoteok(row)
-    assert c is not None
-    assert c.employer_logo_url == row["company_logo"]
-
-
 def test_raw_to_canonical_serpapi_google_job_apply_options() -> None:
     from app.jobs.providers.serpapi_google_jobs import raw_to_canonical_serpapi_google_job
 

@@ -206,7 +206,6 @@ def suggest_recipient_from_job_url(source_url: str | None) -> str | None:
         "workday.com",
         "myworkdayjobs.com",
         "ziprecruiter.com",
-        "remoteok.com",
     )
     if any(host == b or host.endswith("." + b) for b in blocked):
         return None

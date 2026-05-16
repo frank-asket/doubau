@@ -162,10 +162,6 @@ class Settings(BaseSettings):
     scrape_rss_max_entries: int = 25
     s3_job_html_prefix: str = "job-html"
 
-    # Remote OK public JSON API (v1 global-remote). Honor their ToS: link to the job on Remote OK.
-    remoteok_api_url: str = "https://remoteok.com/api"
-    remoteok_ingest_max_jobs: int = 100
-
     # Cross-listing dedup: Redis SET NX per ``hash(title|company|location)`` (default 48h).
     job_content_fingerprint_ttl_seconds: int = 172800
 
@@ -252,9 +248,7 @@ class Settings(BaseSettings):
     # POST /jobs/cron/queue-ingest — optional shared secret for Railway Cron / GitHub Actions.
     # When unset, the route responds with 404 so scanners do not see an auth surface.
     cron_ingest_secret: str | None = None
-    # When True, Celery Beat runs Remote OK ingest hourly at :17 UTC (needs worker + Redis).
-    ingest_beat_hourly_remoteok: bool = False
-    # Queue JSearch + Remote OK ingest once after API startup (Redis lock; see startup_bootstrap).
+    # Queue RapidAPI JSearch + Active Jobs DB + Glassdoor company enrichment once after API startup (Redis lock; see startup_bootstrap).
     bootstrap_ingest_on_startup: bool = False
 
     # Optional: LLM-based résumé structuring (keeps matching unblocked on failure).

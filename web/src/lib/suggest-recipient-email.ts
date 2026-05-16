@@ -9,7 +9,6 @@ const BLOCKED = new Set([
   "workday.com",
   "myworkdayjobs.com",
   "ziprecruiter.com",
-  "remoteok.com",
 ]);
 
 export function suggestRecipientEmailFromJobUrl(sourceUrl: string | null | undefined): string {

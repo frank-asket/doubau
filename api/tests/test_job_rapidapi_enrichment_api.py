@@ -45,7 +45,7 @@ def test_rapidapi_enrichment_unsupported_source() -> None:
                 title="Role",
                 location="Remote",
                 tags=[],
-                listing_source="remoteok",
+                listing_source="legacy_source",
                 external_ref="x",
             )
         )

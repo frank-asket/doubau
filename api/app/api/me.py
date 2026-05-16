@@ -550,17 +550,24 @@ def _salary_from_tags(tags: list[str]) -> str | None:
     return None
 
 
+_HERO_TOP_PICK_RAPIDAPI_SOURCES = {"jsearch", "active_jobs_db"}
+
+
 def _hero_top_picks(feed_rows: list[FeedOut], profile: Profile | None) -> list[HeroTopPickOut]:
     yrs = profile.years_experience if profile else None
     out: list[HeroTopPickOut] = []
     for row in feed_rows:
         j = row.job
+        if j.listing_source not in _HERO_TOP_PICK_RAPIDAPI_SOURCES:
+            continue
         et = (j.employment_type or "").strip() or None
         out.append(
             HeroTopPickOut(
                 job_id=j.id,
                 title=j.title,
                 company=j.company,
+                listing_source=j.listing_source,
+                employer_logo_url=j.employer_logo_url,
                 seniority_caption=_seniority_caption(j.seniority, yrs),
                 employment_type=et,
                 workplace_caption=_workplace_caption(j.location),
@@ -569,6 +576,8 @@ def _hero_top_picks(feed_rows: list[FeedOut], profile: Profile | None) -> list[H
                 source_url=j.source_url,
             )
         )
+        if len(out) >= 4:
+            break
     return out
 
 
@@ -582,7 +591,7 @@ def hero_dashboard(db: DbDep, current_user: CurrentUserDep) -> HeroDashboardOut:
         email=current_user.email,
         profile=profile,
     )
-    feed_rows = jobs_personalized_feed(db=db, current_user=current_user, limit=4, offset=0)
+    feed_rows = jobs_personalized_feed(db=db, current_user=current_user, limit=20, offset=0)
     top = _hero_top_picks(feed_rows, profile)
 
     m = raw["metrics"]

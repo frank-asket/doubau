@@ -54,7 +54,7 @@ Remote-global roles receive a strong location score for GH/NG users. Ghana and N
 
 ## Ingest Implications
 
-JSearch is the primary scheduled provider. Remote OK remains a free supplemental feed.
+RapidAPI JSearch is the primary scheduled provider, with RapidAPI Active Jobs DB as the supplemental ATS/career-site feed.
 
 Default catalog coverage should include:
 

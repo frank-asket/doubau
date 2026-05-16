@@ -38,7 +38,6 @@ from app.tasks import ingest_active_jobs_db as ingest_active_jobs_db_task
 from app.tasks import ingest_adzuna_jobs as ingest_adzuna_jobs_task
 from app.tasks import ingest_jsearch_jobs as ingest_jsearch_jobs_task
 from app.tasks import ingest_job_board_rss_batch as ingest_job_board_rss_batch_task
-from app.tasks import ingest_remoteok_jobs as ingest_remoteok_jobs_task
 from app.tasks import ingest_scrapling_jobs as ingest_scrapling_jobs_task
 from app.tasks import ingest_serpapi_google_jobs as ingest_serpapi_google_jobs_task
 from app.tasks import scrape_job as scrape_job_task
@@ -49,7 +48,6 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 # Rows removed by ``POST /jobs/cron/clear-catalog`` when ``mode=providers`` (keeps ``manual``).
 _CRON_CLEAR_PROVIDER_SOURCES: frozenset[str] = frozenset(
     {
-        "remoteok",
         "adzuna",
         "scrapling",
         "scrapling_jsonld",
@@ -521,14 +519,6 @@ class ScrapeUrlIn(BaseModel):
         return str(self.url).strip()
 
 
-@router.post("/ingest/remoteok", response_model=ScrapeQueueOut)
-def queue_remoteok_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
-    """Enqueue Remote OK JSON ingest (``listing_source=remoteok``)."""
-    _require_ingestion_admin(user)
-    res = ingest_remoteok_jobs_task.delay()
-    return ScrapeQueueOut(task_id=str(res.id))
-
-
 @router.post("/ingest/adzuna", response_model=ScrapeQueueOut)
 def queue_adzuna_ingest(user: CurrentUserDep) -> ScrapeQueueOut:
     """Enqueue Adzuna API search ingest (``listing_source=adzuna``). Requires API keys in env."""
@@ -683,13 +673,8 @@ def cron_queue_provider_ingest(request: Request) -> CronQueueIngestOut:
     queued: dict[str, str] = {}
     r_js = ingest_jsearch_jobs_task.delay()
     queued["jsearch"] = str(r_js.id)
-    r_ro = ingest_remoteok_jobs_task.delay()
-    queued["remoteok"] = str(r_ro.id)
-    r_rss = ingest_job_board_rss_batch_task.delay()
-    queued["job_board_rss_batch"] = str(r_rss.id)
-    if settings.scrapling_enabled:
-        r_sc = ingest_scrapling_jobs_task.delay()
-        queued["scrapling"] = str(r_sc.id)
+    r_aj = ingest_active_jobs_db_task.delay()
+    queued["active_jobs_db"] = str(r_aj.id)
     return CronQueueIngestOut(queued=queued)
 
 
@@ -712,7 +697,7 @@ def cron_clear_job_catalog(
     Uses the same ``X-Doubow-Cron-Secret`` as ``POST /jobs/cron/queue-ingest``.
 
     - ``mode=providers`` (default): deletes rows whose ``listing_source`` is one of the ingest
-      pipelines (JSearch, Remote OK, RSS, Scrapling/Greenhouse, single-URL import). Rows with
+      pipelines (RapidAPI JSearch, Active Jobs DB, RSS, Scrapling/Greenhouse, single-URL import). Rows with
       ``listing_source=manual`` are kept.
     - ``mode=all``: deletes **every** job row (including manual). Use with care.
 
@@ -1034,16 +1019,9 @@ def feed(
     # Tier order must match ``_CATALOG_LISTING_SOURCE_PRIORITY`` in ``app.jobs.matching``.
     catalog_sql_tier = case(
         (Job.listing_source == "jsearch", 0),
-        (Job.listing_source == "remoteok", 1),
-        (
-            Job.listing_source.in_(("greenhouse", "lever", "ashby", "workday_cxs")),
-            2,
-        ),
-        (Job.listing_source.in_(("scrapling", "scrapling_jsonld")), 3),
-        (Job.listing_source == "job_board_rss", 4),
-        (Job.listing_source == "active_jobs_db", 5),
-        (Job.listing_source == "serpapi_google_jobs", 6),
-        (Job.listing_source == "adzuna", 7),
+        (Job.listing_source == "active_jobs_db", 1),
+        (Job.listing_source == "serpapi_google_jobs", 2),
+        (Job.listing_source == "adzuna", 3),
         else_=9,
     )
     jobs_stmt = jobs_stmt.order_by(catalog_sql_tier.asc(), desc(Job.created_at)).limit(500)

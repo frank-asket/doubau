@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Queue JSearch + Remote OK (+ Scrapling if enabled) ingest on a deployed API.
+# Queue RapidAPI JSearch + Active Jobs DB ingest on a deployed API.
 # API must have DOUBOW_CRON_INGEST_SECRET set; send the same value in X-Doubow-Cron-Secret.
 #
 #   export DOUBOW_API_BASE_URL=https://your-api.example.com

@@ -29,7 +29,7 @@ def persist_canonical_job(job_in: CanonicalJobIn) -> tuple[Literal["created", "s
     Dedup by ``source_url`` hash, then Redis content-fingerprint (TTL), then insert.
 
     Fingerprint keys are scoped by ``listing_source`` so the same role advertised on
-    Remote OK, Adzuna, and Scrapling can each create a row (different apply URLs and
+    RapidAPI JSearch, Active Jobs DB, Adzuna, and Scrapling can each create a row (different apply URLs and
     attribution). Re-ingest of the same row from the same provider still dedupes.
 
     Returns ``("created", job_id)`` or ``("skipped", reason)``.

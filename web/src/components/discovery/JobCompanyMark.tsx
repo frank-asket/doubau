@@ -1,15 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-
-/** Logo.dev publishable token (https://www.logo.dev/docs). Alias for older env name. */
-function logoDevPublishableKey(): string {
-  return (
-    (process.env.NEXT_PUBLIC_LOGO_DEV_KEY ?? "").trim() ||
-    (process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY ?? "").trim()
-  );
-}
+import { useEffect, useState } from "react";
 
 /** Parse a listing URL and return a bare hostname (no www), or null. */
 export function hostnameFromSourceUrl(url: string | null | undefined): string | null {
@@ -26,11 +17,10 @@ export function hostnameFromSourceUrl(url: string | null | undefined): string | 
 
 /**
  * Hosts where the public site favicon is the job board / ATS, not the hiring company.
- * We skip these for logo resolution so we fall back to employer name heuristics or initials.
+ * We skip these for employer-site links because they are not corporate domains.
  */
 export function isLowSignalLogoHost(host: string): boolean {
   const h = host.toLowerCase();
-  if (h === "remoteok.com" || h.endsWith(".remoteok.com")) return true;
   if (h.includes("adzuna.")) return true;
   if (h.includes("indeed.") || h.includes("glassdoor.") || h.includes("linkedin.") || h.includes("monster.")) return true;
   if (h.includes("ziprecruiter.") || h.includes("reed.co") || h.includes("totaljobs.") || h.includes("seek.com")) return true;
@@ -50,149 +40,13 @@ export function isLowSignalLogoHost(host: string): boolean {
   return false;
 }
 
-/**
- * Many listings point at ATS hosts (Greenhouse, Lever, …) where the hostname is not the employer.
- * We still derive a **likely corporate domain** from the first path segment so Logo.dev / favicons
- * can resolve — otherwise the employer metadata panel stays empty.
- */
-const GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES: Record<string, string> = {
-  doordashusa: "doordash.com",
-  doordash: "doordash.com",
-  reddit: "reddit.com",
-  lyft: "lyft.com",
-  airbnb: "airbnb.com",
-  stripe: "stripe.com",
-};
-
-function boardSlugToEmployerDomain(slugRaw: string): string | null {
-  const slug = slugRaw.trim().toLowerCase().replace(/_/g, "-");
-  if (!slug || slug.length < 2 || slug.length > 48) return null;
-  if (GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[slug]) return GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[slug];
-  // "acme-corp" → too ambiguous for auto-.com; skip hyphens in slug
-  if (slug.includes("-")) return null;
-  // Strip common regional suffixes before guessing .com
-  const stripped = slug.replace(/(usa|uk|eu|global)$/i, "");
-  if (stripped !== slug && GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[stripped]) {
-    return GREENHOUSE_LEVER_SLUG_DOMAIN_OVERRIDES[stripped];
-  }
-  const base = stripped.length >= 2 ? stripped : slug;
-  if (!/^[a-z0-9]+$/.test(base)) return null;
-  return `${base}.com`;
-}
-
-/** Infer hiring company domain from ATS listing URL (Greenhouse / Lever paths). */
-export function inferEmployerDomainFromListingUrl(sourceUrl: string | null | undefined): string | null {
-  if (!sourceUrl || sourceUrl === "#") return null;
-  try {
-    const parsed = new URL(/^https?:\/\//i.test(sourceUrl) ? sourceUrl : `https://${sourceUrl}`);
-    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
-    const parts = parsed.pathname.split("/").filter(Boolean);
-
-    if (host === "boards.greenhouse.io" || host === "job-boards.greenhouse.io") {
-      return boardSlugToEmployerDomain(parts[0] ?? "");
-    }
-    if (host === "jobs.lever.co" && parts[0]) {
-      return boardSlugToEmployerDomain(parts[0]);
-    }
-    if (host === "boards-api.greenhouse.io" && parts[0] === "v1" && parts[1] === "boards" && parts[2]) {
-      return boardSlugToEmployerDomain(parts[2]);
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-/** When the listing has no URL, infer a corporate domain from the employer name (substring match). */
-const BRAND_HOST_BY_SUBSTRING: { needle: string; host: string }[] = [
-  { needle: "meta", host: "meta.com" },
-  { needle: "facebook", host: "meta.com" },
-  { needle: "google", host: "google.com" },
-  { needle: "alphabet", host: "abc.xyz" },
-  { needle: "amazon", host: "amazon.com" },
-  { needle: "aws", host: "aws.amazon.com" },
-  { needle: "microsoft", host: "microsoft.com" },
-  { needle: "apple", host: "apple.com" },
-  { needle: "netflix", host: "netflix.com" },
-  { needle: "airbnb", host: "airbnb.com" },
-  { needle: "uber", host: "uber.com" },
-  { needle: "spotify", host: "spotify.com" },
-  { needle: "shopify", host: "shopify.com" },
-  { needle: "stripe", host: "stripe.com" },
-  { needle: "salesforce", host: "salesforce.com" },
-  { needle: "oracle", host: "oracle.com" },
-  { needle: "ibm", host: "ibm.com" },
-  { needle: "intel", host: "intel.com" },
-  { needle: "nvidia", host: "nvidia.com" },
-  { needle: "adobe", host: "adobe.com" },
-  { needle: "zalando", host: "zalando.com" },
-  { needle: "glovo", host: "glovoapp.com" },
-  { needle: "revolut", host: "revolut.com" },
-  { needle: "wise", host: "wise.com" },
-  { needle: "monzo", host: "monzo.com" },
-  { needle: "n26", host: "n26.com" },
-  { needle: "deliveroo", host: "deliveroo.com" },
-  { needle: "doordash", host: "doordash.com" },
-  { needle: "atlassian", host: "atlassian.com" },
-  { needle: "figma", host: "figma.com" },
-  { needle: "notion", host: "notion.so" },
-  { needle: "linear", host: "linear.app" },
-  { needle: "vercel", host: "vercel.com" },
-  { needle: "gitlab", host: "gitlab.com" },
-  { needle: "github", host: "github.com" },
-  { needle: "docker", host: "docker.com" },
-  { needle: "datadog", host: "datadoghq.com" },
-  { needle: "snowflake", host: "snowflake.com" },
-  { needle: "mongodb", host: "mongodb.com" },
-  { needle: "elastic", host: "elastic.co" },
-  { needle: "twilio", host: "twilio.com" },
-];
-
-export function resolveCompanyLogoHost(company: string, sourceUrl: string | null | undefined): string | null {
-  const fromUrl = hostnameFromSourceUrl(sourceUrl);
-  if (fromUrl && !isLowSignalLogoHost(fromUrl)) return fromUrl;
-
-  const fromAtsSlug = inferEmployerDomainFromListingUrl(sourceUrl);
-  if (fromAtsSlug) return fromAtsSlug;
-
-  const c = company.toLowerCase().trim();
-  for (const { needle, host } of BRAND_HOST_BY_SUBSTRING) {
-    if (c.includes(needle)) return host;
-  }
-  return null;
-}
-
-function isTrustedBrandImageUrl(url: string): boolean {
+function isProviderLogoUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    if (u.protocol !== "https:") return false;
-    return (
-      u.hostname === "img.logo.dev" ||
-      u.hostname === "logo.clearbit.com" ||
-      u.hostname === "unavatar.io" ||
-      (u.hostname === "www.google.com" && u.pathname.startsWith("/s2/favicons/"))
-    );
+    return u.protocol === "https:" || u.protocol === "http:";
   } catch {
     return false;
   }
-}
-
-/** Ordered logo URLs for a corporate domain (high-res brand assets where available). */
-export function buildCompanyLogoCandidates(host: string): string[] {
-  const safe = host.trim().toLowerCase().replace(/[^a-z0-9.-]/g, "");
-  if (!safe || !safe.includes(".")) return [];
-  const enc = encodeURIComponent(safe);
-  const token = logoDevPublishableKey();
-  const out: string[] = [];
-  if (token) {
-    out.push(`https://img.logo.dev/${safe}?token=${encodeURIComponent(token)}&size=128`);
-  }
-  out.push(
-    `https://logo.clearbit.com/${safe}`,
-    `https://unavatar.io/${safe}`,
-    `https://www.google.com/s2/favicons?domain=${enc}&sz=128`,
-  );
-  return out;
 }
 
 export function companyInitials(company: string): string {
@@ -209,7 +63,6 @@ export type JobCompanyMarkSize = "card" | "detail" | "hero";
 
 export function JobCompanyMark({
   company,
-  sourceUrl,
   preferredLogoSrc,
   size = "card",
   presentation = "default",
@@ -217,41 +70,21 @@ export function JobCompanyMark({
 }: {
   company: string;
   sourceUrl?: string | null;
-  /** When set (e.g. JSearch employer logo, Logo.dev Describe), tried first. HTTPS hosts outside the Next/Image allowlist render via a plain `img` so logos still load. */
+  /** Provider-supplied logo URL from RapidAPI/JSearch or stored catalog enrichment. */
   preferredLogoSrc?: string | null;
   size?: JobCompanyMarkSize;
   /** Muted logos — soft grayscale for dense lists (e.g. dashboard picks). */
   presentation?: "default" | "muted";
   className?: string;
 }) {
-  const host = useMemo(() => resolveCompanyLogoHost(company, sourceUrl), [company, sourceUrl]);
-  const externalPreferred = useMemo(() => {
-    const p = preferredLogoSrc?.trim();
-    if (!p || !/^https:\/\//i.test(p)) return null;
-    if (isTrustedBrandImageUrl(p)) return null;
-    return p;
-  }, [preferredLogoSrc]);
-
-  const candidates = useMemo(() => {
-    if (!host) return [];
-    const base = buildCompanyLogoCandidates(host);
-    const pref = preferredLogoSrc?.trim();
-    if (pref && isTrustedBrandImageUrl(pref)) {
-      return [pref, ...base.filter((u) => u !== pref)];
-    }
-    return base;
-  }, [host, preferredLogoSrc]);
-  const [attempt, setAttempt] = useState(0);
+  const providerLogo = preferredLogoSrc?.trim();
   const [externalFailed, setExternalFailed] = useState(false);
 
   useEffect(() => {
-    setAttempt(0);
     setExternalFailed(false);
-  }, [host, preferredLogoSrc]);
+  }, [providerLogo]);
 
   const initials = companyInitials(company);
-  const src: string | undefined =
-    candidates.length > 0 && attempt < candidates.length ? candidates[attempt] : undefined;
 
   const muted = presentation === "muted";
   const mutedBox = muted ? " saturate-[0.88] contrast-[0.98] " : " ";
@@ -272,12 +105,11 @@ export function JobCompanyMark({
 
   const pxSize = size === "hero" ? 64 : size === "detail" ? 48 : 56;
 
-  if (externalPreferred && !externalFailed) {
+  if (providerLogo && isProviderLogoUrl(providerLogo) && !externalFailed) {
     return (
       <span className={box} role="img" aria-label={`${company} logo`}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- provider CDN URLs are not in next/image remotePatterns */}
         <img
-          src={externalPreferred}
+          src={providerLogo}
           alt=""
           width={pxSize}
           height={pxSize}
@@ -297,27 +129,11 @@ export function JobCompanyMark({
       role="img"
       aria-label={`${company} logo`}
     >
-      {src ? (
-        <Image
-          key={`${attempt}-${src}`}
-          src={src}
-          alt=""
-          width={pxSize}
-          height={pxSize}
-          sizes={`${pxSize}px`}
-          className={`bg-white object-contain p-1.5 ${muted ? "grayscale-[0.35] opacity-[0.92]" : ""}`}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          onError={() => setAttempt((a) => Math.min(a + 1, candidates.length))}
-        />
-      ) : (
-        <span
-          className={`flex size-full items-center justify-center bg-[var(--app-badge-blue-bg)] ${textCls} text-[var(--app-badge-blue-fg)]`}
-        >
-          {initials}
-        </span>
-      )}
+      <span
+        className={`flex size-full items-center justify-center bg-[var(--app-badge-blue-bg)] ${textCls} text-[var(--app-badge-blue-fg)]`}
+      >
+        {initials}
+      </span>
     </span>
   );
 }

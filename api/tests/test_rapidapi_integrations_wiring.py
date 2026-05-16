@@ -113,7 +113,7 @@ def test_load_job_description_merges_jsearch_live() -> None:
             db.commit()
 
 
-def test_load_job_description_remoteok_no_extra_call() -> None:
+def test_load_job_description_non_jsearch_no_extra_call() -> None:
     _pg_or_skip()
     from app.models.job import Job
 
@@ -127,7 +127,7 @@ def test_load_job_description_remoteok_no_extra_call() -> None:
                 location="Remote",
                 tags=[],
                 description="Only this.",
-                listing_source="remoteok",
+                listing_source="legacy_source",
                 external_ref="slug-1",
             )
         )

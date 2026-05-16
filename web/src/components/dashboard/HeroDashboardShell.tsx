@@ -46,6 +46,8 @@ export type HeroDashboardPayload = {
     job_id: string;
     title: string;
     company: string;
+    listing_source: string | null;
+    employer_logo_url: string | null;
     seniority_caption: string;
     employment_type: string | null;
     workplace_caption: string;
@@ -122,6 +124,12 @@ function DashboardJobTag({ children }: { children: ReactNode }) {
   );
 }
 
+function dashboardSourceLabel(source: string | null) {
+  if (source === "jsearch") return "RapidAPI JSearch";
+  if (source === "active_jobs_db") return "RapidAPI Active Jobs DB";
+  return null;
+}
+
 function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) {
   return (
     <section className="dashboard-rail-card p-6 sm:p-7">
@@ -136,6 +144,7 @@ function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) 
       <div className="mt-5 space-y-4">
         {picks.length ? (
           picks.map((job) => {
+            const sourceLabel = dashboardSourceLabel(job.listing_source);
             const inner = (
               <article className="rounded-[28px] border border-[color-mix(in_srgb,white_72%,var(--app-border))] bg-white/55 p-5 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset,0_16px_40px_rgba(15,23,42,0.05)] backdrop-blur-md transition-[transform,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
                 <div className="flex items-start justify-between gap-4">
@@ -143,6 +152,7 @@ function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) 
                     <JobCompanyMark
                       company={job.company}
                       sourceUrl={job.source_url}
+                      preferredLogoSrc={job.employer_logo_url}
                       size="detail"
                       presentation="muted"
                       className="!rounded-full shadow-none ring-1 ring-[color-mix(in_srgb,var(--app-border)_65%,transparent)]"
@@ -159,6 +169,7 @@ function TopPicksPanel({ picks }: { picks: HeroDashboardPayload["top_picks"] }) 
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
+                  {sourceLabel ? <DashboardJobTag>{sourceLabel}</DashboardJobTag> : null}
                   <DashboardJobTag>{job.seniority_caption}</DashboardJobTag>
                   {job.employment_type ? <DashboardJobTag>{job.employment_type}</DashboardJobTag> : null}
                   <DashboardJobTag>{job.workplace_caption}</DashboardJobTag>

@@ -216,6 +216,8 @@ class HeroTopPickOut(BaseModel):
     job_id: UUID
     title: str
     company: str
+    listing_source: str | None = None
+    employer_logo_url: str | None = None
     seniority_caption: str
     employment_type: str | None = None
     workplace_caption: str

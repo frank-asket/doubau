@@ -1,4 +1,4 @@
-"""Add listing_source for job provenance (adapter id: remoteok, http_fetch, etc.).
+"""Add listing_source for job provenance (adapter id: jsearch, http_fetch, etc.).
 
 Revision ID: 0009_job_listing_source
 Revises: 0008_phase2_jobs_embedding

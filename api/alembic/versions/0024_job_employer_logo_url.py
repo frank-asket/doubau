@@ -1,4 +1,4 @@
-"""Optional employer logo URL on catalog jobs (JSearch, Remote OK, …).
+"""Optional employer logo URL on catalog jobs (JSearch, Active Jobs DB, …).
 
 Revision ID: 0024_job_employer_logo_url
 Revises: 0023_application_role_report

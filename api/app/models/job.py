@@ -30,10 +30,10 @@ class Job(Base):
     tags: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
 
     source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True, index=True)
-    # Direct employer logo from provider (e.g. JSearch employer_logo, Remote OK company_logo).
+    # Direct employer logo from provider (e.g. JSearch employer_logo or Active Jobs DB organization logo).
     employer_logo_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     source_url_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    # Ingestion provenance: e.g. remoteok, http_fetch, manual (see provider adapters / tasks).
+    # Ingestion provenance: e.g. jsearch, active_jobs_db, http_fetch, manual (see provider adapters / tasks).
     listing_source: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     external_ref: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     source_posted_at: Mapped[datetime | None] = mapped_column(

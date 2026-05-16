@@ -33,7 +33,6 @@ from app.jobs.providers.active_jobs_db import fetch_active_jobs_db_canonical
 from app.jobs.providers.adzuna import fetch_adzuna_canonical
 from app.jobs.providers.jsearch import fetch_jsearch_canonical
 from app.jobs.providers.persist import persist_canonical_jobs
-from app.jobs.providers.remoteok import fetch_remoteok_canonical
 from app.jobs.providers.scrapling import fetch_scrapling_canonical
 from app.jobs.providers.serpapi_google_jobs import fetch_serpapi_google_jobs_canonical
 from app.jobs.rss_feed_list import split_job_board_rss_urls
@@ -348,44 +347,6 @@ def scrape_rss_feed(self, feed_url: str) -> dict[str, Any]:
         "links_discovered": len(discovered),
         "queued": queued,
     }
-
-
-@celery_app.task(name="app.tasks.ingest_remoteok_jobs")
-def ingest_remoteok_jobs() -> dict[str, Any]:
-    """
-    Ingest from Remote OK's public JSON API via ``CanonicalJobIn`` + shared persist pipeline.
-
-    Remote OK asks that listings link back to the job URL on their site; we store that in
-    ``source_url`` for dedup and attribution in the API/UI.
-    """
-    started_at = datetime.now(UTC)
-    max_n = max(1, settings.remoteok_ingest_max_jobs)
-    jobs, err = fetch_remoteok_canonical(max_n)
-    if err:
-        ended_at = datetime.now(UTC)
-        log.warning("ingest_remoteok_jobs fetch_failed error=%s", err)
-        return {
-            "status": "fetch_failed",
-            "error": err,
-            "listing_source": "remoteok",
-            **_ingest_meta(started_at=started_at, ended_at=ended_at),
-        }
-
-    stats = persist_canonical_jobs(jobs, max_created=max_n)
-    ended_at = datetime.now(UTC)
-    out: dict[str, Any] = {
-        "status": "completed",
-        "listing_source": "remoteok",
-        **_ingest_meta(started_at=started_at, ended_at=ended_at),
-    }
-    out.update(stats)
-    log.info(
-        "ingest_remoteok_jobs completed created=%s skipped=%s duration_ms=%s",
-        out.get("created"),
-        out.get("skipped"),
-        out.get("ingest_duration_ms"),
-    )
-    return out
 
 
 @celery_app.task(name="app.tasks.ingest_adzuna_jobs")

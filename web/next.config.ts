@@ -65,7 +65,6 @@ const nextConfig: NextConfig = {
   output: "standalone",
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "img.logo.dev", pathname: "/**" },
       { protocol: "https", hostname: "logo.clearbit.com", pathname: "/**" },
       { protocol: "https", hostname: "unavatar.io", pathname: "/**" },
       { protocol: "https", hostname: "www.google.com", pathname: "/s2/favicons/**" },

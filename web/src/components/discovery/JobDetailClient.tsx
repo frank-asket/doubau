@@ -5,19 +5,16 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 
 import { JobPipelineHint } from "@/components/app/JobPipelineHint";
-import { EmployerLogoDevPanel } from "@/components/discovery/EmployerLogoDevPanel";
 import {
   JobCompanyMark,
   hostnameFromSourceUrl,
   isLowSignalLogoHost,
-  resolveCompanyLogoHost,
 } from "@/components/discovery/JobCompanyMark";
 import type { JobRow } from "@/components/discovery/DiscoveryClient";
 import { AppBadge } from "@/components/ui/badge";
 import { AppButton } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ChromeIconButton } from "@/components/ui/chrome-motion";
-import { useLogoDevEmployerDescribe } from "@/hooks/use-logo-dev-employer-describe";
 import type { ApplicationRow } from "@/lib/applications-fetch";
 import { parseJobDescriptionSections } from "@/lib/job-detail-parse";
 import { cn } from "@/lib/utils";
@@ -71,7 +68,6 @@ function listingSourceLabel(code: string | null | undefined): string | null {
     jsearch: "RapidAPI",
     active_jobs_db: "Active Jobs DB",
     serpapi_google_jobs: "Google Jobs (SerpAPI)",
-    remoteok: "Remote OK",
     adzuna: "Adzuna",
     http_fetch: "Imported page",
     manual: "Manual entry",
@@ -173,22 +169,9 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         : null;
     if (fromRapidApi && !isLowSignalLogoHost(fromRapidApi)) return fromRapidApi;
     const fromListing = hostnameFromSourceUrl(job.source_url);
-    const employer = resolveCompanyLogoHost(job.company, job.source_url);
     if (fromListing && !isLowSignalLogoHost(fromListing)) return fromListing;
-    return employer;
+    return null;
   }, [job.company, job.source_url, rapidApiEnrichment]);
-
-  const logoDevDescribeDomain = useMemo(() => {
-    if (isPreviewJob(job)) return null;
-    const fromRapidApi =
-      rapidApiEnrichment?.available && rapidApiEnrichment.employer_website?.trim()
-        ? hostnameFromSourceUrl(rapidApiEnrichment.employer_website.trim())
-        : null;
-    if (fromRapidApi && !isLowSignalLogoHost(fromRapidApi)) return fromRapidApi;
-    return resolveCompanyLogoHost(job.company, job.source_url);
-  }, [job.company, job.source_url, job.id, rapidApiEnrichment]);
-
-  const employerLogoDev = useLogoDevEmployerDescribe(logoDevDescribeDomain, !isPreviewJob(job));
 
   const preferredEmployerLogoSrc = useMemo(() => {
     const rapid =
@@ -196,9 +179,8 @@ export function JobDetailClient({ job }: { job: JobRow }) {
         ? rapidApiEnrichment.employer_logo_url.trim()
         : null;
     const stored = job.employer_logo_url?.trim() || null;
-    const dev = employerLogoDev.payload?.logo_url?.trim() || null;
-    return rapid ?? stored ?? dev;
-  }, [employerLogoDev.payload?.logo_url, job.employer_logo_url, rapidApiEnrichment]);
+    return rapid ?? stored;
+  }, [job.employer_logo_url, rapidApiEnrichment]);
 
   const salaryLine = extractSalaryHint(job.description);
   const posted = formatDateLong(job.source_posted_at ?? job.created_at);
@@ -650,13 +632,6 @@ export function JobDetailClient({ job }: { job: JobRow }) {
                     {companySiteHost}
                   </a>
                 ) : null}
-                <EmployerLogoDevPanel
-                  domain={logoDevDescribeDomain}
-                  enabled={!isPreviewJob(job)}
-                  companyName={job.company}
-                  awaitingDomain={job.listing_source === "jsearch" && rapidApiEnrichmentLoading}
-                  remote={employerLogoDev}
-                />
               </div>
             </div>
           </div>

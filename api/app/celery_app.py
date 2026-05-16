@@ -14,9 +14,9 @@ def make_celery() -> Celery:
             "task": "app.tasks.ingest_jsearch_jobs",
             "schedule": crontab(hour=5, minute=30),
         },
-        "ingest-remoteok-0700-utc": {
-            "task": "app.tasks.ingest_remoteok_jobs",
-            "schedule": crontab(hour=7, minute=0),
+        "ingest-active-jobs-db-0545-utc": {
+            "task": "app.tasks.ingest_active_jobs_db",
+            "schedule": crontab(hour=5, minute=45),
         },
         "mark-stale-jobs-0800-utc": {
             "task": "app.tasks.mark_stale_jobs",
@@ -27,12 +27,6 @@ def make_celery() -> Celery:
             "schedule": crontab(minute="*/15"),
         },
     }
-    if settings.ingest_beat_hourly_remoteok:
-        beat_schedule["ingest-remoteok-hourly"] = {
-            "task": "app.tasks.ingest_remoteok_jobs",
-            "schedule": crontab(minute=17),
-        }
-
     app = Celery(
         "doubow",
         broker=settings.redis_url,
@@ -53,7 +47,6 @@ def make_celery() -> Celery:
             Queue("notify", routing_key="notify"),
         ),
         task_routes={
-            "app.tasks.ingest_remoteok_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_adzuna_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_scrapling_jobs": {"queue": "scrape", "routing_key": "scrape"},
             "app.tasks.ingest_jsearch_jobs": {"queue": "scrape", "routing_key": "scrape"},

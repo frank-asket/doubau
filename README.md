@@ -64,7 +64,7 @@ flowchart TB
   subgraph External["◆ External services"]
     CL[Clerk]
     OAI[OpenAI — embeddings & LLM]
-    JB[Job providers — RapidAPI JSearch, Remote OK, RSS/imports…]
+    JB[Job providers — RapidAPI JSearch, Active Jobs DB, Glassdoor…]
     SM[Resend / SMTP / Gmail API — when configured]
   end
 
@@ -165,8 +165,8 @@ Aligned with the pipeline story in `.tmp/job_data_pipeline_architecture.svg` and
 flowchart TB
   subgraph Sources["◆ Ingest sources"]
     JSR[JSearch / RapidAPI]
-    ROK[Remote OK]
-    RSS[RSS feeds]
+    AJD[Active Jobs DB / RapidAPI]
+    GD[Glassdoor Real-time / RapidAPI]
     IMP[Admin / allowed URL import]
   end
 
@@ -180,9 +180,9 @@ flowchart TB
     S3[[raw payloads optional]]
   end
 
-  ROK --> ING
-  ADZ --> ING
-  SCR --> ING
+  JSR --> ING
+  AJD --> ING
+  GD --> ING
   IMP --> ING
   ING --> PG
   ING --> S3

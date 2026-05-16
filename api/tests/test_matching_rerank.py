@@ -76,8 +76,7 @@ def test_feed_blend_weights_west_africa_keeps_location_meaningful() -> None:
 def test_catalog_listing_source_priority_rank_prefers_jsearch() -> None:
     from app.jobs.matching import catalog_listing_source_priority_rank
 
-    assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("remoteok")
-    assert catalog_listing_source_priority_rank("remoteok") < catalog_listing_source_priority_rank("active_jobs_db")
+    assert catalog_listing_source_priority_rank("jsearch") < catalog_listing_source_priority_rank("active_jobs_db")
     assert catalog_listing_source_priority_rank("active_jobs_db") < catalog_listing_source_priority_rank("serpapi_google_jobs")
     assert catalog_listing_source_priority_rank("serpapi_google_jobs") < catalog_listing_source_priority_rank("adzuna")
     assert catalog_listing_source_priority_rank("unknown_board") >= catalog_listing_source_priority_rank("manual")
