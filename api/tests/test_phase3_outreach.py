@@ -324,6 +324,7 @@ def test_dispatch_outbound_smtp_marks_email_sent(monkeypatch: pytest.MonkeyPatch
 
     client = TestClient(app)
     token, user_id = _signup(client)
+    calls.clear()
     headers = {"Authorization": f"Bearer {token}"}
 
     r0 = client.post(
@@ -388,6 +389,7 @@ def test_dispatch_outbound_resend_marks_email_sent(monkeypatch: pytest.MonkeyPat
 
     client = TestClient(app)
     token, user_id = _signup(client)
+    posts.clear()
     headers = {"Authorization": f"Bearer {token}"}
 
     r0 = client.post(

@@ -315,7 +315,7 @@ def test_glassdoor_category_routes_proxy(
         ("/integrations/glassdoor/companies/details?company_id=1138", "company_details"),
         ("/integrations/glassdoor/companies/reviews?company_id=1138", "company_reviews"),
         ("/integrations/glassdoor/companies/interviews?company_id=1138", "company_interviews"),
-        ("/integrations/glassdoor/salaries?job_title=Designer&location=Chicago", "salaries"),
+        ("/integrations/glassdoor/salaries?job_title=Designer&location=Chicago&page=1", "salaries"),
     ]
 
     with patch(

@@ -68,6 +68,7 @@ def test_followup_reminder_sends_and_marks_notified(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(settings_mod.settings, "smtp_password", "p")
 
     _, user_id = _signup()
+    sent.clear()
     when = datetime.now(UTC) + timedelta(minutes=5)
     with SessionLocal() as db:
         u = db.get(User, user_id)
@@ -125,6 +126,7 @@ def test_followup_reminder_sends_via_resend(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(settings_mod.settings, "smtp_from", None)
 
     _, user_id = _signup()
+    posts.clear()
     user_email = ""
     when = datetime.now(UTC) + timedelta(minutes=5)
     with SessionLocal() as db:

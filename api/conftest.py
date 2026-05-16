@@ -14,3 +14,10 @@ os.environ["DOUBOW_DATABASE_URL"] = os.getenv(
     "postgresql+psycopg://postgres:postgres@127.0.0.1:5433/doubow",
 )
 os.environ.setdefault("DOUBOW_REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("DOUBOW_RESEND_API_KEY", "")
+os.environ.setdefault("DOUBOW_RESEND_FROM", "")
+os.environ.setdefault("DOUBOW_SMTP_HOST", "")
+os.environ.setdefault("DOUBOW_SMTP_FROM", "")
+os.environ.setdefault("DOUBOW_SMTP_USER", "")
+os.environ.setdefault("DOUBOW_SMTP_PASSWORD", "")
+os.environ.setdefault("DOUBOW_LINKEDIN_DISPATCH_WEBHOOK_URL", "")

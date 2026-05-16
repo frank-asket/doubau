@@ -38,6 +38,7 @@ def test_resume_ack_skips_without_email_transport(monkeypatch: pytest.MonkeyPatc
     uid = uuid4()
     with SessionLocal() as db:
         db.add(User(id=uid, email=f"ack-skip-{uuid4()}@example.com", password_hash="x"))
+        db.commit()
         doc = ResumeDocument(
             user_id=uid,
             file_name="cv.pdf",
@@ -79,6 +80,7 @@ def test_resume_ack_sends_when_transport_configured(monkeypatch: pytest.MonkeyPa
     email = f"ack-send-{uuid4()}@example.com"
     with SessionLocal() as db:
         db.add(User(id=uid, email=email, password_hash="x"))
+        db.commit()
         doc = ResumeDocument(
             user_id=uid,
             file_name="cv.pdf",
@@ -119,6 +121,7 @@ def test_resume_ack_swallows_send_errors(monkeypatch: pytest.MonkeyPatch) -> Non
     uid = uuid4()
     with SessionLocal() as db:
         db.add(User(id=uid, email=f"ack-boom-{uuid4()}@example.com", password_hash="x"))
+        db.commit()
         doc = ResumeDocument(
             user_id=uid,
             file_name="cv.pdf",
