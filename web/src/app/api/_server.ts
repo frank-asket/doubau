@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  return process.env.API_INTERNAL_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 }
 
 export function getClerkJwtTemplateName(): string {
@@ -69,4 +69,3 @@ export async function getBackendAuthBearerOnly(): Promise<HeadersInit> {
   if (token) headers.authorization = `Bearer ${token}`;
   return headers;
 }
-

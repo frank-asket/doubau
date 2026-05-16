@@ -42,7 +42,7 @@ services:
       DOUBOW_CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
       DOUBOW_JWT_SECRET: dev_only_change_me
       DOUBOW_REDIS_URL: redis://redis:6379/0
-      # Queue JSearch + Remote OK (+ Scrapling if SCRAPLING_ENABLED) once per lock window; see beat service for recurring schedule.
+      # Queue RapidAPI JSearch + Active Jobs DB (+ Glassdoor context) once per lock window; see beat service for recurring schedule.
       DOUBOW_BOOTSTRAP_INGEST_ON_STARTUP: "true"
       # Inside Compose, MinIO is reachable on the service hostname (not localhost).
       DOUBOW_S3_ENDPOINT_URL: http://minio:9000
@@ -119,6 +119,9 @@ services:
     working_dir: /app
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
+      # Server-side Next.js fetches run inside the web container, where localhost is not the API container.
+      API_INTERNAL_BASE_URL: http://api:8000
+      # Public browser-facing API origin for client-side WebSocket/proxy helpers.
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     ports:
       - "3000:3000"
