@@ -45,6 +45,10 @@ from app.tasks import scrape_rss_feed as scrape_rss_feed_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
+# Job Discovery is now RapidAPI-backed only. This keeps stale legacy provider
+# rows in long-lived databases from leaking into Discovery or dashboard picks.
+_DISCOVERY_LISTING_SOURCES: frozenset[str] = frozenset({"jsearch", "active_jobs_db"})
+
 # Rows removed by ``POST /jobs/cron/clear-catalog`` when ``mode=providers`` (keeps ``manual``).
 _CRON_CLEAR_PROVIDER_SOURCES: frozenset[str] = frozenset(
     {
@@ -78,6 +82,10 @@ def _clear_redis_job_fingerprint_keys() -> int:
     except Exception:
         return n
     return n
+
+
+def _discovery_source_filter():
+    return Job.listing_source.in_(_DISCOVERY_LISTING_SOURCES)
 
 
 def _require_ingestion_admin(user: User) -> None:
@@ -365,6 +373,7 @@ def list_jobs(
     cutoff = datetime.utcnow() - timedelta(days=max(1, settings.jobs_stale_after_days))
     stmt = stmt.where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
     stmt = stmt.where(Job.is_stale.is_(False))
+    stmt = stmt.where(_discovery_source_filter())
     stmt = stmt.where(
         ~select(JobFeedback.id)
         .where(
@@ -420,6 +429,7 @@ def list_hidden_jobs(
         )
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
         .where(Job.is_stale.is_(False))
+        .where(_discovery_source_filter())
         .order_by(desc(JobFeedback.created_at))
     )
     jobs = db.scalars(stmt.limit(limit).offset(offset)).all()
@@ -432,6 +442,7 @@ def catalog_summary(db: DbDep, _: CurrentUserDep) -> CatalogSummaryOut:
     active_filters = (
         func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff,
         Job.is_stale.is_(False),
+        _discovery_source_filter(),
     )
 
     active_total = int(
@@ -900,6 +911,7 @@ def feed(
             .where(Job.embedding_model == settings.openai_embedding_model)
             .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
             .where(Job.is_stale.is_(False))
+            .where(_discovery_source_filter())
             .where(
                 ~select(JobFeedback.id)
                 .where(
@@ -1002,6 +1014,7 @@ def feed(
         select(Job)
         .where(func.coalesce(Job.source_posted_at, Job.created_at) >= cutoff)
         .where(Job.is_stale.is_(False))
+        .where(_discovery_source_filter())
         .where(
             ~select(JobFeedback.id)
             .where(

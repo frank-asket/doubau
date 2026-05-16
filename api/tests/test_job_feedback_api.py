@@ -46,6 +46,7 @@ def test_hide_feedback_excludes_job_from_feed() -> None:
                 title="Intern",
                 location="Remote",
                 tags=["intern"],
+                listing_source="jsearch",
             )
         )
         db.commit()
@@ -89,6 +90,7 @@ def test_clear_feedback_restores_job_in_feed() -> None:
                 title="Data Entry Coordinator",
                 location="Remote",
                 tags=[],
+                listing_source="jsearch",
             )
         )
         db.commit()
@@ -109,4 +111,3 @@ def test_clear_feedback_restores_job_in_feed() -> None:
         with SessionLocal() as db:
             db.execute(delete(Job).where(Job.id == job_id))
             db.commit()
-

@@ -49,6 +49,7 @@ def test_feed_lists_jobs_and_remote_only_filters() -> None:
                     title="Engineer",
                     location="Remote (Worldwide)",
                     tags=["python"],
+                    listing_source="jsearch",
                 ),
                 Job(
                     id=onsite_id,
@@ -56,6 +57,7 @@ def test_feed_lists_jobs_and_remote_only_filters() -> None:
                     title="Engineer",
                     location="Paris, France",
                     tags=["python"],
+                    listing_source="jsearch",
                 ),
             ]
         )
@@ -92,4 +94,56 @@ def test_feed_lists_jobs_and_remote_only_filters() -> None:
     finally:
         with SessionLocal() as db:
             db.execute(delete(Job).where(Job.id.in_((remote_id, onsite_id))))
+            db.commit()
+
+
+def test_discovery_endpoints_exclude_non_rapidapi_sources() -> None:
+    client = TestClient(app)
+    token, _ = _signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    rapid_id = uuid4()
+    legacy_id = uuid4()
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                Job(
+                    id=rapid_id,
+                    company="RapidCo",
+                    title="RapidAPI Role",
+                    location="Remote",
+                    tags=["python"],
+                    listing_source="jsearch",
+                ),
+                Job(
+                    id=legacy_id,
+                    company="LegacyCo",
+                    title="RemoteOK Role",
+                    location="Remote",
+                    tags=["python"],
+                    listing_source="remoteok",
+                    source_url="https://remoteok.com/remote-jobs/legacy",
+                ),
+            ]
+        )
+        db.commit()
+    try:
+        feed = client.get("/jobs/feed?limit=100", headers=headers)
+        assert feed.status_code == 200, feed.text
+        feed_ids = {row["job"]["id"] for row in feed.json()}
+        assert str(rapid_id) in feed_ids
+        assert str(legacy_id) not in feed_ids
+
+        listing = client.get("/jobs?limit=100", headers=headers)
+        assert listing.status_code == 200, listing.text
+        list_ids = {row["id"] for row in listing.json()}
+        assert str(rapid_id) in list_ids
+        assert str(legacy_id) not in list_ids
+
+        summary = client.get("/jobs/catalog/summary", headers=headers)
+        assert summary.status_code == 200, summary.text
+        assert "remoteok" not in summary.json()["by_source"]
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(Job).where(Job.id.in_((rapid_id, legacy_id))))
             db.commit()
